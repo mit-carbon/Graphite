@@ -77,7 +77,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
                                    Byte* data_buf, UInt32 data_length,
                                    bool modeled)
 {
-   LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
+   LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
              lock_signal, mem_op_type, ca_address);
 
    bool L1_cache_hit = true;

@@ -75,14 +75,14 @@ L1CacheCntlr::setL2CacheCntlr(L2CacheCntlr* L2_cache_cntlr)
 }
 
 bool
-L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
+L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
                                    Core::lock_signal_t lock_signal,
                                    Core::mem_op_t mem_op_type, 
                                    IntPtr ca_address, UInt32 offset,
                                    Byte* data_buf, UInt32 data_length,
                                    bool modeled)
 {
-   LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
+   LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
              lock_signal, mem_op_type, ca_address);
 
    bool L1_cache_hit = true;

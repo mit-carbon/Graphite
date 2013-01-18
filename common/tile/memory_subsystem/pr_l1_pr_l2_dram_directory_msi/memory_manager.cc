@@ -234,7 +234,7 @@ MemoryManager::coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                         Byte* data_buf, UInt32 data_length,
                                         bool modeled)
 {
-   return _l1_cache_cntlr->processMemOpFromTile(mem_component, lock_signal, mem_op_type, 
+   return _l1_cache_cntlr->processMemOpFromCore(mem_component, lock_signal, mem_op_type, 
                                                 address, offset, data_buf, data_length,
                                                 modeled);
 }

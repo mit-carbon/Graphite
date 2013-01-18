@@ -45,7 +45,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       void setL2CacheCntlr(L2CacheCntlr* L2_cache_cntlr);
 
-      bool processMemOpFromTile(MemComponent::Type mem_component,
+      bool processMemOpFromCore(MemComponent::Type mem_component,
             Core::lock_signal_t lock_signal,
             Core::mem_op_t mem_op_type, 
             IntPtr ca_address, UInt32 offset,

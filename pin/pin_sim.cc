@@ -44,6 +44,7 @@
 #include "progress_trace.h"
 #include "clock_skew_minimization.h"
 #include "handle_threads.h"
+#include "runtime_energy_monitoring.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -186,6 +187,12 @@ VOID instructionCallback(INS ins, void *v)
    addPeriodicSync(ins);
    // Scheduling
    addYield(ins);
+
+   if (Config::getSingleton()->getEnablePowerModeling())
+   {
+      // Runtime Energy Monitoring
+      addRuntimeEnergyMonitoring(ins);
+   }
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {

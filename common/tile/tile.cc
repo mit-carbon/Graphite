@@ -6,6 +6,7 @@
 #include "main_core.h"
 #include "simulator.h"
 #include "log.h"
+#include "tile_energy_monitor.h"
 
 Tile::Tile(tile_id_t id)
    : _id(id)
@@ -18,6 +19,9 @@ Tile::Tile(tile_id_t id)
    
    if (Config::getSingleton()->isSimulatingSharedMemory())
       _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this);
+
+   if (Config::getSingleton()->getEnablePowerModeling())
+      _tile_energy_monitor = new TileEnergyMonitor(this);
 }
 
 Tile::~Tile()
@@ -26,6 +30,8 @@ Tile::~Tile()
       delete _memory_manager;
    delete _core;
    delete _network;
+   if (_tile_energy_monitor)
+      delete _tile_energy_monitor;
 }
 
 void Tile::outputSummary(ostream &os)
@@ -39,6 +45,10 @@ void Tile::outputSummary(ostream &os)
    LOG_PRINT("Memory Subsystem Summary");
    if (_memory_manager)
       _memory_manager->outputSummary(os);
+
+   LOG_PRINT("Tile Energy Monitor Summary");
+   if (_tile_energy_monitor)
+      _tile_energy_monitor->outputSummary(os);
 }
 
 void Tile::enableModels()

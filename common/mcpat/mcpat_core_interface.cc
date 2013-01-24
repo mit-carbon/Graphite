@@ -661,6 +661,25 @@ void McPATCoreInterface::computeMcPATCoreEnergy()
 }
 
 //---------------------------------------------------------------------------
+// Collect Energy from McPat
+//---------------------------------------------------------------------------
+double McPATCoreInterface::getDynamicEnergy()
+{
+   double dynamic_energy = _mcpat_core_out.core.dynamic;
+
+   return dynamic_energy;
+}
+double McPATCoreInterface::getStaticPower()
+{
+   // Get Longer Channel Leakage Boolean
+   bool long_channel = _xml->sys.longer_channel_device;
+
+   double static_power = (_mcpat_core_out.core.gate_leakage + (long_channel? _mcpat_core_out.core.longer_channel_leakage:_mcpat_core_out.core.leakage)) / _execution_time;
+
+   return static_power;
+}
+
+//---------------------------------------------------------------------------
 // Display Energy from McPat
 //---------------------------------------------------------------------------
 void McPATCoreInterface::displayMcPATCoreEnergy(std::ostream &os)

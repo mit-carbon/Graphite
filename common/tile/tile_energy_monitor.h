@@ -6,6 +6,8 @@
 
 using namespace std;
 
+#include "packet_type.h"
+
 // Forward Declarations
 class Network;
 class Core;
@@ -29,10 +31,8 @@ public:
    Network* getNetwork()               { return m_network; }
    MemoryManager* getMemoryManager()   { return m_memory_manager; }
 
-   // Periodically Increment Counter
-   void periodicallyIncrementCounter();
-   // Increment Counter
-   void incrementCounter();
+   // Periodically Collect Energy
+   void periodicallyCollectEnergy();
 
    // Output Summary
    void outputSummary(std::ostream &out);
@@ -45,14 +45,35 @@ private:
    Network* m_network;
    MemoryManager* m_memory_manager;
 
-   // Time Variables
-   UInt64 m_first_time;
-   UInt64 m_previous_time;
-   UInt64 m_current_time;
-   UInt64 m_next_time;
-   UInt64 m_last_time;
-   static const UInt64 m_delta_t = 1000; // (in ns)
+   // Sampling Period
+   static const double m_delta_t = 1000; // (in ns)
 
-   // Counter to Increment Periodically
-   UInt64 m_counter;
+   // Time
+   void initializeTimeCounters();
+
+   // Time Counters
+   double m_first_time;
+   double m_previous_time;
+   double m_current_time;
+   double m_next_time;
+   double m_last_time;
+   double m_time_elapsed;
+   double m_counter;
+
+   // Core Energy
+   void initializeCoreEnergyCounters();
+   void computeCoreEnergy();
+   void collectCoreEnergy();
+   void calculateCorePower();
+   void getCoreDynamicEnergy();
+   void getCoreStaticPower();
+   void getCoreStaticEnergy();
+
+   // Core Energy Counters
+   double m_core_current_total_energy;
+   double m_core_previous_total_energy;
+   double m_core_current_total_power;
+   double m_core_total_dynamic_energy;
+   double m_core_static_power;
+   double m_core_total_static_energy;
 };

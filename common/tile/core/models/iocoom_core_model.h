@@ -21,6 +21,11 @@ public:
    void updateInternalVariablesOnFrequencyChange(volatile float frequency);
    void outputSummary(std::ostream &os);
 
+   void computeEnergy();
+
+   double getDynamicEnergy();
+   double getStaticPower();
+
 private:
 
    enum CoreUnit

@@ -22,7 +22,7 @@ void handleRuntimeEnergyMonitoring()
    TileEnergyMonitor* energy_monitor = tile->getTileEnergyMonitor();
 
    if (energy_monitor)
-      energy_monitor->periodicallyIncrementCounter();
+      energy_monitor->periodicallyCollectEnergy();
 }
 
 void addRuntimeEnergyMonitoring(INS ins)

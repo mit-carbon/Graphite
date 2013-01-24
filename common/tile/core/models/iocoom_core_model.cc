@@ -88,6 +88,24 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 //   os << "    Total Inter Ins Execution Unit Stall Time (in ns): " << (UInt64) ((double) m_total_inter_ins_execution_unit_stall_cycles / m_frequency) << endl;
 }
 
+void IOCOOMCoreModel::computeEnergy()
+{
+   m_mcpat_core_interface->computeMcPATCoreEnergy();
+}
+
+double IOCOOMCoreModel::getDynamicEnergy()
+{
+   double dynamic_energy = m_mcpat_core_interface->getDynamicEnergy();
+
+   return dynamic_energy;
+}
+double IOCOOMCoreModel::getStaticPower()
+{
+   double static_power = m_mcpat_core_interface->getStaticPower();
+
+   return static_power;
+}
+
 void IOCOOMCoreModel::updateInternalVariablesOnFrequencyChange(volatile float frequency)
 {
    volatile float old_frequency = m_frequency;

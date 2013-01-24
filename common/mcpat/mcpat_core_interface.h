@@ -111,6 +111,10 @@ public:
    // Compute Energy from McPat
    void computeMcPATCoreEnergy();
 
+   // Collect Energy from McPAT
+   double getDynamicEnergy();
+   double getStaticPower();
+
    // Display Energy from McPat
    void displayMcPATCoreEnergy(ostream& os);
    // Display Architectural Parameters

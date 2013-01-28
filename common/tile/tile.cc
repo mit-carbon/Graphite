@@ -11,6 +11,7 @@
 Tile::Tile(tile_id_t id)
    : _id(id)
    , _memory_manager(NULL)
+   , _tile_energy_monitor(NULL)
 {
    LOG_PRINT("Tile ctor for (%i)", _id);
 

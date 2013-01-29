@@ -29,7 +29,7 @@ TARGET = dsent.exe
 all: $(TARGET)
 
 $(TARGET): main.o $(OBJS) 
-	$(CXX) $(CXX_FLAGS) $(LD_FLAGS) $(OBJS) main.o DSENT.o -o $(TARGET) $(LD_LIBS) 
+	$(CXX) $(CXX_FLAGS) $(LD_FLAGS) $(OBJS) main.o -o $(TARGET) $(LD_LIBS) 
 
 object: $(OBJS)
 

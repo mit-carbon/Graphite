@@ -76,4 +76,20 @@ private:
    double m_core_total_dynamic_energy;
    double m_core_static_power;
    double m_core_total_static_energy;
+
+   // Nework Energy
+   void initializeNetworkEnergyCounters();
+   void collectNetworkEnergy();
+   void calculateNetworkPower();
+   void getNetworkDynamicEnergy();
+   void getNetworkStaticPower();
+   void getNetworkStaticEnergy();
+
+   // Network Energy Counters
+   double m_network_current_total_energy[NUM_STATIC_NETWORKS];
+   double m_network_previous_total_energy[NUM_STATIC_NETWORKS];
+   double m_network_current_total_power[NUM_STATIC_NETWORKS];
+   double m_network_total_dynamic_energy[NUM_STATIC_NETWORKS];
+   double m_network_static_power[NUM_STATIC_NETWORKS];
+   double m_network_total_static_energy[NUM_STATIC_NETWORKS];
 };

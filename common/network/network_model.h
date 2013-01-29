@@ -66,6 +66,9 @@ public:
 
    virtual void outputSummary(std::ostream &out) = 0;
 
+   virtual double getDynamicEnergy() { return 0; }
+   virtual double getStaticPower()   { return 0; }
+
    void enable() { _enabled = true; }
    void disable() { _enabled = false; }
 

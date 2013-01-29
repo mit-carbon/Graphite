@@ -37,6 +37,7 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
 
    // Initialize Energy Counters
    initializeCoreEnergyCounters();
+   initializeNetworkEnergyCounters();
 
    // Set First Time Variable
    // Check Core Cycle Count
@@ -73,33 +74,16 @@ void TileEnergyMonitor::periodicallyCollectEnergy()
 
       // Collect Energy
       collectCoreEnergy();
+      collectNetworkEnergy();
 
       // Calculate Power
       calculateCorePower();
+      calculateNetworkPower();
 
       // Update the Previous Time
       m_previous_time = m_current_time;
       // Update the Next Time
       m_next_time = m_current_time + m_delta_t;
-
-      /*cout  << "Tile " << m_tile->getId()
-            << " \t| Time Variables:"
-            << " \tm_first_time = "      << m_first_time
-            << " \tm_previous_time = "   << m_previous_time
-            << " \tm_current_time = "    << m_current_time
-            << " \tm_next_time = "       << m_next_time
-            << " \tm_last_time = "       << m_last_time
-            << " \tm_time_elapsed = "    << m_time_elapsed
-            << " \t| Counter:"
-            << " \tm_counter = "         << m_counter
-            << " \t| Core Energy Counters:"
-            << " \tm_core_current_total_energy = "   << m_core_current_total_energy
-            << " \tm_core_previous_total_energy = "  << m_core_previous_total_energy
-            << " \tm_core_current_total_power = "    << m_core_current_total_power
-            << " \tm_core_total_dynamic_energy = "   << m_core_total_dynamic_energy
-            << " \tm_core_static_power = "           << m_core_static_power
-            << " \tm_core_total_static_energy = "    << m_core_total_static_energy
-            << endl;*/
    }
 }
 
@@ -194,6 +178,88 @@ void TileEnergyMonitor::getCoreStaticEnergy()
 }
 
 //---------------------------------------------------------------------------
+// Initialize Network Energy Counters
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::initializeNetworkEnergyCounters()
+{
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      m_network_current_total_energy[i] = 0;
+      m_network_previous_total_energy[i] = 0;
+      m_network_current_total_power[i] = 0;
+      m_network_total_dynamic_energy[i] = 0;
+      m_network_static_power[i] = 0;
+      m_network_total_static_energy[i] = 0;
+   }
+}
+
+//---------------------------------------------------------------------------
+// Collect Network Energy
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::collectNetworkEnergy()
+{
+   getNetworkDynamicEnergy();
+   getNetworkStaticPower();
+   getNetworkStaticEnergy();
+
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      // Store the Previous Total Energy
+      m_network_previous_total_energy[i] = m_network_current_total_energy[i];
+      // Calculate the Current Total Energy
+      m_network_current_total_energy[i] = m_network_total_dynamic_energy[i] +
+                                          m_network_total_static_energy[i];
+   }
+}
+
+//---------------------------------------------------------------------------
+// Calculate Network Power
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::calculateNetworkPower()
+{
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      m_network_current_total_power[i] = (m_network_current_total_energy[i] -
+                                          m_network_previous_total_energy[i])/
+                                         (m_time_elapsed*1E-9);
+   }
+}
+
+//---------------------------------------------------------------------------
+// Get Network Dynamic Energy
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::getNetworkDynamicEnergy()
+{
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      m_network_total_dynamic_energy[i] = m_network->getNetworkModel(i)->getDynamicEnergy();
+   }
+}
+
+//---------------------------------------------------------------------------
+// Get Network Static Power
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::getNetworkStaticPower()
+{
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      m_network_static_power[i] = m_network->getNetworkModel(i)->getStaticPower();
+   }
+}
+
+//---------------------------------------------------------------------------
+// Get Network Static Energy
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::getNetworkStaticEnergy()
+{
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      m_network_total_static_energy[i] = m_network_total_static_energy[i] + 
+                                  (m_network_static_power[i]*m_time_elapsed*1E-9);
+   }
+}
+
+//---------------------------------------------------------------------------
 // Output Summary
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::outputSummary(std::ostream &out)
@@ -204,20 +270,33 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
    // Convert from Tile Clock to Global Clock
    m_last_time = convertCycleCount(m_cycle_count, m_core_model->getFrequency(), 1.0);
 
-   periodicallyCollectEnergy();
+   if (m_tile->getId() < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
+   {
+      // Not Thread Spawner Tile / MCP
+      periodicallyCollectEnergy();
 
-   out << "Tile Energy Monitor Summary: " << endl;
-   out << "  First Time (in ns): " << m_first_time << std::endl;
-   out << "  Last Time (in ns): " << m_last_time << std::endl;
-   out << "  Delta t (in ns): " << m_delta_t << std::endl;
-   out << "  Counter: " << m_counter << std::endl;
-   out << "  Current Time (in ns): " << m_current_time << std::endl;
-   out << "  Previous Time (in ns): " << m_previous_time << std::endl;
-   out << "  Time Elapsed (in ns): " << m_time_elapsed << std::endl;
-   out << "  Core Model: " << endl;
-   out << "    Dynamic Energy (in J): " << m_core_total_dynamic_energy << std::endl;
-   out << "    Static Power (in W): " << m_core_static_power << std::endl;
-   out << "    Static Energy (in J): " << m_core_total_static_energy << std::endl;
-   out << "    Total Energy (in J): " << m_core_current_total_energy << std::endl;
-   out << "    Current Power (in W): " << m_core_current_total_power << std::endl;
+      out << "Tile Energy Monitor Summary: " << endl;
+      out << "  First Time (in ns): " << m_first_time << std::endl;
+      out << "  Last Time (in ns): " << m_last_time << std::endl;
+      out << "  Delta t (in ns): " << m_delta_t << std::endl;
+      out << "  Counter: " << m_counter << std::endl;
+      out << "  Current Time (in ns): " << m_current_time << std::endl;
+      out << "  Previous Time (in ns): " << m_previous_time << std::endl;
+      out << "  Time Elapsed (in ns): " << m_time_elapsed << std::endl;
+      out << "  Core Model: " << endl;
+      out << "    Dynamic Energy (in J): " << m_core_total_dynamic_energy << std::endl;
+      out << "    Static Power (in W): " << m_core_static_power << std::endl;
+      out << "    Static Energy (in J): " << m_core_total_static_energy << std::endl;
+      out << "    Total Energy (in J): " << m_core_current_total_energy << std::endl;
+      out << "    Current Power (in W): " << m_core_current_total_power << std::endl;
+      for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+      {
+         out << "  Network Model " << i << ": " << endl;
+         out << "    Dynamic Energy (in J): " << m_network_total_dynamic_energy[i] << std::endl;
+         out << "    Static Power (in W): " << m_network_static_power[i] << std::endl;
+         out << "    Static Energy (in J): " << m_network_total_static_energy[i] << std::endl;
+         out << "    Total Energy (in J): " << m_network_current_total_energy[i] << std::endl;
+         out << "    Current Power (in W): " << m_network_current_total_power[i] << std::endl;
+      }
+   }
 }

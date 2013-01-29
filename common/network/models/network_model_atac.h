@@ -27,6 +27,9 @@ public:
 
    void outputSummary(std::ostream &out);
 
+   double getDynamicEnergy() { return 0; }
+   double getStaticPower()   { return 0; }
+
 private:
    enum NodeType
    {

@@ -46,6 +46,11 @@ public:
    
    virtual void outputSummary(std::ostream& os) = 0;
 
+   virtual void computeEnergy() = 0;
+
+   virtual double getDynamicEnergy() = 0;
+   virtual double getStaticPower() = 0;
+
    // Cache line replication trace
    static void openCacheLineReplicationTraceFiles();
    static void closeCacheLineReplicationTraceFiles();

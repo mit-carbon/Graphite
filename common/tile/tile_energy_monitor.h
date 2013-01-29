@@ -77,6 +77,47 @@ private:
    double m_core_static_power;
    double m_core_total_static_energy;
 
+   // Cache Energy
+   void initializeCacheEnergyCounters();
+   void computeCacheEnergy();
+   void collectCacheEnergy();
+   void calculateCachePower();
+   void getCacheDynamicEnergy();
+   void getCacheStaticPower();
+   void getCacheStaticEnergy();
+
+   // Cache Energy Counters
+   double m_cache_current_total_energy;
+   double m_cache_previous_total_energy;
+   double m_cache_current_total_power;
+   double m_cache_total_dynamic_energy;
+   double m_cache_static_power;
+   double m_cache_total_static_energy;
+
+   // L1-I Cache Energy Counters
+   double m_l1i_cache_current_total_energy;
+   double m_l1i_cache_previous_total_energy;
+   double m_l1i_cache_current_total_power;
+   double m_l1i_cache_total_dynamic_energy;
+   double m_l1i_cache_static_power;
+   double m_l1i_cache_total_static_energy;
+
+   // L1-D Cache Energy Counters
+   double m_l1d_cache_current_total_energy;
+   double m_l1d_cache_previous_total_energy;
+   double m_l1d_cache_current_total_power;
+   double m_l1d_cache_total_dynamic_energy;
+   double m_l1d_cache_static_power;
+   double m_l1d_cache_total_static_energy;
+
+   // L2 Cache Energy Counters
+   double m_l2_cache_current_total_energy;
+   double m_l2_cache_previous_total_energy;
+   double m_l2_cache_current_total_power;
+   double m_l2_cache_total_dynamic_energy;
+   double m_l2_cache_static_power;
+   double m_l2_cache_total_static_energy;
+
    // Nework Energy
    void initializeNetworkEnergyCounters();
    void collectNetworkEnergy();

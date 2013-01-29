@@ -58,7 +58,12 @@ namespace PrL1PrL2DramDirectoryMOSI
       { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
       void outputSummary(std::ostream &os);
-      
+
+      void computeEnergy();
+
+      double getDynamicEnergy();
+      double getStaticPower();
+
       // App + Sim thread synchronization
       void waitForAppThread();
       void wakeUpAppThread();

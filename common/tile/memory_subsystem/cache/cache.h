@@ -101,6 +101,11 @@ public:
    
    virtual void outputSummary(ostream& out);
 
+   void computeEnergy();
+
+   double getDynamicEnergy();
+   double getStaticPower();
+
    // Friend class
    friend class McPATCacheInterface;
 

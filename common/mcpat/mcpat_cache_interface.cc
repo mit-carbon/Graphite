@@ -53,6 +53,20 @@ void McPATCacheInterface::computeEnergy(Cache* cache)
 }
 
 //---------------------------------------------------------------------------
+// Collect Energy from McPat
+//---------------------------------------------------------------------------
+double McPATCacheInterface::getDynamicEnergy()
+{
+   double dynamic_energy = _mcpat_cache_out.dynamic_energy;
+   return dynamic_energy;
+}
+double McPATCacheInterface::getStaticPower()
+{
+   double static_power = _mcpat_cache_out.leakage_power;
+   return static_power;
+}
+
+//---------------------------------------------------------------------------
 // Display Energy from McPAT
 //---------------------------------------------------------------------------
 void McPATCacheInterface::outputSummary(ostream& os)

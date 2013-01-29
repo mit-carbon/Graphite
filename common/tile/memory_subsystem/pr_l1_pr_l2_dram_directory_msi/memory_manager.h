@@ -54,6 +54,11 @@ namespace PrL1PrL2DramDirectoryMSI
 
       void outputSummary(std::ostream &os);
 
+      void computeEnergy();
+
+      double getDynamicEnergy();
+      double getStaticPower();
+
       // App + Sim thread synchronization
       void waitForAppThread();
       void wakeUpAppThread();

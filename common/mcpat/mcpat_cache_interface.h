@@ -28,6 +28,10 @@ public:
    // Compute Energy from McPAT
    void computeEnergy(Cache* cache);
 
+   // Collect Energy from McPAT
+   double getDynamicEnergy();
+   double getStaticPower();
+
    // Output energy/area summary from McPAT
    void outputSummary(ostream& os);
 

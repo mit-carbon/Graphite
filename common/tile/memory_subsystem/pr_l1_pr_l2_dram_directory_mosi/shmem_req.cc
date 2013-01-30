@@ -1,5 +1,6 @@
 #include "shmem_req.h"
 #include "utils.h"
+#include "clock_converter.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -40,6 +41,14 @@ ShmemReq::updateProcessingFinishTime(UInt64 time)
 {
    if (_processing_finish_time < time)
       _processing_finish_time = time;
+}
+
+void
+ShmemReq::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   _arrival_time = convertCycleCount(_arrival_time, old_frequency, new_frequency);
+   _processing_start_time = convertCycleCount(_processing_start_time, old_frequency, new_frequency);
+   _processing_finish_time = convertCycleCount(_processing_finish_time, old_frequency, new_frequency);
 }
 
 }

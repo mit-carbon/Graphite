@@ -32,21 +32,6 @@ DramPerfModel::DramPerfModel(float dram_access_cost,
 {
    initializePerformanceCounters();
    createQueueModels();
-
-   // Power (should probably refactor this out)
-   if(Config::getSingleton()->getEnablePowerModeling())
-   {
-      try
-      {
-         m_dynamic_energy = Sim()->getCfg()->getFloat("power_model/dram/dynamic_energy"); 
-         m_total_static_power = Sim()->getCfg()->getFloat("power_model/dram/static_power"); 
-      }
-      catch(...)
-      {
-         LOG_PRINT_ERROR("Error Reading 'dram_power_model/' from the config file");
-      }
-   }
-
 }
 
 DramPerfModel::~DramPerfModel()
@@ -145,12 +130,6 @@ DramPerfModel::outputSummary(ostream& out)
       (float) (m_total_queueing_delay / m_num_accesses) << endl;
 
 
-   if (Config::getSingleton()->getEnablePowerModeling())
-   {
-      out << "    Static Power (in W): " << (float) (m_total_static_power) << endl;
-      out << "    Dynamic Energy (in J): " << (float) (m_dynamic_energy * m_num_accesses) << endl;
-   }
-   
    std::string queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
    if (m_queue_model && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))
    {

@@ -9,15 +9,11 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-// Static variables
-ofstream MemoryManager::_cache_line_replication_file;
-
 MemoryManager::MemoryManager(Tile* tile)
    : ::MemoryManager(tile)
    , _dram_directory_cntlr(NULL)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
-   , _enabled(false)
 {
    // Read Parameters from the Config file
    std::string l1_icache_type;
@@ -122,11 +118,8 @@ MemoryManager::MemoryManager(Tile* tile)
       LOG_PRINT_ERROR("Error reading memory system parameters from the config file");
    }
 
-   if (getTile()->getId() == 0)
-   {
-      LOG_ASSERT_ERROR(directory_type != "limited_broadcast",
-            "Limited Broadcast directory scheme CANNOT be used with the MSI protocol.");
-   }
+   LOG_ASSERT_ERROR(directory_type != "limited_broadcast",
+         "limited_broadcast directory scheme CANNOT be used with the pr_l1_pr_l2_dram_directory_msi protocol.");
 
    // Check if all cache line sizes are the same
    LOG_ASSERT_ERROR((l1_icache_line_size == l1_dcache_line_size) && (l1_dcache_line_size == l2_cache_line_size),
@@ -137,7 +130,7 @@ MemoryManager::MemoryManager(Tile* tile)
    _cache_line_size = l1_icache_line_size;
    dram_directory_home_lookup_param = ceilLog2(_cache_line_size);
 
-   float core_frequency = Config::getSingleton()->getCoreFrequency(Tile::getMainCoreId(getTile()->getId()));
+   float frequency = getTile()->getFrequency();
   
    std::vector<tile_id_t> tile_list_with_memory_controllers = getTileListWithMemoryControllers();
    UInt32 num_memory_controllers = tile_list_with_memory_controllers.size();
@@ -186,7 +179,7 @@ MemoryManager::MemoryManager(Tile* tile)
          l1_dcache_replacement_policy,
          l1_dcache_data_access_time,
          l1_dcache_track_miss_types,
-         core_frequency);
+         frequency);
    
    LOG_PRINT("Instantiated L1 Cache Cntlr");
 
@@ -199,7 +192,7 @@ MemoryManager::MemoryManager(Tile* tile)
          l2_cache_replacement_policy,
          l2_cache_data_access_time,
          l2_cache_track_miss_types,
-         core_frequency);
+         frequency);
 
    LOG_PRINT("Instantiated L2 Cache Cntlr");
 
@@ -207,24 +200,17 @@ MemoryManager::MemoryManager(Tile* tile)
 
    // Create Cache Performance Models
    _l1_icache_perf_model = CachePerfModel::create(l1_icache_perf_model_type,
-         l1_icache_data_access_time, l1_icache_tags_access_time, core_frequency);
+         l1_icache_data_access_time, l1_icache_tags_access_time, frequency);
    _l1_dcache_perf_model = CachePerfModel::create(l1_dcache_perf_model_type,
-         l1_dcache_data_access_time, l1_dcache_tags_access_time, core_frequency);
+         l1_dcache_data_access_time, l1_dcache_tags_access_time, frequency);
    _l2_cache_perf_model = CachePerfModel::create(l2_cache_perf_model_type,
-         l2_cache_data_access_time, l2_cache_tags_access_time, core_frequency);
+         l2_cache_data_access_time, l2_cache_tags_access_time, frequency);
 
    LOG_PRINT("Instantiated Cache Performance Models");
-
-   // Register Call-backs
-   getNetwork()->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
-   getNetwork()->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
 }
 
 MemoryManager::~MemoryManager()
 {
-   getNetwork()->unregisterCallback(SHARED_MEM_1);
-   getNetwork()->unregisterCallback(SHARED_MEM_2);
-
    // Delete the Models
    delete _l1_icache_perf_model;
    delete _l1_dcache_perf_model;
@@ -246,22 +232,11 @@ MemoryManager::coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                         Core::mem_op_t mem_op_type,
                                         IntPtr address, UInt32 offset,
                                         Byte* data_buf, UInt32 data_length,
-                                        UInt64& curr_time, bool modeled)
+                                        bool modeled)
 {
-   if (lock_signal != Core::UNLOCK)
-      _lock.acquire();
-  
-   getShmemPerfModel()->setCycleCount(curr_time);
-
-   bool ret = _l1_cache_cntlr->processMemOpFromTile(mem_component, lock_signal, mem_op_type, 
-                                                    address, offset, data_buf, data_length, modeled);
-
-   curr_time = getShmemPerfModel()->getCycleCount();
-
-   if (lock_signal != Core::LOCK)
-      _lock.release();
-
-   return ret;
+   return _l1_cache_cntlr->processMemOpFromCore(mem_component, lock_signal, mem_op_type, 
+                                                address, offset, data_buf, data_length,
+                                                modeled);
 }
 
 void
@@ -269,16 +244,11 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
    core_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
-   UInt64 msg_time = packet.time;
 
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   _lock.acquire();
-
-   getShmemPerfModel()->setCycleCount(msg_time);
-
-   LOG_PRINT("Got Shmem Msg: type(%i), address(0x%x), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
+   LOG_PRINT("Got Shmem Msg: type(%i), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), sender(%i,%i), receiver(%i,%i)", 
              shmem_msg->getType(), shmem_msg->getAddress(), sender_mem_component, receiver_mem_component,
              sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
 
@@ -336,9 +306,17 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
       delete [] shmem_msg->getDataBuf();
    }
    delete shmem_msg;
-
-   _lock.release();
 }
+
+// Update internal variables when frequency is changed
+// Variables that need to be updated include all variables that are expressed in terms of cycles
+//  e.g., total memory access latency, packet arrival time, etc.
+void
+MemoryManager::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   _l2_cache_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   _dram_directory_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+}      
 
 void
 MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
@@ -348,7 +326,8 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   LOG_PRINT("Sending Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i), receiver(%i)",
+   LOG_PRINT("Sending Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), "
+             "requester(%i), sender(%i), receiver(%i)",
              shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
              shmem_msg.getRequester(), getTile()->getId(), receiver);
 
@@ -369,7 +348,8 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    UInt64 msg_time = getShmemPerfModel()->getCycleCount();
 
-   LOG_PRINT("Broadcasting Msg: type(%u), address(%#llx), sender_mem_component(%u), receiver_mem_component(%u), requester(%i), sender(%i)",
+   LOG_PRINT("Broadcasting Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), "
+             "requester(%i), sender(%i)",
              shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
              shmem_msg.getRequester(), getTile()->getId());
 
@@ -387,32 +367,30 @@ MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::
 {
    switch (mem_component)
    {
-      case MemComponent::L1_ICACHE:
-         getShmemPerfModel()->incrCycleCount(_l1_icache_perf_model->getLatency(access_type));
-         break;
+   case MemComponent::L1_ICACHE:
+      getShmemPerfModel()->incrCycleCount(_l1_icache_perf_model->getLatency(access_type));
+      break;
 
-      case MemComponent::L1_DCACHE:
-         getShmemPerfModel()->incrCycleCount(_l1_dcache_perf_model->getLatency(access_type));
-         break;
+   case MemComponent::L1_DCACHE:
+      getShmemPerfModel()->incrCycleCount(_l1_dcache_perf_model->getLatency(access_type));
+      break;
 
-      case MemComponent::L2_CACHE:
-         getShmemPerfModel()->incrCycleCount(_l2_cache_perf_model->getLatency(access_type));
-         break;
+   case MemComponent::L2_CACHE:
+      getShmemPerfModel()->incrCycleCount(_l2_cache_perf_model->getLatency(access_type));
+      break;
 
-      case MemComponent::INVALID:
-         break;
+   case MemComponent::INVALID:
+      break;
 
-      default:
-         LOG_PRINT_ERROR("Unrecognized mem component type(%u)", mem_component);
-         break;
+   default:
+      LOG_PRINT_ERROR("Unrecognized mem component type(%u)", mem_component);
+      break;
    }
 }
 
 void
 MemoryManager::enableModels()
 {
-   _enabled = true;
-
    _l1_cache_cntlr->getL1ICache()->enable();
    _l1_icache_perf_model->enable();
    
@@ -434,8 +412,6 @@ MemoryManager::enableModels()
 void
 MemoryManager::disableModels()
 {
-   _enabled = false;
-
    _l1_cache_cntlr->getL1ICache()->disable();
    _l1_icache_perf_model->disable();
 
@@ -474,168 +450,8 @@ MemoryManager::outputSummary(std::ostream &os)
       os << "Dram Directory Cache Summary:\n";
       DirectoryCache::dummyOutputSummary(os, getTile()->getId());
    }
-}
 
-void
-MemoryManager::waitForAppThread()
-{
-   _sim_thread_sem.wait();
-   _lock.acquire();
-}
-
-void
-MemoryManager::wakeUpAppThread()
-{
-   _lock.release();
-   _app_thread_sem.signal();
-}
-
-void
-MemoryManager::waitForSimThread()
-{
-   _lock.release();
-   _app_thread_sem.wait();
-}
-
-void
-MemoryManager::wakeUpSimThread()
-{
-   _lock.acquire();
-   _sim_thread_sem.signal();
-}
-
-void
-MemoryManager::openCacheLineReplicationTraceFiles()
-{
-   string output_dir;
-   try
-   {
-      output_dir = Sim()->getCfg()->getString("general/output_dir");
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Could not read general/output_dir from the cfg file");
-   }
-
-   string filename = output_dir + "/cache_line_replication.dat";
-   _cache_line_replication_file.open(filename.c_str());
-}
-
-void
-MemoryManager::closeCacheLineReplicationTraceFiles()
-{
-   _cache_line_replication_file.close();
-}
-
-void
-MemoryManager::outputCacheLineReplicationSummary()
-{
-   // Static Function to Compute the Time Varying Replication Index of a Cache Line
-   // Go through the set of all caches and directories and get the
-   // number of times each cache line is replicated
-
-   SInt32 total_tiles = (SInt32) Config::getSingleton()->getTotalTiles();
-   
-   UInt64 total_exclusive_lines_l1_cache = 0;
-   UInt64 total_shared_lines_l1_cache = 0;
-   UInt64 total_exclusive_lines_l2_cache = 0;
-   UInt64 total_shared_lines_l2_cache = 0;
-   UInt64 total_cache_lines_l2_cache = 0;
-   vector<UInt64> total_cache_line_sharer_count(total_tiles+1, 0);
-   
-   for (SInt32 tile_id = 0; tile_id < total_tiles; tile_id ++)
-   {
-      // Tile Ptr
-      Tile* tile = Sim()->getTileManager()->getTileFromID(tile_id);
-      assert(tile);
-      MemoryManager* memory_manager = (MemoryManager*) tile->getMemoryManager();
-      Cache* l1_icache = memory_manager->getL1ICache();
-      Cache* l1_dcache = memory_manager->getL1DCache();
-      Cache* l2_cache = memory_manager->getL2Cache();
-      Directory* directory = (Directory*) NULL;
-      if (memory_manager->isDramCntlrPresent())
-         directory = memory_manager->getDramDirectoryCache()->getDirectory();
-   
-      // Get total lines in L1 caches & L2 cache
-      vector<UInt64> _l1_icache_line_state_counters;
-      vector<UInt64> _l1_dcache_line_state_counters;
-      vector<UInt64> _l2_cache_line_state_counters;
-      l1_icache->getCacheLineStateCounters(_l1_icache_line_state_counters);
-      l1_dcache->getCacheLineStateCounters(_l1_dcache_line_state_counters);
-      l2_cache->getCacheLineStateCounters(_l2_cache_line_state_counters);
-
-      UInt64 num_exclusive_lines_l1_icache = _l1_icache_line_state_counters[CacheState::MODIFIED];
-      UInt64 num_shared_lines_l1_icache = _l1_icache_line_state_counters[CacheState::SHARED];
-      UInt64 num_exclusive_lines_l1_dcache = _l1_dcache_line_state_counters[CacheState::MODIFIED];
-      UInt64 num_shared_lines_l1_dcache = _l1_dcache_line_state_counters[CacheState::SHARED];
-      UInt64 num_exclusive_lines_l2_cache = _l2_cache_line_state_counters[CacheState::MODIFIED];
-      UInt64 num_shared_lines_l2_cache = _l2_cache_line_state_counters[CacheState::SHARED];
-
-      // Get total
-      total_exclusive_lines_l1_cache += (num_exclusive_lines_l1_icache + num_exclusive_lines_l1_dcache);
-      total_shared_lines_l1_cache += (num_shared_lines_l1_icache + num_shared_lines_l1_dcache);
-      total_exclusive_lines_l2_cache += num_exclusive_lines_l2_cache;
-      total_shared_lines_l2_cache += num_shared_lines_l2_cache;
-
-      if (directory)
-      {
-         vector<UInt64> cache_line_sharer_count;
-         directory->getSharerStats(cache_line_sharer_count);
-         for (SInt32 num_sharers = 1; num_sharers <= total_tiles; num_sharers ++)
-         {
-            total_cache_line_sharer_count[num_sharers] += cache_line_sharer_count[num_sharers];
-            total_cache_lines_l2_cache += cache_line_sharer_count[num_sharers];
-         }
-      }
-   }
-
-   // Write to file
-   // L1 cache, L2 cache
-   _cache_line_replication_file << total_exclusive_lines_l1_cache << ", " << total_shared_lines_l1_cache << ", " << endl;
-   _cache_line_replication_file << total_exclusive_lines_l2_cache << ", " << total_shared_lines_l2_cache << ", " << endl;
-   for (SInt32 i = 1; i <= total_tiles; i++)
-      _cache_line_replication_file << total_cache_line_sharer_count[i] << ", ";
-   _cache_line_replication_file << endl;
-   
-   // Replication count
-   // For Pr L1, Pr L2 configuration
-   vector<UInt64> total_cache_line_replication_count(2*total_tiles+1, 0);
-   
-   // Account for exclusive lines first
-   // For Pr L1, Pr L2 configuration
-   total_cache_line_replication_count[1] += (total_exclusive_lines_l2_cache - total_exclusive_lines_l1_cache);
-   total_cache_line_replication_count[2] += total_exclusive_lines_l1_cache;
-   
-   // Subtract out the exclusive lines 
-   total_cache_line_sharer_count[1] -= total_exclusive_lines_l2_cache;
-
-   double shared_lines_ratio = 1.0 * total_shared_lines_l1_cache / total_shared_lines_l2_cache;
-   
-   // Accout for shared lines next
-   for (SInt32 num_sharers = 1; num_sharers <= total_tiles; num_sharers ++)
-   {
-      UInt64 num_cache_lines = total_cache_line_sharer_count[num_sharers];
-      SInt32 degree_l2 = num_sharers;
-      double degree_l1 = shared_lines_ratio * degree_l2;
-      
-      // Some lines are replicated in floor(degree_l1) L1 cache slices
-      // while some lines are replicated in ceil(degree_l1) L1 cache caches
-      UInt64 num_low = (UInt64) (num_cache_lines * (ceil(degree_l1) - degree_l1));
-      SInt32 degree_low = (SInt32) floor(degree_l1);
-      UInt64 num_high = num_cache_lines - num_low;
-      SInt32 degree_high = (SInt32) ceil(degree_l1);
-
-      // Approximate For Pr L1, Pr L2 configuration
-      total_cache_line_replication_count[num_sharers + degree_low] += num_low;
-      total_cache_line_replication_count[num_sharers + degree_high] += num_high;
-   }
-
-   // For Pr L1, Pr L2 configuration
-   for (SInt32 i = 1; i <= (2*total_tiles); i++)
-      _cache_line_replication_file << total_cache_line_replication_count[i] << ", ";
-   _cache_line_replication_file << endl;
-
-   _cache_line_replication_file << endl;
+   ::MemoryManager::outputSummary(os);
 }
 
 }

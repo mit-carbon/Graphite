@@ -1,6 +1,7 @@
 #include "l1_cache_cntlr.h"
 #include "memory_manager.h"
 #include "config.h"
+#include "clock_converter.h"
 #include "log.h"
 
 namespace PrL1ShL2MSI
@@ -76,7 +77,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
                                    Byte* data_buf, UInt32 data_length,
                                    bool modeled)
 {
-   LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
+   LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
              lock_signal, mem_op_type, ca_address);
 
    bool L1_cache_hit = true;
@@ -339,6 +340,12 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       _memory_manager->wakeUpAppThread();
       _memory_manager->waitForAppThread();
    }
+}
+
+void
+L1CacheCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   _outstanding_shmem_msg_time = convertCycleCount(_outstanding_shmem_msg_time, old_frequency, new_frequency);
 }
 
 void

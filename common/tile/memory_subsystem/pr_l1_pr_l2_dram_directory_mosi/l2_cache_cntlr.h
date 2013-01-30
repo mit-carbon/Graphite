@@ -21,8 +21,6 @@ using std::map;
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
 
-#include "utilization_defines.h"
-
 namespace PrL1PrL2DramDirectoryMOSI
 {
    class L2CacheCntlr
@@ -54,6 +52,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Output summary
       void outputSummary(ostream& out);
 
+      // Update internal variables when frequency is changed
+      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+      
       void enable() { _enabled = true; }
       void disable() { _enabled = false; }
 
@@ -72,18 +73,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Is enabled?
       bool _enabled;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      enum CacheOperationType
-      {
-         CACHE_EVICTION,
-         CACHE_INVALIDATION,
-         NUM_CACHE_OPERATION_TYPES
-      };
-
-      // Utilization counters
-      UInt64 _total_cache_operations_by_utilization[NUM_CACHE_OPERATION_TYPES][MAX_TRACKED_UTILIZATION + 1];
-#endif
 
       // Eviction Counters
       // Measure clean/dirty evictions
@@ -137,13 +126,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       void initializeInvalidationCounters();
       void updateEvictionCounters(CacheState::Type inserted_cstate, CacheState::Type evicted_cstate);
       void updateInvalidationCounters();
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      void initializeUtilizationCounters();
-      UInt32 getLineUtilizationInCacheHierarchy(IntPtr address, PrL2CacheLineInfo& l2_cache_line_info);
-      void updateUtilizationCounters(CacheOperationType operation, UInt32 cache_line_utilization);
-      void outputUtilizationCountSummary(ostream& out);
-#endif
    };
 
 }

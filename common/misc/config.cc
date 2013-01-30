@@ -81,7 +81,7 @@ Config::Config()
    if (m_simulation_mode == FULL)
       m_total_tiles += m_num_processes;
 
-   // Parse Network Models - Need to be done here to initialize the network models 
+   // Parse network parameters - Need to be done here to initialize the network models 
    parseNetworkParameters();
 
    // Check if any of the on-chip networks have restrictions on the tile_count
@@ -89,8 +89,8 @@ Config::Config()
    if (!isTileCountPermissible(m_application_tiles))
       exit(-1);
 
-   // Parse Core Models
-   parseCoreParameters();
+   // Parse tile parameters
+   parseTileParameters();
 
    // Compute Tile ID length in bits
    m_tile_id_length = computeTileIDLength(m_application_tiles);
@@ -359,116 +359,119 @@ Config::SimulationMode Config::parseSimulationMode(string mode)
    }
 }
 
-void Config::parseCoreParameters()
+void Config::parseTileParameters()
 {
    // Default values are as follows:
-   // 1) Number of cores -> Number of application cores
+   // 1) Number of tiles -> Number of application tiles
    // 2) Frequency -> 1 GHz
    // 3) Core Type -> simple
+   // 4) L1-I Cache Type -> T1
+   // 5) L1-D Cache Type -> T1
+   // 6) L2 Cache Type -> T1
 
-   const UInt32 DEFAULT_NUM_CORES = getApplicationTiles();
+   const UInt32 DEFAULT_NUM_TILES = getApplicationTiles();
    const float DEFAULT_FREQUENCY = 1;
    const string DEFAULT_CORE_TYPE = "simple";
    const string DEFAULT_CACHE_TYPE = "T1";
 
-   string core_parameter_tuple_str;
-   vector<string> core_parameter_tuple_vec;
+   string tile_parameter_tuple_str;
+   vector<string> tile_parameter_tuple_vec;
    try
    {
-      core_parameter_tuple_str = Sim()->getCfg()->getString("core/model_list");
+      tile_parameter_tuple_str = Sim()->getCfg()->getString("tile/model_list");
    }
    catch(...)
    {
-      fprintf(stderr, "ERROR: Could not read core/model_list from the cfg file\n");
+      fprintf(stderr, "ERROR: Could not read [tile/model_list] from the cfg file\n");
       exit(EXIT_FAILURE);
    }
 
-   UInt32 num_initialized_cores = 0;
+   UInt32 num_initialized_tiles = 0;
 
-   parseList(core_parameter_tuple_str, core_parameter_tuple_vec, "<>");
+   parseList(tile_parameter_tuple_str, tile_parameter_tuple_vec, "<>");
    
-   for (vector<string>::iterator tuple_it = core_parameter_tuple_vec.begin();
-         tuple_it != core_parameter_tuple_vec.end(); tuple_it++)
+   for (vector<string>::iterator tuple_it = tile_parameter_tuple_vec.begin();
+         tuple_it != tile_parameter_tuple_vec.end(); tuple_it++)
    {
       // Initializing using default values
-      UInt32 num_cores = DEFAULT_NUM_CORES;
+      UInt32 num_tiles = DEFAULT_NUM_TILES;
       float frequency = DEFAULT_FREQUENCY;
       string core_type = DEFAULT_CORE_TYPE;
       string l1_icache_type = DEFAULT_CACHE_TYPE;
       string l1_dcache_type = DEFAULT_CACHE_TYPE;
       string l2_cache_type = DEFAULT_CACHE_TYPE;
 
-      vector<string> core_parameter_tuple;
-      parseList(*tuple_it, core_parameter_tuple, ",");
+      vector<string> tile_parameter_tuple;
+      parseList(*tuple_it, tile_parameter_tuple, ",");
      
       SInt32 param_num = 0; 
-      for (vector<string>::iterator param_it = core_parameter_tuple.begin();
-            param_it != core_parameter_tuple.end(); param_it ++)
+      for (vector<string>::iterator param_it = tile_parameter_tuple.begin();
+            param_it != tile_parameter_tuple.end(); param_it ++)
       {
          if (*param_it != "default")
          {
             switch (param_num)
             {
-               case 0:
-                  num_cores = convertFromString<UInt32>(*param_it);
-                  break;
+            case 0:
+               num_tiles = convertFromString<UInt32>(*param_it);
+               break;
 
-               case 1:
-                  frequency = convertFromString<float>(*param_it);
-                  break;
+            case 1:
+               frequency = convertFromString<float>(*param_it);
+               break;
 
-               case 2:
-                  core_type = trimSpaces(*param_it);
-                  break;
+            case 2:
+               core_type = trimSpaces(*param_it);
+               break;
 
-               case 3:
-                  l1_icache_type = trimSpaces(*param_it);
-                  break;
+            case 3:
+               l1_icache_type = trimSpaces(*param_it);
+               break;
 
-               case 4:
-                  l1_dcache_type = trimSpaces(*param_it);
-                  break;
+            case 4:
+               l1_dcache_type = trimSpaces(*param_it);
+               break;
 
-               case 5:
-                  l2_cache_type = trimSpaces(*param_it);
-                  break;
+            case 5:
+               l2_cache_type = trimSpaces(*param_it);
+               break;
 
-               default:
-                  fprintf(stderr, "Tuple encountered with (%i) parameters\n", param_num);
-                  exit(EXIT_FAILURE);
-                  break;
+            default:
+               fprintf(stderr, "Tuple encountered with (%i) parameters\n", param_num);
+               exit(EXIT_FAILURE);
+               break;
             }
          }
          param_num ++;
       }
 
       // Append these values to an internal list
-      for (UInt32 i = num_initialized_cores; i < num_initialized_cores + num_cores; i++)
+      for (UInt32 i = num_initialized_tiles; i < num_initialized_tiles + num_tiles; i++)
       {
-         m_core_parameters_vec.push_back(CoreParameters(core_type, frequency,
+         m_tile_parameters_vec.push_back(TileParameters(core_type, frequency,
                   l1_icache_type, l1_dcache_type, l2_cache_type));
       }
-      num_initialized_cores += num_cores;
+      num_initialized_tiles += num_tiles;
 
-      if (num_initialized_cores > getApplicationTiles())
+      if (num_initialized_tiles > getApplicationTiles())
       {
-         fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-            num_initialized_cores, getApplicationTiles());
+         fprintf(stderr, "num initialized tiles(%u), num application tiles(%u)\n",
+            num_initialized_tiles, getApplicationTiles());
          exit(EXIT_FAILURE);
       }
    }
    
-   if (num_initialized_cores != getApplicationTiles())
+   if (num_initialized_tiles != getApplicationTiles())
    {
-      fprintf(stderr, "num initialized cores(%u), num application cores(%u)\n",
-         num_initialized_cores, getApplicationTiles());
+      fprintf(stderr, "num initialized tiles(%u), num application tiles(%u)\n",
+         num_initialized_tiles, getApplicationTiles());
       exit(EXIT_FAILURE);
    }
 
-   // MCP, thread spawner and misc cores
+   // MCP and Thread Spawner cores
    for (UInt32 i = getApplicationTiles(); i < getTotalTiles(); i++)
    {
-      m_core_parameters_vec.push_back(CoreParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY,
+      m_tile_parameters_vec.push_back(TileParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY,
                DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE));
    }
 }
@@ -504,70 +507,56 @@ string Config::getCoreType(tile_id_t tile_id)
 {
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
-         "m_core_parameters_vec.size(%u), total tiles(%u)",
-         m_core_parameters_vec.size(), getTotalTiles());
+   LOG_ASSERT_ERROR(m_tile_parameters_vec.size() == getTotalTiles(),
+         "m_tile_parameters_vec.size(%u), total tiles(%u)",
+         m_tile_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[tile_id].getType();
+   return m_tile_parameters_vec[tile_id].getCoreType();
 }
 
 string Config::getL1ICacheType(tile_id_t tile_id)
 {
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
-         "m_core_parameters_vec.size(%u), total tiles(%u)",
-         m_core_parameters_vec.size(), getTotalTiles());
+   LOG_ASSERT_ERROR(m_tile_parameters_vec.size() == getTotalTiles(),
+         "m_tile_parameters_vec.size(%u), total tiles(%u)",
+         m_tile_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[tile_id].getL1ICacheType();
+   return m_tile_parameters_vec[tile_id].getL1ICacheType();
 }
 
 string Config::getL1DCacheType(tile_id_t tile_id)
 {
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
-         "m_core_parameters_vec.size(%u), total tiles(%u)",
-         m_core_parameters_vec.size(), getTotalTiles());
+   LOG_ASSERT_ERROR(m_tile_parameters_vec.size() == getTotalTiles(),
+         "m_tile_parameters_vec.size(%u), total tiles(%u)",
+         m_tile_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[tile_id].getL1DCacheType();
+   return m_tile_parameters_vec[tile_id].getL1DCacheType();
 }
 
 string Config::getL2CacheType(tile_id_t tile_id)
 {
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
-         "m_core_parameters_vec.size(%u), total tiles(%u)",
-         m_core_parameters_vec.size(), getTotalTiles());
+   LOG_ASSERT_ERROR(m_tile_parameters_vec.size() == getTotalTiles(),
+         "m_tile_parameters_vec.size(%u), total tiles(%u)",
+         m_tile_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[tile_id].getL2CacheType();
+   return m_tile_parameters_vec[tile_id].getL2CacheType();
 }
 
-volatile float Config::getCoreFrequency(core_id_t core_id)
+volatile float Config::getTileFrequency(tile_id_t tile_id)
 {
-   tile_id_t tile_id = core_id.tile_id;
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
 
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
-         "m_core_parameters_vec.size(%u), total tiles(%u)",
-         m_core_parameters_vec.size(), getTotalTiles());
+   LOG_ASSERT_ERROR(m_tile_parameters_vec.size() == getTotalTiles(),
+         "m_tile_parameters_vec.size(%u), total tiles(%u)",
+         m_tile_parameters_vec.size(), getTotalTiles());
 
-   return m_core_parameters_vec[tile_id].getFrequency();
-}
-
-void Config::setCoreFrequency(core_id_t core_id, volatile float frequency)
-{
-   tile_id_t tile_id = core_id.tile_id;
-   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
-         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-
-   LOG_ASSERT_ERROR(m_core_parameters_vec.size() == getTotalTiles(),
-         "m_core_parameters_vec.size(%u), total tiles(%u)",
-         m_core_parameters_vec.size(), getTotalTiles());
-
-   return m_core_parameters_vec[tile_id].setFrequency(frequency);
+   return m_tile_parameters_vec[tile_id].getFrequency();
 }
 
 string Config::getNetworkType(SInt32 network_id)

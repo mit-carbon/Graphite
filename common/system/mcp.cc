@@ -11,7 +11,6 @@
 #include "syscall.h"
 #include "thread_manager.h"
 #include "thread_scheduler.h"
-#include "perf_counter_manager.h"
 
 using namespace std;
 
@@ -24,7 +23,6 @@ MCP::MCP(Network & network)
    , m_syscall_server(m_network, m_send_buff, m_recv_buff, m_MCP_SERVER_MAX_BUFF, m_scratch)
    , m_sync_server(m_network, m_recv_buff)
    , m_clock_skew_minimization_server(NULL)
-   , m_network_model_analytical_server(m_network, m_recv_buff)
 {
    m_clock_skew_minimization_server = ClockSkewMinimizationServer::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme"), m_network, m_recv_buff);
 }
@@ -96,10 +94,6 @@ void MCP::processPacket()
       m_sync_server.barrierWait(recv_pkt.sender);
       break;
 
-   case MCP_MESSAGE_UTILIZATION_UPDATE:
-      m_network_model_analytical_server.update(recv_pkt.sender.tile_id);
-      break;
-
    case MCP_MESSAGE_THREAD_SPAWN_REQUEST_FROM_REQUESTER:
       Sim()->getThreadManager()->masterSpawnThread((ThreadSpawnRequest*)recv_pkt.data);
       break;
@@ -121,8 +115,8 @@ void MCP::processPacket()
       Sim()->getThreadScheduler()->masterSchedGetAffinity((ThreadAffinityRequest*)recv_pkt.data);
       break;
 
-    case MCP_MESSAGE_THREAD_SET_PID:
-      Sim()->getThreadManager()->masterSetPid(  *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
+   case MCP_MESSAGE_THREAD_SET_OS_TID:
+      Sim()->getThreadManager()->masterSetOSTid(*(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
                                                 *(thread_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 
                                                 *(pid_t*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)+sizeof(thread_id_t)));
       break;
@@ -152,14 +146,6 @@ void MCP::processPacket()
    case MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
       assert(m_clock_skew_minimization_server);
       m_clock_skew_minimization_server->processSyncMsg(recv_pkt.sender);
-      break;
-
-   case MCP_MESSAGE_RESET_CACHE_COUNTERS:
-      Sim()->getPerfCounterManager()->resetCacheCounters(recv_pkt.sender.tile_id);
-      break;
-
-   case MCP_MESSAGE_DISABLE_CACHE_COUNTERS:
-      Sim()->getPerfCounterManager()->disableCacheCounters(recv_pkt.sender.tile_id);
       break;
 
    default:

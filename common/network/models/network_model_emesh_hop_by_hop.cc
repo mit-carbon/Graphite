@@ -298,8 +298,8 @@ void
 NetworkModelEMeshHopByHop::outputSummary(ostream &out)
 {
    NetworkModel::outputSummary(out);
-   outputEventCountSummary(out);
    outputPowerSummary(out);
+   outputEventCountSummary(out);
    if (_contention_model_enabled)
       outputContentionModelsSummary(out);
 }

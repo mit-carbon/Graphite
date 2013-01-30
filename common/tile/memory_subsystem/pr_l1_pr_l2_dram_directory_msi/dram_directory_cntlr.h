@@ -10,7 +10,7 @@ namespace PrL1PrL2DramDirectoryMSI
 }
 
 #include "directory_cache.h"
-#include "hash_map_queue.h"
+#include "hash_map_list.h"
 #include "dram_cntlr.h"
 #include "address_home_lookup.h"
 #include "shmem_req.h"
@@ -35,6 +35,9 @@ namespace PrL1PrL2DramDirectoryMSI
       ~DramDirectoryCntlr();
 
       void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+
+      // Function to call when changing frequencies
+      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
       
       DirectoryCache* getDramDirectoryCache() { return _dram_directory_cache; }
    
@@ -43,7 +46,7 @@ namespace PrL1PrL2DramDirectoryMSI
       MemoryManager* _memory_manager;
       DirectoryCache* _dram_directory_cache;
       DramCntlr* _dram_cntlr;
-      HashMapQueue<IntPtr,ShmemReq*>* _dram_directory_req_queue_list;
+      HashMapList<IntPtr,ShmemReq*> _dram_directory_req_queue;
 
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager() { return _memory_manager; }

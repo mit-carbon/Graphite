@@ -182,9 +182,9 @@ namespace DSENT
     {
         // Get parameters
         const String& tuning_method = getParameter("RingTuningMethod");;
+        unsigned int out_bits = getParameter("OutBits");
+        unsigned int number_shift_bits = (unsigned int)ceil(log2((double) out_bits));
 
-        // Get properties
-        
         // Update the deserializer        
         if ((tuning_method == "ThermalWithBitReshuffle") || (tuning_method == "ElectricalAssistWithBitReshuffle"))
         {
@@ -216,9 +216,13 @@ namespace DSENT
             const String& barrel_shift_name = "BarrelShifter";
             ElectricalModel* barrel_shift = (ElectricalModel*) getSubInstance(barrel_shift_name);
             propagatePortTransitionInfo(barrel_shift, "In", deserializer, "Out");
-            // Set shift transitions to be very low (since it is affected by slow temperature time constants)
-            for (unsigned int i = shift_index_min; i <= shift_index_max; ++i)
-                barrel_shift->getInputPort("Shift" + (String) i)->setTransitionInfo(TransitionInfo(0.499, 0.001, 0.499));
+            
+            if (shift_index_min != number_shift_bits)
+            {
+                // Set shift transitions to be very low (since it is affected by slow temperature time constants)
+                for (unsigned int i = shift_index_min; i <= shift_index_max; ++i)
+                    barrel_shift->getInputPort("Shift" + (String) i)->setTransitionInfo(TransitionInfo(0.499, 0.001, 0.499));
+            }
             barrel_shift->use();
             
             // Set output transition info

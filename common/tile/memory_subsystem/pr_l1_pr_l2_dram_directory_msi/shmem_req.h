@@ -7,23 +7,20 @@ namespace PrL1PrL2DramDirectoryMSI
 {
    class ShmemReq
    {
-      private:
-         ShmemMsg* m_shmem_msg;
-         UInt64 m_time;
+   public:
+      ShmemReq(ShmemMsg* shmem_msg, UInt64 time);
+      ~ShmemReq();
 
-      public:
-         ShmemReq(ShmemMsg* shmem_msg, UInt64 time);
-         ~ShmemReq();
+      ShmemMsg* getShmemMsg() const { return _shmem_msg; }
+      UInt64 getTime() const        { return _time; }
+      
+      void setTime(UInt64 time)     { _time = time; }
+      void updateTime(UInt64 time);
 
-         ShmemMsg* getShmemMsg() { return m_shmem_msg; }
-         UInt64 getTime() { return m_time; }
-         
-         void setTime(UInt64 time) { m_time = time; }
-         void updateTime(UInt64 time)
-         {
-            if (time > m_time)
-               m_time = time;
-         }
+      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+   
+   private:
+      ShmemMsg* _shmem_msg;
+      UInt64 _time;
    };
-
 }

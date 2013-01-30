@@ -9,7 +9,9 @@ using namespace std;
 #include "network_model.h"
 #include "router_model.h"
 #include "electrical_link_model.h"
+#include "electrical_link_power_model.h"
 #include "optical_link_model.h"
+#include "optical_link_power_model.h"
 
 // Single Sender Multiple Receivers Model
 // 1 sender, N receivers (1 to N)
@@ -59,7 +61,7 @@ private:
 
    enum ReceiveNetType
    {
-      HTREE = 0,
+      BTREE = 0,
       STAR
    };
 
@@ -117,9 +119,6 @@ private:
    // Contention Modeling
    static bool _contention_model_enabled;
 
-   // Laser Capabilities
-   LaserModes _laser_modes;
-
    // Injection Port Router
    RouterModel* _injection_router;
 
@@ -138,7 +137,7 @@ private:
    OpticalLinkModel* _optical_link;
    
    // Htree Link List
-   vector<ElectricalLinkModel*> _htree_link_list;
+   vector<ElectricalLinkModel*> _btree_link_list;
    // Star Net Router + Link List
    vector<RouterModel*> _star_net_router_list;
    vector<vector<ElectricalLinkModel*> > _star_net_link_list;
@@ -148,11 +147,11 @@ private:
    void routePacketOnONet(const NetPacket& pkt, tile_id_t sender, tile_id_t receiver, queue<Hop>& next_hops);
 
    static void initializeANetTopologyParams();
-   void initializeLaserModes();
    void createANetRouterAndLinkModels();
    void destroyANetRouterAndLinkModels();
   
    // Output Summary 
+   void outputPowerSummary(ostream& out);
    void outputEventCountSummary(ostream& out);
    void outputContentionModelsSummary(ostream& out);
   

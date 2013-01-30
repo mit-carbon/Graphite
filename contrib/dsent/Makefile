@@ -1,48 +1,44 @@
 
-# Define the directories that will be compiled
+# Collects the directories for sources to compile
 DIRS_TO_COMPILE := .
 
 DIRS = $(patsubst %,$(CURDIR)/%,$(DIRS_TO_COMPILE))
-
 SRCS = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.cc))
+OBJS = $(SRCS:%.cc=%.o)
 
-OBJS = $(SRCS:%.cc=%.lo)
+INC_FLAGS   = -I$(CURDIR)
+DEBUG_FLAGS = -g
+OPT_FLAGS   = -O2 -fPIC
+WARN_FLAGS  = -pedantic -Wall -W
+CXX_FLAGS   = $(DEBUG_FLAGS) $(OPT_FLAGS) $(WARN_FLAGS) $(INC_FLAGS)
 
-DEF_FLAGS = 
-INCLUDE_FLAGS = -I$(CURDIR)
-OPT_FLAGS = -O2 -g -fPIC
-WARN_FLAGS = -pedantic -Wall -W #-Wextra -Werror -Wno-write-strings
-CXXFLAGS = $(OPT_FLAGS) $(WARN_FLAGS) $(INCLUDE_FLAGS) $(DEF_FLAGS)
+LD_LIBS     = 
+LD_FLAGS    = 
 
-LD_LIBS += -ldsent
-LD_FLAGS += -Ldsent-core
+TARGET = $(CURDIR)/libdsent_contrib.a
 
-# Other libraries used 
-LIB_DSENT = $(CURDIR)/dsent-core/libdsent.la
+ALL_OBJS = $(shell find $(CURDIR) -type f -name '*.o')
 
-TARGET_LIB = $(CURDIR)/libdsent_contrib.a
+.PHONY: all dsent-core clean
 
-all: static_lib
+all: $(TARGET)
 
-static_lib: $(LIB_DSENT) $(OBJS)
-	libtool --mode=link $(CXX) -static $(CXXFLAGS) -o $(TARGET_LIB) $(OBJS) $(LIB_DSENT)
-    
+%.a: $(OBJS) dsent-core
+	@echo $(ALL_OBJS)
+	$(AR) rcs $@ $(ALL_OBJS)
+
+dsent-core:
+	$(MAKE) -C $@ object
+
 # For general c++ compilation
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-%.lo: %.cc
-	libtool --mode=compile $(CXX) -static -no-suppress $(CXXFLAGS) -c $< -o $@
-
-$(LIB_DSENT):
-	$(MAKE) -C $(CURDIR)/dsent-core static_lib TARGET_LIB=$(LIB_DSENT)
+	$(CXX) $(CXX_FLAGS) -c $< -o $@
 
 %/created:
 	mkdir -p $(dir $@)
 	touch $@
 
-.phony: clean
 clean:
-	libtool --mode=clean $(RM) -rf $(OBJS) $(TARGET_LIB)
-	$(MAKE) -C $(CURDIR)/dsent-core clean
+	-$(MAKE) -C dsent-core clean
+	-$(RM) $(OBJS) $(TARGET)
 

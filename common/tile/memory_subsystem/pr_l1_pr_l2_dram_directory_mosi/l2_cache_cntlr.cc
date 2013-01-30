@@ -2,6 +2,7 @@
 #include "l2_cache_cntlr.h"
 #include "memory_manager.h"
 #include "config.h"
+#include "clock_converter.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -42,9 +43,6 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
 
    initializeEvictionCounters();
    initializeInvalidationCounters();
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   initializeUtilizationCounters();
-#endif
 }
 
 L2CacheCntlr::~L2CacheCntlr()
@@ -71,18 +69,6 @@ L2CacheCntlr::initializeInvalidationCounters()
    _total_invalidations = 0;
 }
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-void
-L2CacheCntlr::initializeUtilizationCounters()
-{
-   for (UInt32 operation_type = 0; operation_type < NUM_CACHE_OPERATION_TYPES; operation_type ++)
-   {
-      for (UInt32 utilization = 0; utilization <= MAX_TRACKED_UTILIZATION; utilization ++)
-         _total_cache_operations_by_utilization[operation_type][utilization] = 0;
-   }
-}
-#endif
-
 void
 L2CacheCntlr::invalidateCacheLine(IntPtr address, PrL2CacheLineInfo& L2_cache_line_info)
 {
@@ -101,21 +87,6 @@ L2CacheCntlr::writeCacheLine(IntPtr address, UInt32 offset, Byte* data_buf, UInt
 {
    _L2_cache->accessCacheLine(address + offset, Cache::STORE, data_buf, data_length);
 }
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-UInt32
-L2CacheCntlr::getLineUtilizationInCacheHierarchy(IntPtr address, PrL2CacheLineInfo& L2_cache_line_info)
-{
-   UInt32 L2_utilization = L2_cache_line_info.getUtilization();
-   MemComponent::Type mem_component = L2_cache_line_info.getCachedLoc();
-   if (mem_component != MemComponent::INVALID)
-   {
-      UInt32 L1_utilization = _L1_cache_cntlr->getCacheLineUtilization(mem_component, address);
-      return L1_utilization + L2_utilization;
-   }
-   return L2_utilization;
-}
-#endif
 
 void
 L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fill_buf, MemComponent::Type mem_component)
@@ -138,11 +109,6 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fil
       LOG_PRINT("Eviction: address(%#lx)", evicted_address);
           
       LOG_PRINT("Address(%#lx), Cached Loc(%s)", evicted_address, SPELL_MEMCOMP(evicted_cache_line_info.getCachedLoc())); 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS 
-      // Get total cache line utilization
-      UInt32 cache_line_utilization = getLineUtilizationInCacheHierarchy(address, evicted_cache_line_info);
-      updateUtilizationCounters(CACHE_EVICTION, cache_line_utilization);
-#endif
       CacheState::Type evicted_cstate = evicted_cache_line_info.getCState();
       // Update eviction counters so as to track clean and dirty evictions
       updateEvictionCounters(cstate, evicted_cstate);
@@ -160,9 +126,6 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fil
          ShmemMsg send_shmem_msg(ShmemMsg::FLUSH_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY
                                 , getTileId(), INVALID_TILE_ID, false, evicted_address
                                 , writeback_buf, getCacheLineSize(), msg_modeled
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                                , cache_line_utilization
-#endif
                                 );
          getMemoryManager()->sendMsg(home_node_id, send_shmem_msg);
       }
@@ -175,9 +138,6 @@ L2CacheCntlr::insertCacheLine(IntPtr address, CacheState::Type cstate, Byte* fil
          ShmemMsg send_shmem_msg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY
                                 , getTileId(), INVALID_TILE_ID, false, evicted_address
                                 ,  msg_modeled
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                                ,  cache_line_utilization
-#endif
                                 );
          getMemoryManager()->sendMsg(home_node_id, send_shmem_msg);
       }
@@ -229,13 +189,6 @@ L2CacheCntlr::insertCacheLineInL1(MemComponent::Type mem_component, IntPtr addre
       // Clear the present bit and store the info back
       L2_cache_line_info.clearCachedLoc(mem_component);
     
-#ifdef TRACK_DETAILED_CACHE_COUNTERS 
-      // Get the utilization of the cache line
-      UInt32 cache_line_utilization = evicted_cache_line_info.getUtilization();
-      // Update utilization counters in the L2 cache
-      L2_cache_line_info.incrUtilization(cache_line_utilization);
-#endif
-
       // Update the cache with the new line info
       _L2_cache->setCacheLineInfo(evicted_address, &L2_cache_line_info);
    }
@@ -277,9 +230,6 @@ L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, C
       
       // Set that the cache line in present in the L1 cache in the L2 tags
       L2_cache_line_info.setCachedLoc(mem_component);
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      L2_cache_line_info.incrUtilization();
-#endif
       _L2_cache->setCacheLineInfo(address, &L2_cache_line_info);
    }
    
@@ -360,6 +310,12 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
       _memory_manager->wakeUpAppThread();
       _memory_manager->waitForAppThread();
    }
+}
+
+void
+L2CacheCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   _outstanding_shmem_msg_time = convertCycleCount(_outstanding_shmem_msg_time, old_frequency, new_frequency);
 }
 
 void
@@ -447,10 +403,6 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
       // SHARED -> INVALID 
 
       LOG_PRINT("Address(%#lx), Cached Loc(%s)", address, SPELL_MEMCOMP(L2_cache_line_info.getCachedLoc()));
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      UInt32 cache_line_utilization = getLineUtilizationInCacheHierarchy(address, L2_cache_line_info);
-      updateUtilizationCounters(CACHE_INVALIDATION, cache_line_utilization);
-#endif
       updateInvalidationCounters();
      
       // Invalidate the line in L1 Cache
@@ -462,9 +414,6 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
       ShmemMsg send_shmem_msg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY
                              , shmem_msg->getRequester(), INVALID_TILE_ID, shmem_msg->isReplyExpected(), address
                              , shmem_msg->isModeled()
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                             , cache_line_utilization
-#endif
                              );
       getMemoryManager()->sendMsg(sender, send_shmem_msg);
    }
@@ -502,10 +451,6 @@ L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem
       // (MODIFIED, OWNED, SHARED) -> INVALID
      
       LOG_PRINT("Address(%#lx), Cached Loc(%s)", address, SPELL_MEMCOMP(L2_cache_line_info.getCachedLoc()));
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      UInt32 cache_line_utilization = getLineUtilizationInCacheHierarchy(address, L2_cache_line_info);
-      updateUtilizationCounters(CACHE_INVALIDATION, cache_line_utilization);
-#endif
       updateInvalidationCounters();
 
       // Invalidate the line in L1 Cache
@@ -522,9 +467,6 @@ L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem
       ShmemMsg send_shmem_msg(ShmemMsg::FLUSH_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY
                              , shmem_msg->getRequester(), INVALID_TILE_ID, shmem_msg->isReplyExpected(), address
                              , data_buf, getCacheLineSize(), shmem_msg->isModeled()
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                             , cache_line_utilization
-#endif
                              );
       getMemoryManager()->sendMsg(sender, send_shmem_msg);
    }
@@ -646,20 +588,6 @@ L2CacheCntlr::updateEvictionCounters(CacheState::Type inserted_cstate, CacheStat
    }
 }
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-void
-L2CacheCntlr::updateUtilizationCounters(CacheOperationType operation, UInt32 line_utilization)
-{
-   if (!_enabled)
-      return;
-
-   if (line_utilization > MAX_TRACKED_UTILIZATION)
-      line_utilization = MAX_TRACKED_UTILIZATION;
-   
-   _total_cache_operations_by_utilization[operation][line_utilization] ++;
-}
-#endif
-
 void
 L2CacheCntlr::outputSummary(ostream& out)
 {
@@ -671,30 +599,8 @@ L2CacheCntlr::outputSummary(ostream& out)
    out << "        Exclusive Request - Clean Evictions: " << _total_clean_evictions_exreq << endl;
    out << "        Shared Request - Dirty Evictions: " << _total_dirty_evictions_shreq << endl;
    out << "        Shared Request - Clean Evictions: " << _total_clean_evictions_shreq << endl;
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-   outputUtilizationCountSummary(out);
-#endif
 }
    
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-void
-L2CacheCntlr::outputUtilizationCountSummary(ostream& out)
-{
-   out << "      Utilization Summary (Eviction): " << endl;
-   for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-   {
-      out << "        Utilization-"       << i << ": " << _total_cache_operations_by_utilization[CACHE_EVICTION][i] << endl;
-   }
-
-   out << "      Utilization Summary (Invalidation): " << endl;
-   for (UInt32 i = 0; i <= MAX_TRACKED_UTILIZATION; i++)
-   {
-      out << "        Utilization-"       << i << ": " << _total_cache_operations_by_utilization[CACHE_INVALIDATION][i] << endl;
-   }
-}
-#endif
-
 pair<bool,Cache::MissType>
 L2CacheCntlr::operationPermissibleinL2Cache(Core::mem_op_t mem_op_type, IntPtr address, CacheState::Type cstate)
 {

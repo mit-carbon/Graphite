@@ -4,6 +4,7 @@
 #include "message_types.h"
 #include "thread_manager.h"
 #include "tile_manager.h"
+#include "performance_counter_manager.h"
 #include "clock_skew_minimization_object.h"
 
 #include "log.h"
@@ -72,9 +73,14 @@ void LCP::processPacket()
       Sim()->getThreadManager()->updateTerminateThreadSpawner();
       break;
 
+   case LCP_MESSAGE_TOGGLE_PERFORMACE_COUNTERS:
+      Sim()->getPerformanceCounterManager()->togglePerformanceCounters(data);
+      break;
+
    case LCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
       assert (Sim()->getClockSkewMinimizationManager());
       Sim()->getClockSkewMinimizationManager()->processSyncMsg(data);
+      break;
 
    default:
       LOG_ASSERT_ERROR(false, "Unexpected message type: %d.", *msg_type);
@@ -117,9 +123,8 @@ void LCP::updateCommId(void *vp)
 
    NetPacket ack(/*time*/ 0,
                  /*type*/ LCP_COMM_ID_UPDATE_REPLY,
-                 /*sender*/ Tile::getMainCoreId(0), // doesn't matter ; see tile_manager.cc
-                 //receiver update->tile_id,
-                 /*receiver*/ Tile::getMainCoreId(update->tile_id),
+                 /*sender*/ 0, // doesn't matter ; see tile_manager.cc
+                 /*receiver*/ update->tile_id,
                  /*length*/ 0,
                  /*data*/ NULL);
    Byte *buffer = ack.makeBuffer();

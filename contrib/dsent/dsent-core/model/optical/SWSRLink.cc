@@ -40,7 +40,7 @@ namespace DSENT
     void SWSRLink::initProperties()
     {
         addPropertyName("Length");
-		addPropertyName("OptUtil", 0.5);        // default to 50% utilization (a new word 50% of the time)
+        addPropertyName("OptUtil", 0.5);        // default to 50% utilization (a new word 50% of the time)
         addPropertyName("ExtinctionRatio", 6);  // default properties
         addPropertyName("InsertionLoss", 2);    // default properties
         return;
@@ -143,14 +143,14 @@ namespace DSENT
     void SWSRLink::updateModel()
     {
         // Get parameters
-        double link_data_rate = getParameter("LinkDataRate");
+        double core_data_rate = getParameter("CoreDataRate");
         
         // Get properties
         double length = getProperty("Length");
         const String& extinction_ratio = getProperty("ExtinctionRatio");
         const String& insertion_loss = getProperty("InsertionLoss");
-		const double opt_util = getProperty("OptUtil");
-		
+        const double opt_util = getProperty("OptUtil");
+        
         // Calculate loss for waveguide
         double waveguide_loss = getTechModel()->get("Waveguide->LossPerMeter").toDouble() * length;
         // Set loss of the waveguide
@@ -161,8 +161,8 @@ namespace DSENT
     
         // Update the laser
         Model* laser = getSubInstance("Laser");
-        laser->setProperty("LaserEventTime", 1.0 / link_data_rate);
-		laser->setProperty("OptUtil", opt_util);
+        laser->setProperty("LaserEventTime", 1.0 / core_data_rate);
+        laser->setProperty("OptUtil", opt_util);
         laser->update();
         
         // Update the modulator

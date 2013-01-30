@@ -20,8 +20,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
 
-#include "utilization_defines.h"
-
 namespace PrL1PrL2DramDirectoryMOSI
 {
    class L1CacheCntlr
@@ -47,7 +45,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       void setL2CacheCntlr(L2CacheCntlr* L2_cache_cntlr);
 
-      bool processMemOpFromTile(MemComponent::Type mem_component,
+      bool processMemOpFromCore(MemComponent::Type mem_component,
             Core::lock_signal_t lock_signal,
             Core::mem_op_t mem_op_type, 
             IntPtr ca_address, UInt32 offset,
@@ -62,11 +60,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       void setCacheLineState(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
       void invalidateCacheLine(MemComponent::Type mem_component, IntPtr address);
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      // Get cache line utilization
-      UInt32 getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address);
-#endif
-      
    private:
       MemoryManager* _memory_manager;
       Cache* _L1_icache;

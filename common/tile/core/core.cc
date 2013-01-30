@@ -3,13 +3,14 @@
 #include "core.h"
 #include "tile.h"
 #include "core_model.h"
+#include "simulator.h"
 #include "syscall_model.h"
 #include "sync_client.h"
 #include "network_types.h"
 #include "memory_manager.h"
 #include "pin_memory_manager.h"
 #include "clock_skew_minimization_object.h"
-#include "simulator.h"
+#include "clock_converter.h"
 #include "config.h"
 #include "log.h"
 
@@ -141,7 +142,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
    // Setting the initial time
    UInt64 initial_time = (time == 0) ? _core_model->getCycleCount() : time;
    UInt64 curr_time = initial_time;
-
+         
    LOG_PRINT("Time(%llu), %s - ADDR(%#lx), data_size(%u), START",
              initial_time, ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
 
@@ -187,10 +188,10 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
       LOG_PRINT("Start coreInitiateMemoryAccess: ADDR(%#lx), offset(%u), curr_size(%u), core_id(%i, %i)",
                 curr_addr_aligned, curr_offset, curr_size, getId().tile_id, getId().core_type);
 
-      if (!_tile->getMemoryManager()->coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type, 
-                                                               curr_addr_aligned, curr_offset, 
-                                                               curr_data_buffer_head, curr_size,
-                                                               curr_time, push_info))
+      if (!_tile->getMemoryManager()->__coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type, 
+                                                                 curr_addr_aligned, curr_offset, 
+                                                                 curr_data_buffer_head, curr_size,
+                                                                 curr_time, push_info))
       {
          // If it is a READ or READ_EX operation, 
          //    'coreInitiateMemoryAccess' causes curr_data_buffer_head to be automatically filled in
@@ -226,6 +227,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
 
    return make_pair<UInt32, UInt64>(num_misses, memory_access_latency);
 }
+
 PacketType
 Core::getPacketTypeFromUserNetType(carbon_network_t net_type)
 {
@@ -249,13 +251,13 @@ Core::outputSummary(ostream& os)
    if (_core_model)
       _core_model->outputSummary(os);
    
-   _total_memory_access_latency_in_ns +=
-      (UInt64) (ceil(1.0 * _total_memory_access_latency_in_clock_cycles / _core_model->getFrequency()));
+   float frequency = _tile->getFrequency();
+   UInt64 total_memory_access_latency_in_ns = convertCycleCount(_total_memory_access_latency, frequency, 1.0);
    
    os << "Shared Memory Model summary: " << endl;
    os << "    Total Memory Accesses: " << _num_memory_accesses << endl;
    os << "    Average Memory Access Latency (in ns): " << 
-      (1.0 * _total_memory_access_latency_in_ns / _num_memory_accesses) << endl;
+      (1.0 * total_memory_access_latency_in_ns / _num_memory_accesses) << endl;
    
 }
 
@@ -280,22 +282,19 @@ Core::disableModels()
 }
 
 void
-Core::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+Core::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
    if (_core_model)
-      _core_model->updateInternalVariablesOnFrequencyChange(frequency);
+      _core_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 
-   _total_memory_access_latency_in_ns +=
-      (UInt64) (ceil(1.0 * _total_memory_access_latency_in_clock_cycles / frequency));
-   _total_memory_access_latency_in_clock_cycles = 0;
+   _total_memory_access_latency = convertCycleCount(_total_memory_access_latency, old_frequency, new_frequency);
 }
 
 void
 Core::initializeMemoryAccessLatencyCounters()
 {
    _num_memory_accesses = 0;
-   _total_memory_access_latency_in_clock_cycles = 0;
-   _total_memory_access_latency_in_ns = 0;
+   _total_memory_access_latency = 0;
 }
 
 void
@@ -304,6 +303,6 @@ Core::incrTotalMemoryAccessLatency(UInt64 memory_access_latency)
    if (_enabled)
    {
       _num_memory_accesses ++;
-      _total_memory_access_latency_in_clock_cycles += memory_access_latency;
+      _total_memory_access_latency += memory_access_latency;
    }
 }

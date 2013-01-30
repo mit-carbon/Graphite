@@ -515,8 +515,6 @@ BARRIER(bars->barrier,nprocs)
          }
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
-         // Enable Models
-         CarbonEnableModels();
        }
 
        slave2(procid,firstrow,lastrow,numrows,firstcol,lastcol,numcols);
@@ -626,7 +624,4 @@ BARRIER(bars->barrier,nprocs)
     CLOCK(t1);
     gp[procid].total_time = t1-gp[procid].total_time;
   }
-  
-  // Disable Models at the end of parallel execution
-  CarbonDisableModels();
 }

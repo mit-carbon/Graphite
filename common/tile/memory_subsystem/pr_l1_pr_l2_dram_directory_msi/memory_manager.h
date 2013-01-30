@@ -31,13 +31,11 @@ namespace PrL1PrL2DramDirectoryMSI
       bool isDramCntlrPresent() { return _dram_cntlr_present; }
       AddressHomeLookup* getDramDirectoryHomeLookup() { return _dram_directory_home_lookup; }
 
-      bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
-                                    Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
-                                    IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
-                                    UInt64& curr_time, bool modeled);
-
-      void handleMsgFromNetwork(NetPacket& packet);
-
+      // Update internal variables when frequency is changed
+      // Variables that need to be updated include all variables that are expressed in terms of cycles
+      //  e.g., total memory access latency, packet arrival time, etc.
+      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+      
       // Send/Broadcast msg
       void sendMsg(tile_id_t receiver, ShmemMsg& msg);
       void broadcastMsg(ShmemMsg& msg);
@@ -54,17 +52,6 @@ namespace PrL1PrL2DramDirectoryMSI
 
       void outputSummary(std::ostream &os);
 
-      // App + Sim thread synchronization
-      void waitForAppThread();
-      void wakeUpAppThread();
-      void waitForSimThread();
-      void wakeUpSimThread();
-
-      // Cache line replication trace
-      static void openCacheLineReplicationTraceFiles();
-      static void closeCacheLineReplicationTraceFiles();
-      static void outputCacheLineReplicationSummary();
-      
       void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
    
    private:
@@ -78,20 +65,18 @@ namespace PrL1PrL2DramDirectoryMSI
 
       bool _dram_cntlr_present;
 
-      // App + Sim thread synchronization
-      Lock _lock;
-      Semaphore _app_thread_sem;
-      Semaphore _sim_thread_sem;
-
       UInt32 _cache_line_size;
-      bool _enabled;
 
       // Performance Models
       CachePerfModel* _l1_icache_perf_model;
       CachePerfModel* _l1_dcache_perf_model;
       CachePerfModel* _l2_cache_perf_model;
       
-      // Cache Line Replication
-      static ofstream _cache_line_replication_file;
+      bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
+                                    Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
+                                    IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
+                                    bool modeled);
+
+      void handleMsgFromNetwork(NetPacket& packet);
    };
 }

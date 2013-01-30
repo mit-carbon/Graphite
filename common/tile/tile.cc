@@ -15,6 +15,7 @@ Tile::Tile(tile_id_t id)
 {
    LOG_PRINT("Tile ctor for (%i)", _id);
 
+   _frequency = Config::getSingleton()->getTileFrequency(_id);
    _network = new Network(this);
    _core = new MainCore(this);
    
@@ -73,7 +74,22 @@ void Tile::disableModels()
 }
 
 void
-Tile::updateInternalVariablesOnFrequencyChange(volatile float frequency)
+Tile::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   _core->updateInternalVariablesOnFrequencyChange(frequency);
+   _core->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   _memory_manager->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+}
+
+void
+Tile::acquireLock()
+{
+   _core->acquireLock();
+   _memory_manager->acquireLock();
+}
+
+void
+Tile::releaseLock()
+{
+   _memory_manager->releaseLock();
+   _core->releaseLock();
 }

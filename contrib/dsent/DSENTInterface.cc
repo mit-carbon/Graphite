@@ -15,7 +15,7 @@ namespace dsent_contrib
     DSENTInterface* DSENTInterface::m_singleton = NULL;
 
     const String DSENTInterface::el_link_cfg_file_name = "electrical-link.cfg";
-    const String DSENTInterface::op_link_cfg_file_name = "optical-link.cfg";
+    const String DSENTInterface::op_link_cfg_file_name = "photonic-link.cfg";
     const String DSENTInterface::router_cfg_file_name = "router.cfg";
 
     DSENTInterface::Overwrite::Overwrite(const String& var_, const String& val_) :
@@ -49,11 +49,14 @@ namespace dsent_contrib
         m_op_link_cfg_file_path_ = dsent_path_ + "/dsent-core/configs/" + op_link_cfg_file_name;
         m_router_cfg_file_path_ = dsent_path_ + "/dsent-core/configs/" + router_cfg_file_name;
 
+        // Photonics techfile
+        m_phot_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "Photonics.model";
+        
         // Some hardcoded elements to this, depending on when graphite is able to parametrize the other parts
-        if (tech_node_ == 45) m_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "Bulk45LVT.model";
-        else if (tech_node_ == 32) m_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "Bulk32LVT.model";
-        else if (tech_node_ == 22) m_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "Bulk22LVT.model";
-        else if (tech_node_ == 11) m_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "TG11LVT.model";
+        if (tech_node_ == 45) m_elec_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "Bulk45LVT.model";
+        else if (tech_node_ == 32) m_elec_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "Bulk32LVT.model";
+        else if (tech_node_ == 22) m_elec_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "Bulk22LVT.model";
+        else if (tech_node_ == 11) m_elec_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "TG11LVT.model";
         else assert(false);
 
     }
@@ -94,7 +97,8 @@ namespace dsent_contrib
         dsent_args->push_back("-overwrite");
 
         // Add electrical technology model filename
-        overrides_str = "ElectricalTechModelFilename=" + get_tech_file_path() + ";";
+        overrides_str = "ElectricalTechModelFilename=" + get_elec_tech_file_path() + ";";
+        overrides_str += " PhotonicTechModelFilename=" + get_phot_tech_file_path() + ";";
 
         // Add other overrides
         for (vector<Overwrite>::const_iterator it = overwrites_.begin(); it != overwrites_.end(); it++)

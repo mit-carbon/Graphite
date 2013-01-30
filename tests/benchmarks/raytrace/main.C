@@ -212,8 +212,6 @@ VOID	StartRayTrace()
 
 	/* POSSIBLE ENHANCEMENT:  Here's where one would RESET STATISTICS
 	and TIMING if one wanted to measure only the parallel part */
-   // Reset Models
-   CarbonEnableModels();
 
 	RayTrace(pid);
 
@@ -411,8 +409,16 @@ int	main(int argc, CHAR *argv[])
 	 */
 
 	CLOCK(begin)
+  
+   // Enable Models at the start of parallel execution
+   CarbonEnableModels();
+
 	CREATE(StartRayTrace, gm->nprocs);
 	WAIT_FOR_END(gm->nprocs);
+  
+   // Disable Models at the end of parallel execution
+   CarbonDisableModels();
+
 	CLOCK(end)
 
 

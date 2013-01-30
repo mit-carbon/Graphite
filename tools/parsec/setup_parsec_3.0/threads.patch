@@ -1,0 +1,125 @@
+diff --git a/pkgs/apps/blackscholes/src/blackscholes.c b/pkgs/apps/blackscholes/src/blackscholes.c
+index 559628d..82d10ec 100644
+--- a/pkgs/apps/blackscholes/src/blackscholes.c
++++ b/pkgs/apps/blackscholes/src/blackscholes.c
+@@ -437,11 +437,14 @@ int main (int argc, char **argv)
+     int *tids;
+     tids = (int *) malloc (nThreads * sizeof(int));
+ 
+-    for(i=0; i<nThreads; i++) {
++    for(i=1; i<nThreads; i++) {
+         tids[i]=i;
+         CREATE_WITH_ARG(bs_thread, &tids[i]);
+     }
+-    WAIT_FOR_END(nThreads);
++    tids[0] = 0;
++    bs_thread(&tids[0]);
++
++    WAIT_FOR_END(nThreads-1);
+     free(tids);
+ #endif //WIN32
+ #else //ENABLE_THREADS
+diff --git a/pkgs/apps/fluidanimate/src/pthreads.cpp b/pkgs/apps/fluidanimate/src/pthreads.cpp
+index e95b187..bd7fadf 100644
+--- a/pkgs/apps/fluidanimate/src/pthreads.cpp
++++ b/pkgs/apps/fluidanimate/src/pthreads.cpp
+@@ -1245,18 +1245,21 @@ int main(int argc, char *argv[])
+ #else
+   thread_args targs[threadnum];
+ #endif
+-  for(int i = 0; i < threadnum; ++i) {
++  for(int i = 1; i < threadnum; ++i) {
+     targs[i].tid = i;
+     targs[i].frames = framenum;
+     pthread_create(&thread[i], &attr, AdvanceFramesMT, &targs[i]);
+   }
++  targs[0].tid = 0;
++  targs[0].frames = framenum;
++  AdvanceFramesMT(&targs[0]);
+ 
+   // *** PARALLEL PHASE *** //
+ #ifdef ENABLE_VISUALIZATION
+   Visualize();
+ #endif
+ 
+-  for(int i = 0; i < threadnum; ++i) {
++  for(int i = 1; i < threadnum; ++i) {
+     pthread_join(thread[i], NULL);
+   }
+ #ifdef ENABLE_PARSEC_HOOKS
+diff --git a/pkgs/apps/swaptions/src/HJM_Securities.cpp b/pkgs/apps/swaptions/src/HJM_Securities.cpp
+index c77552a..23eefce 100644
+--- a/pkgs/apps/swaptions/src/HJM_Securities.cpp
++++ b/pkgs/apps/swaptions/src/HJM_Securities.cpp
+@@ -291,11 +291,14 @@ int main(int argc, char *argv[])
+ #else
+ 	
+ 	int threadIDs[nThreads];
+-        for (i = 0; i < nThreads; i++) {
++        for (i = 1; i < nThreads; i++) {
+           threadIDs[i] = i;
+           pthread_create(&threads[i], &pthread_custom_attr, worker, &threadIDs[i]);
+         }
+-        for (i = 0; i < nThreads; i++) {
++        threadIDs[0] = 0;
++        worker(&threadIDs[0]);
++
++        for (i = 1; i < nThreads; i++) {
+           pthread_join(threads[i], NULL);
+         }
+ 
+diff --git a/pkgs/kernels/canneal/src/main.cpp b/pkgs/kernels/canneal/src/main.cpp
+index 11ef798..cc13e80 100644
+--- a/pkgs/kernels/canneal/src/main.cpp
++++ b/pkgs/kernels/canneal/src/main.cpp
+@@ -112,10 +112,12 @@ int main (int argc, char * const argv[]) {
+ #ifdef ENABLE_THREADS
+ 	std::vector<pthread_t> threads(num_threads);
+ 	void* thread_in = static_cast<void*>(&a_thread);
+-	for(int i=0; i<num_threads; i++){
++	for(int i=1; i<num_threads; i++){
+ 		pthread_create(&threads[i], NULL, entry_pt,thread_in);
+ 	}
+-	for (int i=0; i<num_threads; i++){
++   entry_pt(thread_in);
++
++	for (int i=1; i<num_threads; i++){
+ 		pthread_join(threads[i], NULL);
+ 	}
+ #else
+diff --git a/pkgs/kernels/streamcluster/src/streamcluster.cpp b/pkgs/kernels/streamcluster/src/streamcluster.cpp
+index 29ff344..bc11812 100644
+--- a/pkgs/kernels/streamcluster/src/streamcluster.cpp
++++ b/pkgs/kernels/streamcluster/src/streamcluster.cpp
+@@ -1715,23 +1715,27 @@ void localSearch( Points* points, long kmin, long kmax, long* kfinal ) {
+ #ifdef ENABLE_THREADS
+     pthread_barrier_init(&barrier,NULL,nproc);
+ #endif
+-    for( int i = 0; i < nproc; i++ ) {
++    for(int i = 0; i < nproc; i++) {
+       arg[i].points = points;
+       arg[i].kmin = kmin;
+       arg[i].kmax = kmax;
+       arg[i].pid = i;
+       arg[i].kfinal = kfinal;
+-
+       arg[i].barrier = &barrier;
++    }
+ #ifdef ENABLE_THREADS
++    for (int i = 1; i < nproc; i++) {
+       pthread_create(threads+i,NULL,localSearchSub,(void*)&arg[i]);
++    }
++    localSearchSub((void*)&arg[0]);
+ #else
++    for (int i = 0; i < nproc; i++) {
+       localSearchSub(&arg[0]);
+-#endif
+     }
++#endif
+ 
+ #ifdef ENABLE_THREADS
+-    for ( int i = 0; i < nproc; i++) {
++    for (int i = 1; i < nproc; i++) {
+       pthread_join(threads[i],NULL);
+     }
+ #endif

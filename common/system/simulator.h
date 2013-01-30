@@ -12,7 +12,7 @@ class TileManager;
 class Thread;
 class ThreadManager;
 class ThreadScheduler;
-class PerfCounterManager;
+class PerformanceCounterManager;
 class SimThreadManager;
 class ClockSkewMinimizationManager;
 class StatisticsManager;
@@ -37,7 +37,7 @@ public:
    SimThreadManager *getSimThreadManager() { return m_sim_thread_manager; }
    ThreadManager *getThreadManager() { return m_thread_manager; }
    ThreadScheduler *getThreadScheduler() { return m_thread_scheduler; }
-   PerfCounterManager *getPerfCounterManager() { return m_perf_counter_manager; }
+   PerformanceCounterManager *getPerformanceCounterManager() { return m_performance_counter_manager; }
    ClockSkewMinimizationManager *getClockSkewMinimizationManager() { return m_clock_skew_minimization_manager; }
    StatisticsManager *getStatisticsManager() { return m_statistics_manager; } 
    StatisticsThread *getStatisticsThread() { return m_statistics_thread; } 
@@ -48,7 +48,7 @@ public:
    void stopTimer();
    bool finished();
 
-   std::string getGraphiteHome() { return _graphite_home; }
+   std::string getGraphiteHome() { return m_graphite_home; }
    
    void enableModels();
    void disableModels();
@@ -81,7 +81,7 @@ private:
    TileManager *m_tile_manager;
    ThreadManager *m_thread_manager;
    ThreadScheduler *m_thread_scheduler;
-   PerfCounterManager *m_perf_counter_manager;
+   PerformanceCounterManager *m_performance_counter_manager;
    SimThreadManager *m_sim_thread_manager;
    ClockSkewMinimizationManager *m_clock_skew_minimization_manager;
    StatisticsManager *m_statistics_manager;
@@ -99,7 +99,7 @@ private:
    
    static config::Config *m_config_file;
 
-   std::string _graphite_home;
+   std::string m_graphite_home;
 
    bool m_enabled;
 };

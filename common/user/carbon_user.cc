@@ -80,7 +80,7 @@ UInt64 CarbonGetTime()
    FloatingPointHandler floating_point_handler;
 
    Core* core = Sim()->getTileManager()->getCurrentCore();
-   UInt64 time = convertCycleCount(core->getModel()->getCycleCount(), core->getModel()->getFrequency(), 1.0);
+   UInt64 time = convertCycleCount(core->getModel()->getCycleCount(), core->getTile()->getFrequency(), 1.0);
 
    return time;
 }

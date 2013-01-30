@@ -62,52 +62,49 @@ Fxsupport *Fxsupport::getSingleton()
 
 bool Fxsupport::fxsave()
 {
+   bool ret = false;
    if (Sim()->getTileManager()->amiAppThread())
    {
-      LOG_PRINT("fxsave() start");
-
       UInt32 tile_index = Sim()->getTileManager()->getCurrentTileIndex();
       // This check is done to ensure that the thread has not exited
       if (tile_index < Config::getSingleton()->getNumLocalTiles())
       {
          if (!m_context_saved[tile_index])
          {
+            LOG_PRINT("fxsave() start");
+
             m_context_saved[tile_index] = true;
 
             char *buf = m_fx_buf[tile_index];
             asm volatile ("fxsave %0\n\t"
                           "emms"
                           :"=m"(*buf));
-            return true;
-         }
-         else
-         {
-            return false;
+            
+            LOG_PRINT("fxsave() end");
+            ret = true;
          }
       }
-   
-      LOG_PRINT("fxsave() end");
    }
-   return false;
+   return ret;
 }
 
 void Fxsupport::fxrstor()
 {
    if (Sim()->getTileManager()->amiAppThread())
    {
-      LOG_PRINT("fxrstor() start");
-   
       UInt32 tile_index = Sim()->getTileManager()->getCurrentTileIndex();
       if (tile_index < Config::getSingleton()->getNumLocalTiles())
       {
+         LOG_PRINT("fxrstor() start");
+   
          LOG_ASSERT_ERROR(m_context_saved[tile_index], "Context Not Saved(%u)", tile_index);
          
          m_context_saved[tile_index] = false;
 
          char *buf = m_fx_buf[tile_index];
          asm volatile ("fxrstor %0"::"m"(*buf));
+      
+         LOG_PRINT("fxrstor() end");
       }
-   
-      LOG_PRINT("fxrstor() end");
    }
 }

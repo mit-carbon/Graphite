@@ -34,11 +34,8 @@ CacheSet::read_line(UInt32 line_index, UInt32 offset, Byte *out_buf, UInt32 byte
    assert(offset + bytes <= _line_size);
    assert((out_buf == NULL) == (bytes == 0));
 
-   LOG_PRINT("Out Buf(%u), line_index(%u), offset(%u), bytes(%u)",
-             *((UInt32*) out_buf), line_index, offset, bytes);
    if (out_buf != NULL)
       memcpy((void*) out_buf, &_lines[line_index * _line_size + offset], bytes);
-   LOG_PRINT("Out Buf(%u)", *((UInt32*) out_buf));
 
    // Update replacement policy
    _replacement_policy->update(_cache_line_info_array, _set_num, line_index);
@@ -79,10 +76,8 @@ CacheSet::insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
    // This replacement strategy does not take into account the fact that
    // cache lines can be voluntarily flushed or invalidated due to another write request
    
-   LOG_PRINT("getReplacementWay() start");
    const UInt32 index = _replacement_policy->getReplacementWay(_cache_line_info_array, _set_num);
    assert(index < _associativity);
-   LOG_PRINT("getReplacementWay() end");
 
    assert(eviction != NULL);
         

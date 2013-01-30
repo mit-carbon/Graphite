@@ -181,18 +181,22 @@ void ThreadScheduler::masterScheduleThread(ThreadSpawnRequest *req)
    }
 
    // Grab the thread states on destination tile and set to initializing.
-   if (Tile::isMainCore(req->destination)) {
-      LOG_ASSERT_ERROR(thread_state[req->destination.tile_id][req->destination_tidx].status == Core::IDLE, "Spawning a non-idle thread at %i on {%i, %i}", req->destination_tidx, req->destination.tile_id, req->destination.core_type); 
+   if (Tile::isMainCore(req->destination))
+   {
+      LOG_ASSERT_ERROR(thread_state[req->destination.tile_id][req->destination_tidx].status == Core::IDLE,
+                       "Spawning a non-idle thread at %i on {%i, %i}",
+                       req->destination_tidx, req->destination.tile_id, req->destination.core_type); 
       m_thread_manager->setThreadState(req->destination.tile_id, req->destination_tidx, Core::INITIALIZING);
    }
-   else {
-      LOG_ASSERT_ERROR(false, "Invalid core type");
+   else
+   {
+      LOG_PRINT_ERROR("Invalid core type");
    }
 
    // Start this thread if the core is idle.
    if (is_thread_startable)
    {
-      this->masterStartThread(req->destination);
+      masterStartThread(req->destination);
    }
 
    m_core_lock[req->destination.tile_id].release();
@@ -233,12 +237,6 @@ void ThreadScheduler::masterStartThread(core_id_t core_id)
       // Insert the request in the thread request queue and the thread request map
       m_thread_manager->insertThreadSpawnRequest(req_cpy);
       m_thread_manager->m_thread_spawn_sem.signal();
-         
-      SInt32 msg[] = { req->destination.tile_id, req->destination.core_type, req->destination_tidx};
-
-      Core *core = m_tile_manager->getCurrentCore();
-      core->getTile()->getNetwork()->netSend(req->requester, MCP_THREAD_SPAWN_REPLY_FROM_MASTER_TYPE,
-                                             msg, sizeof(req->destination.tile_id)+sizeof(req->destination.core_type)+sizeof(req->destination_tidx));
    }
 
 }
@@ -280,7 +278,7 @@ void ThreadScheduler::masterMigrateThread(thread_id_t src_thread_id, tile_id_t d
       m_thread_manager->lookupThreadIndex(src_thread_id, src_core_id, src_thread_idx);
       assert(src_thread_idx != INVALID_THREAD_ID);
 
-      this->masterMigrateThread(src_thread_idx, src_core_id, dst_thread_idx, dst_core_id);
+      masterMigrateThread(src_thread_idx, src_core_id, dst_thread_idx, dst_core_id);
    }
 }
 
@@ -355,7 +353,7 @@ void ThreadScheduler::masterMigrateThread(thread_id_t src_thread_idx, core_id_t 
             m_local_next_tidx[dst_core_id.tile_id] = dst_thread_idx;
             if(m_thread_manager->getThreadState(dst_core_id.tile_id, dst_thread_idx) == Core::INITIALIZING)
             {
-               this->masterStartThread(dst_core_id);
+               masterStartThread(dst_core_id);
             }
             else
             {
@@ -588,7 +586,7 @@ bool ThreadScheduler::masterCheckAffinityAndMigrate(core_id_t core_id, thread_id
       LOG_PRINT("Thread %i on {%i, %i} is moving away to %i on {%i, %i}", thread_idx, core_id.tile_id, core_id.core_type, dst_thread_idx, dst_core_id.tile_id, dst_core_id.core_type);
 
       m_core_lock[core_id.tile_id].release();
-      this->masterMigrateThread(thread_idx, core_id, dst_thread_idx, dst_core_id);
+      masterMigrateThread(thread_idx, core_id, dst_thread_idx, dst_core_id);
       m_core_lock[core_id.tile_id].acquire();
       res = false;
    }
@@ -701,12 +699,12 @@ void ThreadScheduler::yieldThread(bool is_pre_emptive)
          m_core_lock[core_id.tile_id].release();
          m_core_lock[dst_core_id.tile_id].acquire();
 
-         // Set PID of this thread
-         m_tile_manager->updateTLS(dst_core_id.tile_id, dst_thread_idx, m_tile_manager->getCurrentThreadId());
-         m_thread_manager->setPid(dst_core_id, dst_thread_idx, syscall(__NR_gettid));
+         // Set OS TID of this thread
+         m_tile_manager->updateTLS(dst_core_id.tile_id, dst_thread_idx, m_tile_manager->getCurrentThreadID());
+         m_thread_manager->setOSTid(dst_core_id, dst_thread_idx, syscall(SYS_gettid));
 
          // If no threads are scheduled, then schedule this thread next.
-         if(dst_next_tidx == INVALID_THREAD_ID)
+         if (dst_next_tidx == INVALID_THREAD_ID)
          {
             m_local_next_tidx[dst_core_id.tile_id] = dst_thread_idx;
          }
@@ -755,7 +753,7 @@ void ThreadScheduler::masterYieldThread(ThreadYieldRequest* req)
 
    m_thread_manager->stallThread(req_core_id, requester_tidx);
 
-   this->requeueThread(req_core_id);
+   requeueThread(req_core_id);
 
    bool is_thread_new = false;
    m_local_next_tidx[req_core_id.tile_id] = m_waiter_queue[req_core_id.tile_id].front()->destination_tidx;
@@ -763,7 +761,7 @@ void ThreadScheduler::masterYieldThread(ThreadYieldRequest* req)
    // Migrate this thread if it's affinity is set to another core, or if there are more threads in the
    // queue, but also cores that are idle. ie. threads get distributed.
    if (!ignore_affinity && m_thread_migration_enabled)
-      this->masterCheckAffinityAndMigrate(req_core_id, requester_tidx, dst_core_id, destination_tidx);
+      masterCheckAffinityAndMigrate(req_core_id, requester_tidx, dst_core_id, destination_tidx);
 
    // If the queue is empty, that means all threads have moved, there is no next_tidx
    if (m_waiter_queue[req_core_id.tile_id].empty())

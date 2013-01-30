@@ -15,10 +15,10 @@ using std::string;
 class IOCOOMCoreModel : public CoreModel
 {
 public:
-   IOCOOMCoreModel(Core* core, float frequency);
+   IOCOOMCoreModel(Core* core);
    ~IOCOOMCoreModel();
 
-   void updateInternalVariablesOnFrequencyChange(volatile float frequency);
+   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    void outputSummary(std::ostream &os);
 
    void computeEnergy();

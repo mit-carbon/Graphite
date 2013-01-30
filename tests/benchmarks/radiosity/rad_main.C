@@ -220,9 +220,15 @@ int main(int argc, char *argv[])
                     taskqueue_id[i] = assign_taskq(0) ;
                 }
 
+            // Enable Models at the start of parallel execution
+            CarbonEnableModels();
+
             /* And start processing */
             CREATE(radiosity, n_processors);
             WAIT_FOR_END(n_processors);
+
+            // Disable Models at the end of parallel execution
+            CarbonDisableModels();
 
             /* Time stamp */
             CLOCK( time_rad_end );
@@ -801,8 +807,6 @@ void radiosity()
 
     /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
        statistics that one is measuring about the parallel execution */
-    // Enable Modeling
-    CarbonEnableModels();
 
     /* Decompose model objects into patches and build the BSP tree */
     /* Create the initial tasks */

@@ -75,14 +75,14 @@ L1CacheCntlr::setL2CacheCntlr(L2CacheCntlr* L2_cache_cntlr)
 }
 
 bool
-L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
+L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
                                    Core::lock_signal_t lock_signal,
                                    Core::mem_op_t mem_op_type, 
                                    IntPtr ca_address, UInt32 offset,
                                    Byte* data_buf, UInt32 data_length,
                                    bool modeled)
 {
-   LOG_PRINT("processMemOpFromTile(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
+   LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
              lock_signal, mem_op_type, ca_address);
 
    bool L1_cache_hit = true;
@@ -107,19 +107,6 @@ L1CacheCntlr::processMemOpFromTile(MemComponent::Type mem_component,
          getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
-         
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-         if (access_num == 1)
-         {
-            // Incr Utilization
-            PrL1CacheLineInfo L1_cache_line_info;
-            Cache* L1_cache = getL1Cache(mem_component);
-            L1_cache->getCacheLineInfo(ca_address, &L1_cache_line_info);
-            L1_cache_line_info.incrUtilization();
-            L1_cache->setCacheLineInfo(ca_address, &L1_cache_line_info);
-         }
-#endif
-
          return L1_cache_hit;
       }
 
@@ -275,19 +262,6 @@ L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr addre
    L1_cache_line_info.invalidate();
    L1_cache->setCacheLineInfo(address, &L1_cache_line_info);
 }
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-UInt32
-L1CacheCntlr::getCacheLineUtilization(MemComponent::Type mem_component, IntPtr address)
-{
-   Cache* L1_cache = getL1Cache(mem_component);
-   assert(L1_cache);
-
-   PrL1CacheLineInfo L1_cache_line_info;
-   L1_cache->getCacheLineInfo(address, &L1_cache_line_info);
-   return L1_cache_line_info.getUtilization();
-}
-#endif
 
 ShmemMsg::Type
 L1CacheCntlr::getShmemMsgType(Core::mem_op_t mem_op_type)

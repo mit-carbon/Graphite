@@ -313,8 +313,14 @@ int main(int argc, char *argv[])
 
    /* Fill the random-number array. */
    
+   // Enable Architectural Models
+   CarbonEnableModels();
+
    CREATE(slave_sort, number_of_processors);
    WAIT_FOR_END(number_of_processors);
+
+   // Disable Architectural Models
+   CarbonDisableModels();
 
    printf("\n");
    printf("                 PROCESS STATISTICS\n");
@@ -461,9 +467,6 @@ void slave_sort()
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
    
-   // Enable Performance Models
-   CarbonEnableModels();
-
    BARRIER(global->barrier_key, number_of_processors) 
 
    if ((MyNum == 0) || (stats)) {
@@ -645,10 +648,6 @@ void slave_sort()
      global->rf = time6;
      global->final = to;
    }
-
-   // Disable Performance Models
-   CarbonDisableModels();
-
 }
 
 /*

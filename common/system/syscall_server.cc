@@ -45,7 +45,7 @@ void SyscallServer::handleSyscall(core_id_t core_id)
    IntPtr syscall_number;
    m_recv_buff >> syscall_number;
 
-   LOG_PRINT("Syscall: %d from core(%i, %i)", syscall_number, core_id.tile_id, core_id.core_type);
+   LOG_PRINT("Syscall: %i from core(%i, %i)", syscall_number, core_id.tile_id, core_id.core_type);
 
    switch (syscall_number)
    {
@@ -822,14 +822,6 @@ void SyscallServer::marshallFutexCall(core_id_t core_id)
    }
 #endif
 
-#ifdef KERNEL_ETCH
-   LOG_ASSERT_ERROR(((op == FUTEX_WAIT) || (op == FUTEX_WAKE)), "op = %#x", op);
-   if (op == FUTEX_WAIT)
-   {
-      LOG_ASSERT_ERROR(timeout == NULL, "timeout(%p)", timeout);
-   }
-#endif
-
 #ifdef KERNEL_SQUEEZE
    if ((op == FUTEX_WAIT) || (op == (FUTEX_WAIT | FUTEX_PRIVATE_FLAG)))
    {
@@ -875,34 +867,31 @@ void SyscallServer::marshallFutexCall(core_id_t core_id)
       futexCmpRequeue(core_id, addr1, val1, val2, addr2, val3, curr_time);
    }
 #endif
-   
-#ifdef KERNEL_ETCH
-   if (op == FUTEX_WAIT)
-   {
-      futexWait(core_id, addr1, val1, curr_time); 
-   }
-   else if (op == FUTEX_WAKE)
-   {
-      futexWake(core_id, addr1, val1, curr_time);
-   }
-#endif
-
 }
 
 // -- Futex related functions --
 void SyscallServer::futexWait(core_id_t core_id, int *addr, int val, UInt64 curr_time)
 {
-   LOG_PRINT("Futex Wait");
    SimFutex *sim_futex = &m_futexes[(IntPtr) addr];
 
-   Core* core = m_network.getTile()->getCore();
    int curr_val;
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr, (char*) &curr_val, sizeof(curr_val));
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
+   {
+      Core* core = m_network.getTile()->getCore();
+      core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr, (char*) &curr_val, sizeof(curr_val));
+   }
+   else // (Config::getSingleton()->getSimulationMode() == Config::LITE)
+   {
+      curr_val = *addr;
+   }
 
+   LOG_PRINT("Futex Wait: core_id(%i,%i), addr(%p), val(%i), curr_val(%i), time(%llu)",
+             core_id.tile_id, core_id.core_type, addr, val, curr_val, curr_time);
+   
    if (val != curr_val)
    {
       m_send_buff.clear();
-      m_send_buff << -(int) EWOULDBLOCK;
+      m_send_buff << - (int) EWOULDBLOCK;
       m_send_buff << curr_time;
       m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
@@ -915,16 +904,24 @@ void SyscallServer::futexWait(core_id_t core_id, int *addr, int val, UInt64 curr
 #ifdef KERNEL_SQUEEZE
 void SyscallServer::futexWaitClockReal(core_id_t core_id, int *addr, int val, UInt64 curr_time)
 {
-   LOG_PRINT("Futex Wait");
-   
-   Core* core = m_network.getTile()->getCore();
    int curr_val;
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr, (char*) &curr_val, sizeof(curr_val));
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
+   {
+      Core* core = m_network.getTile()->getCore();
+      core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr, (char*) &curr_val, sizeof(curr_val));
+   }
+   else // (Config::getSingleton()->getSimulationMode() == Config::LITE)
+   {
+      curr_val = *addr;
+   }
 
+   LOG_PRINT("Futex Wait Clock Real: core_id(%i,%i), addr(%p), val(%i), curr_val(%i), time(%llu)",
+             core_id.tile_id, core_id.core_type, addr, val, curr_val, curr_time);
+   
    if (val != curr_val)
    {
       m_send_buff.clear();
-      m_send_buff << -(int) ENOSYS;
+      m_send_buff << - (int) ENOSYS;
       m_send_buff << curr_time;
       m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
@@ -937,7 +934,8 @@ void SyscallServer::futexWaitClockReal(core_id_t core_id, int *addr, int val, UI
 
 void SyscallServer::futexWake(core_id_t core_id, int *addr, int val, UInt64 curr_time)
 {
-   LOG_PRINT("Futex Wake");
+   LOG_PRINT("Futex Wake: core_id(%i,%i), addr(%p), val(%i), curr_time(%llu)",
+             core_id.tile_id, core_id.core_type, addr, val, curr_time);
 
    int num_procs_woken_up = __futexWake(addr, val, curr_time);
    
@@ -956,12 +954,22 @@ void SyscallServer::futexWakeOp(core_id_t core_id, int *addr1, int val1, int val
 
    int num_procs_woken_up = 0;
 
-   Core* core = m_network.getTile()->getCore();
-
    // Get the old value of addr2
    int oldval;
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr2, (char*) &oldval, sizeof(oldval));
-   
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
+   {
+      Core* core = m_network.getTile()->getCore();
+      core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr2, (char*) &oldval, sizeof(oldval));
+   }
+   else // (Config::getSingleton()->getSimulationMode() == Config::LITE)
+   {
+      oldval = *addr2;
+   }
+
+   LOG_PRINT("Futex WakeOp: core_id(%i,%i), addr1(%p), val1(%i), val2(%i), "
+             "addr2(%p), val3(%i), oldval(%i), curr_time(%llu)",
+             core_id.tile_id, core_id.core_type, addr1, val1, val2, addr2, val3, oldval, curr_time);
+
    int newval = 0;
    switch (OP)
    {
@@ -991,7 +999,15 @@ void SyscallServer::futexWakeOp(core_id_t core_id, int *addr1, int val1, int val
    }
    
    // Write the newval into addr2
-   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) addr2, (char*) &newval, sizeof(newval));
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
+   {
+      Core* core = m_network.getTile()->getCore();
+      core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) addr2, (char*) &newval, sizeof(newval));
+   }
+   else // (Config::getSingleton()->getSimulationMode() == Config::LITE)
+   {
+      *addr2 = newval;
+   }
 
    // Wake upto val1 threads waiting on the first futex
    num_procs_woken_up += __futexWake(addr1, val1, curr_time);
@@ -1041,17 +1057,25 @@ void SyscallServer::futexWakeOp(core_id_t core_id, int *addr1, int val1, int val
 
 void SyscallServer::futexCmpRequeue(core_id_t core_id, int *addr1, int val1, int val2, int *addr2, int val3, UInt64 curr_time)
 {
-   LOG_PRINT("Futex CMP_REQUEUE");
-
-   Core* core = m_network.getTile()->getCore();
-
    int curr_val;
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr1, (char*) &curr_val, sizeof(curr_val));
+   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
+   {
+      Core* core = m_network.getTile()->getCore();
+      core->accessMemory(Core::NONE, Core::READ, (IntPtr) addr1, (char*) &curr_val, sizeof(curr_val));
+   }
+   else // (Config::getSingleton()->getSimulationMode() == Config::LITE)
+   {
+      curr_val = *addr1;
+   }
+
+   LOG_PRINT("Futex CmpRequeue: core_id(%i,%i), addr1(%p), val1(%i), val2(%i), "
+             "addr2(%p), val3(%i), curr_val(%i), curr_time(%llu)",
+             core_id.tile_id, core_id.core_type, addr1, val1, val2, addr2, val3, curr_val, curr_time);
 
    if (val3 != curr_val)
    {
       m_send_buff.clear();
-      m_send_buff << -(int) EWOULDBLOCK;
+      m_send_buff << - (int) EWOULDBLOCK;
       m_send_buff << curr_time;
       m_network.netSend(core_id, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
    }
@@ -1088,6 +1112,8 @@ void SyscallServer::futexCmpRequeue(core_id_t core_id, int *addr1, int val1, int
 
 int SyscallServer::__futexWake(int* addr, int val, UInt64 curr_time)
 {
+   LOG_PRINT("__Futex Wake: addr(%p), val(%i), curr_time(%llu)", addr, val, curr_time);
+
    SimFutex *sim_futex = &m_futexes[(IntPtr) addr];
 
    int num_procs_woken_up = 0;
@@ -1103,6 +1129,7 @@ int SyscallServer::__futexWake(int* addr, int val, UInt64 curr_time)
       m_send_buff << (int) 0;
       m_send_buff << (UInt64) curr_time;
       m_network.netSend(waiter, MCP_RESPONSE_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
+      LOG_PRINT("Woke Up (%i,%i)", waiter.tile_id, waiter.core_type);
    }
 
    return num_procs_woken_up;

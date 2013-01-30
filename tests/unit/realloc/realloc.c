@@ -40,7 +40,7 @@ void* test_realloc(void *threadid)
 	long rank = (long)(threadid);
 	char *myString = (char *)malloc(init_size * sizeof(char));
 
-	for(int i = 2; i < 1000; i++) {
+	for(int i = 2; i < 100; i++) {
 		int num_chars = init_size * i;
 		myString = realloc(myString, num_chars * sizeof(char));
 		for(int j=0; j<num_chars; j++) {

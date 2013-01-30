@@ -1,0 +1,19 @@
+diff --git a/config/graphite.bldconf b/config/graphite.bldconf
+index 8452c42..12ad93c 100644
+--- a/config/graphite.bldconf
++++ b/config/graphite.bldconf
+@@ -1,5 +1,12 @@
+ #!/bin/bash
+-
+-# graphite.bldconf - configuration file for PARSEC
++#
++# graphite.bldconf - file containing global information necessary to build
++#                    PARSEC with the Graphite multicore simulator
+ 
+ source ${PARSECDIR}/config/gcc-hooks.bldconf
++
++# Enable PARSEC hooks
++CFLAGS="${CFLAGS} -DENABLE_GRAPHITE -I${GRAPHITE_HOME}/common/user"
++CXXFLAGS="${CXXFLAGS} -DENABLE_GRAPHITE -I${GRAPHITE_HOME}/common/user"
++LDFLAGS="${LDFLAGS} -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join -L${GRAPHITE_HOME}/lib -L${GRAPHITE_HOME}/contrib/dsent"
++LIBS="${LIBS} -lcarbon_sim -ldsent_contrib -lboost_filesystem-mt -lboost_system-mt -lpthread -lstdc++ -lm"

@@ -42,7 +42,7 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
    // Check Core Cycle Count
    UInt64 m_cycle_count = m_core_model->getCycleCount();
    // Convert from Tile Clock to Global Clock
-   m_first_time = convertCycleCount(m_cycle_count, m_core_model->getFrequency(), 1.0);
+   m_first_time = convertCycleCount(m_cycle_count, m_tile->getFrequency(), 1.0);
 }
 
 //---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ void TileEnergyMonitor::periodicallyCollectEnergy()
    // Check Core Cycle Count
    UInt64 m_cycle_count = m_core_model->getCycleCount();
    // Convert from Tile Clock to Global Clock
-   m_current_time = convertCycleCount(m_cycle_count, m_core_model->getFrequency(), 1.0);
+   m_current_time = convertCycleCount(m_cycle_count, m_tile->getFrequency(), 1.0);
 
    // Check if the Next Time has been reached
    if (m_current_time >= m_next_time)
@@ -202,7 +202,7 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
    // Check Core Cycle Count
    UInt64 m_cycle_count = m_core_model->getCycleCount();
    // Convert from Tile Clock to Global Clock
-   m_last_time = convertCycleCount(m_cycle_count, m_core_model->getFrequency(), 1.0);
+   m_last_time = convertCycleCount(m_cycle_count, m_tile->getFrequency(), 1.0);
 
    periodicallyCollectEnergy();
 

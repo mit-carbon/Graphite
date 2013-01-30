@@ -5,6 +5,7 @@
 #include "pr_l1_pr_l2_dram_directory_mosi/memory_manager.h"
 #include "pr_l1_sh_l2_msi/memory_manager.h"
 #include "network_model.h"
+#include "clock_converter.h"
 #include "log.h"
 
 // Static Members
@@ -12,13 +13,21 @@ CachingProtocolType MemoryManager::_caching_protocol_type;
 
 MemoryManager::MemoryManager(Tile* tile)
    : _tile(tile)
+   , _enabled(false)
 {
    _network = _tile->getNetwork();
    _shmem_perf_model = new ShmemPerfModel();
+   
+   // Register call-backs
+   _network->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
+   _network->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
 }
 
 MemoryManager::~MemoryManager()
-{}
+{
+   _network->unregisterCallback(SHARED_MEM_1);
+   _network->unregisterCallback(SHARED_MEM_2);
+}
 
 MemoryManager* 
 MemoryManager::createMMU(std::string protocol_type, Tile* tile)
@@ -59,18 +68,104 @@ void MemoryManagerNetworkCallback(void* obj, NetPacket packet)
 {
    MemoryManager *mm = (MemoryManager*) obj;
    assert(mm != NULL);
+   mm->__handleMsgFromNetwork(packet);
+}
+
+bool
+MemoryManager::__coreInitiateMemoryAccess(MemComponent::Type mem_component,
+                                          Core::lock_signal_t lock_signal,
+                                          Core::mem_op_t mem_op_type,
+                                          IntPtr address, UInt32 offset,
+                                          Byte* data_buf, UInt32 data_length,
+                                          UInt64& curr_time, bool modeled)
+{
+   if (lock_signal != Core::UNLOCK)
+      _lock.acquire();
+   
+   _shmem_perf_model->setCycleCount(curr_time);
+
+   bool ret = coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type,
+                                       address, offset, data_buf, data_length, modeled);
+
+   curr_time = _shmem_perf_model->getCycleCount();
+
+   if (lock_signal != Core::LOCK)
+      _lock.release();
+
+   return ret;
+}
+
+void
+MemoryManager::__handleMsgFromNetwork(NetPacket& packet)
+{
+   _lock.acquire();
+
+   // Convert from the network frequency domain to tile frequency domain
+   NetworkModel* network_model = _network->getNetworkModelFromPacketType(packet.type);
+   packet.time = convertCycleCount(packet.time, network_model->getFrequency(), _tile->getFrequency());
+
+   _shmem_perf_model->setCycleCount(packet.time);
 
    switch (packet.type)
    {
    case SHARED_MEM_1:
    case SHARED_MEM_2:
-      mm->handleMsgFromNetwork(packet);
+      handleMsgFromNetwork(packet);
       break;
 
    default:
-      LOG_PRINT_ERROR("Got unrecognized packet type(%u)", packet.type);
+      LOG_PRINT_ERROR("Unrecognized packet type (%u)", packet.type);
       break;
    }
+
+   _lock.release();
+}
+
+void
+MemoryManager::enableModels()
+{
+   _enabled = true;
+   _shmem_perf_model->enable();
+}
+
+void
+MemoryManager::disableModels()
+{
+   _enabled = false;
+   _shmem_perf_model->disable();
+}
+
+void
+MemoryManager::outputSummary(ostream& out)
+{
+}
+
+void
+MemoryManager::waitForAppThread()
+{
+   _sim_thread_sem.wait();
+   _lock.acquire();
+}
+
+void
+MemoryManager::wakeUpAppThread()
+{
+   _lock.release();
+   _app_thread_sem.signal();
+}
+
+void
+MemoryManager::waitForSimThread()
+{
+   _lock.release();
+   _app_thread_sem.wait();
+}
+
+void
+MemoryManager::wakeUpSimThread()
+{
+   _lock.acquire();
+   _sim_thread_sem.signal();
 }
 
 void
@@ -78,15 +173,10 @@ MemoryManager::openCacheLineReplicationTraceFiles()
 {
    switch (_caching_protocol_type)
    {
-   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-      PrL1PrL2DramDirectoryMSI::MemoryManager::openCacheLineReplicationTraceFiles();
-      break;
-
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       PrL1PrL2DramDirectoryMOSI::MemoryManager::openCacheLineReplicationTraceFiles();
       break;
 
-   case PR_L1_SH_L2_MSI:
    default:
       LOG_PRINT_ERROR("Caching Protocol (%u) does not support this feature", _caching_protocol_type);
       break;
@@ -98,15 +188,10 @@ MemoryManager::closeCacheLineReplicationTraceFiles()
 {
    switch (_caching_protocol_type)
    {
-   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-      PrL1PrL2DramDirectoryMSI::MemoryManager::closeCacheLineReplicationTraceFiles();
-      break;
-
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       PrL1PrL2DramDirectoryMOSI::MemoryManager::closeCacheLineReplicationTraceFiles();
       break;
 
-   case PR_L1_SH_L2_MSI:
    default:
       LOG_PRINT_ERROR("Caching Protocol (%u) does not support this feature", _caching_protocol_type);
       break;
@@ -118,15 +203,10 @@ MemoryManager::outputCacheLineReplicationSummary()
 {
    switch (_caching_protocol_type)
    {
-   case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-      PrL1PrL2DramDirectoryMSI::MemoryManager::outputCacheLineReplicationSummary();
-      break;
-
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
       PrL1PrL2DramDirectoryMOSI::MemoryManager::outputCacheLineReplicationSummary();
       break;
 
-   case PR_L1_SH_L2_MSI:
    default:
       LOG_PRINT_ERROR("Caching Protocol (%u) does not support this feature", _caching_protocol_type);
       break;

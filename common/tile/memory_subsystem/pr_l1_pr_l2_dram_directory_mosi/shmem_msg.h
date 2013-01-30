@@ -2,7 +2,6 @@
 
 #include "mem_component.h"
 #include "fixed_types.h"
-#include "utilization_defines.h"
 #include "../shmem_msg.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
@@ -37,9 +36,6 @@ namespace PrL1PrL2DramDirectoryMOSI
                , bool reply_expected
                , IntPtr address
                , bool modeled
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-               , UInt32 cache_line_utilization = 0
-#endif
                );
       ShmemMsg(Type msg_type
                , MemComponent::Type sender_mem_component
@@ -51,9 +47,6 @@ namespace PrL1PrL2DramDirectoryMOSI
                , Byte* data_buf
                , UInt32 data_length
                , bool modeled
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-               , UInt32 cache_line_utilization = 0
-#endif
                );
       ShmemMsg(const ShmemMsg* shmem_msg);
       ~ShmemMsg();
@@ -79,9 +72,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       Byte* getDataBuf() const                           { return _data_buf; }
       UInt32 getDataLength() const                       { return _data_length; }
       bool isModeled() const                             { return _modeled; }
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      UInt32 getCacheLineUtilization() const             { return _cache_line_utilization; }
-#endif
 
       void setMsgType(Type msg_type) { _msg_type = msg_type; }
       void setDataBuf(Byte* data_buf) { _data_buf = data_buf; }
@@ -97,9 +87,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       Byte* _data_buf;
       UInt32 _data_length;
       bool _modeled;
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      UInt32 _cache_line_utilization;
-#endif
 
       static const UInt32 _num_msg_type_bits = 4;
    };

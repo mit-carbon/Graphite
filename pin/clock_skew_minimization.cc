@@ -13,16 +13,18 @@ static bool enabled()
 
 void handlePeriodicSync()
 {
-   Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   assert(tile);
-   if (tile->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())
+   if (!Sim()->isEnabled())
+      return;
+
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   assert(core);
+   if (core->getTile()->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
       // Thread Spawner Tile / MCP
       return;
    }
 
-   ClockSkewMinimizationClient *client = tile->getCore()->getClockSkewMinimizationClient();
-
+   ClockSkewMinimizationClient *client = core->getClockSkewMinimizationClient();
    if (client)
       client->synchronize();
 }

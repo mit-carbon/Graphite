@@ -27,9 +27,6 @@ namespace PrL1PrL2DramDirectoryMOSI
                      , bool reply_expected
                      , IntPtr address
                      , bool modeled
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                     , UInt32 cache_line_utilization
-#endif
                      )
       : _msg_type(msg_type)
       , _sender_mem_component(sender_mem_component)
@@ -41,9 +38,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(NULL)
       , _data_length(0)
       , _modeled(modeled)
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      , _cache_line_utilization(cache_line_utilization)
-#endif
    {}
 
    ShmemMsg::ShmemMsg(Type msg_type
@@ -56,9 +50,6 @@ namespace PrL1PrL2DramDirectoryMOSI
                      , Byte* data_buf
                      , UInt32 data_length
                      , bool modeled
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-                     , UInt32 cache_line_utilization
-#endif
                      )
       : _msg_type(msg_type)
       , _sender_mem_component(sender_mem_component)
@@ -70,9 +61,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       , _data_buf(data_buf)
       , _data_length(data_length)
       , _modeled(modeled)
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      , _cache_line_utilization(cache_line_utilization)
-#endif
    {}
 
    ShmemMsg::ShmemMsg(const ShmemMsg* shmem_msg)
@@ -96,9 +84,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       _data_buf = shmem_msg->getDataBuf();
       _data_length = shmem_msg->getDataLength();
       _modeled = shmem_msg->isModeled();
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      _cache_line_utilization = shmem_msg->getCacheLineUtilization();
-#endif
    }
 
    ShmemMsg*

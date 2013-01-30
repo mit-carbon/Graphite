@@ -69,7 +69,7 @@ RouterPowerModel::updateDynamicEnergyBufferRead(UInt32 num_flits)
 void
 RouterPowerModel::updateDynamicEnergyCrossbar(UInt32 num_flits, UInt32 multicast_idx)
 {
-   volatile double dynamic_energy_crossbar = _dsent_router->calc_dynamic_energy_xbar(num_flits);
+   volatile double dynamic_energy_crossbar = _dsent_router->calc_dynamic_energy_xbar(num_flits, multicast_idx);
    _total_dynamic_energy_crossbar += dynamic_energy_crossbar;
 }
 

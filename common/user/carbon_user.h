@@ -11,12 +11,11 @@ extern "C"
 #include "capi.h"
 #include "sync_api.h"
 #include "thread_support.h"
-#include "perf_counter_support.h"
-#include "dvfs.h"
+#include "performance_counter_support.h"
+#include "dynamic_frequency_scaling.h"
 
 SInt32 CarbonStartSim(int argc, char **argv);
 void CarbonStopSim();
-//core_id_t CarbonGetCoreId();
 tile_id_t CarbonGetTileId();
 UInt64 CarbonGetTime();
 

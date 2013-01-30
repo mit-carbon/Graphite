@@ -47,17 +47,23 @@ def createMcPATInput(options, mcpat_input_filename):
    clockrate = "%d" % (options.frequency * 1000)
   
    # Common Attributes
-   core = getArchComponent(dom,'core0')
-   setAttribute(core, "clock_rate", clockrate)
    system_comp = getArchComponent(dom,'system')
+   # Temperature used by McPAT (in K). This is the same default temperature used by DSENT
+   setAttribute(system_comp, "temperature", "340")
    setAttribute(system_comp, "core_tech_node", options.technology_node)
-   setAttribute(system_comp, "total_cycles", options.total_cycles)
+   setAttribute(system_comp, "target_core_clockrate", clockrate)
+   setAttribute(system_comp, "total_cycles", "1000")
    setAttribute(system_comp, "idle_cycles", "0")
-   setAttribute(system_comp, "busy_cycles", options.total_cycles)
+   setAttribute(system_comp, "busy_cycles", "1000")
    
    # Some Default Args
+   # Buffer size for miss buffer, fill buffer, prefetch buffer, write-back buffer
    buffer_size = 8
+   # 0 - High performance, 1 - Low standby power, 2 - Low operating power
+   device_type = "0"
+   
    if (options.type == "directory"):
+      setAttribute(system_comp, "number_of_L1Directories", "1")
       directory = getArchComponent(dom,'L1Directory0')
 
       Directory_type = "1"
@@ -70,13 +76,15 @@ def createMcPATInput(options, mcpat_input_filename):
       setAttribute(directory, "buffer_sizes", buffer_sizes)
       setAttribute(directory, "clockrate", clockrate)
       setAttribute(directory, "ports", ports)
-      
-      setAttribute(directory, "read_accesses", options.read_accesses)
-      setAttribute(directory, "write_accesses", options.write_accesses)
-      setAttribute(directory, "read_misses", options.read_misses)
-      setAttribute(directory, "write_misses", options.write_misses)
+      setAttribute(directory, "device_type", device_type)
+     
+      setAttribute(directory, "read_accesses", "0")
+      setAttribute(directory, "write_accesses", "0")
+      setAttribute(directory, "read_misses", "0")
+      setAttribute(directory, "write_misses", "0")
 
    elif (options.type == "data"):
+      setAttribute(system_comp, "number_of_L2s", "1")
       cache = getArchComponent(dom,'L20')
       
       L2_config = "%d,%d,%d,%d,%d,%d,%d,%d" % (options.size, options.blocksize, options.associativity, 1, 1, options.delay, options.blocksize, 1)
@@ -87,11 +95,12 @@ def createMcPATInput(options, mcpat_input_filename):
       setAttribute(cache, "buffer_sizes", buffer_sizes)
       setAttribute(cache, "clockrate", clockrate)
       setAttribute(cache, "ports", ports)
+      setAttribute(cache, "device_type", device_type)
 
-      setAttribute(cache, "read_accesses", options.read_accesses)
-      setAttribute(cache, "write_accesses", options.write_accesses)
-      setAttribute(cache, "read_misses", options.read_misses)
-      setAttribute(cache, "write_misses", options.write_misses)
+      setAttribute(cache, "read_accesses", "0")
+      setAttribute(cache, "write_accesses", "0")
+      setAttribute(cache, "read_misses", "0")
+      setAttribute(cache, "write_misses", "0")
    
    else:
       print "ERROR: McPAT Cache Parser: Unrecognized Cache Type (%s)" % (options.type)
@@ -118,32 +127,44 @@ def parseMcPATOutput(component, mcpat_output_filename):
       file.close()
 
    area = None
-   peak_dynamic_power = None
    subthreshold_leakage_power = None
    gate_leakage_power = None
+   peak_dynamic_power = None
    runtime_dynamic_power = None
+   tag_array_read_energy = None
+   tag_array_write_energy = None
+   data_array_read_energy = None
+   data_array_write_energy = None
 
    reached = False
    for line in lines:
       if (reached):
          if (area == None):
             area = findMatch("Area", line)
-         if (peak_dynamic_power == None):
-            peak_dynamic_power = findMatch("Peak Dynamic", line)
          if (subthreshold_leakage_power == None):
             subthreshold_leakage_power = findMatch("Subthreshold Leakage", line)
          if (gate_leakage_power == None):
             gate_leakage_power = findMatch("Gate Leakage", line)
+         if (peak_dynamic_power == None):
+            peak_dynamic_power = findMatch("Peak Dynamic", line)
          if (runtime_dynamic_power == None):
             runtime_dynamic_power = findMatch("Runtime Dynamic", line)
-         if (runtime_dynamic_power != None):
+         if (tag_array_read_energy == None):
+            tag_array_read_energy = findMatch("Tag Array Read Energy", line)
+         if (tag_array_write_energy == None):
+            tag_array_write_energy = findMatch("Tag Array Write Energy", line)
+         if (data_array_read_energy == None):
+            data_array_read_energy = findMatch("Data Array Read Energy", line)
+         if (data_array_write_energy == None):
+            data_array_write_energy = findMatch("Data Array Write Energy", line)
+         if (data_array_write_energy != None):
             break
          
       component_str = r"^%s" % component
       if re.match(component_str, line):
          reached = True
 
-   return (area, peak_dynamic_power, subthreshold_leakage_power, gate_leakage_power, runtime_dynamic_power)
+   return (area, subthreshold_leakage_power, gate_leakage_power, peak_dynamic_power, runtime_dynamic_power, tag_array_read_energy, tag_array_write_energy, data_array_read_energy, data_array_write_energy)
          
 # Main Program Starts Here
 
@@ -160,11 +181,6 @@ parser.add_option("--frequency", dest="frequency", type="float", help="Frequency
 parser.add_option("--mcpat-home", dest="mcpat_home", help="McPAT home directory")
 parser.add_option("--input-file", dest="input_file", help="Default McPAT input file")
 parser.add_option("--output-file", dest="output_file", help="Output file")
-parser.add_option("--read-accesses", dest="read_accesses", help="Number of Read Accesses", default="0")
-parser.add_option("--write-accesses", dest="write_accesses", help="Number of Write Accesses", default="0")
-parser.add_option("--read-misses", dest="read_misses", help="Number of Read Misses", default="0")
-parser.add_option("--write-misses", dest="write_misses", help="Number of Write Misses", default="0")
-parser.add_option("--total-cycles", dest="total_cycles", help="Total Cycles", default="100000")
 (options,args) = parser.parse_args()
 
 # Intermediate Files
@@ -195,7 +211,7 @@ elif (options.type == "directory"):
 else:
    print "ERROR: McPAT Cache Parser: Unrecognized Cache Type (%s)" % (options.type)
    sys.exit(-5)
-(area, peak_dynamic_power, subthreshold_leakage_power, gate_leakage_power, runtime_dynamic_power) = parseMcPATOutput(component, mcpat_output_filename)
+(area, subthreshold_leakage_power, gate_leakage_power, peak_dynamic_power, runtime_dynamic_power, tag_array_read_energy, tag_array_write_energy, data_array_read_energy, data_array_write_energy) = parseMcPATOutput(component, mcpat_output_filename)
 
 # Write the Output
 output_filename = "%s.%s" % (options.output_file, options.suffix)
@@ -205,7 +221,8 @@ except IOError:
    print "ERROR: McPAT Cache Parser: Could not open output file (%s)" % (output_filename)
    sys.exit(-3)
 else:
-   output_str = "%s\n%s\n%s\n%s\n%s" % (area, peak_dynamic_power, subthreshold_leakage_power, gate_leakage_power, runtime_dynamic_power)
+   output_str = "%s\n%s\n%s\n%s\n%s\n%s\n%s" % (area, subthreshold_leakage_power, gate_leakage_power, \
+         tag_array_read_energy, tag_array_write_energy, data_array_read_energy, data_array_write_energy)
    output_file.write(output_str)
    output_file.close()
 

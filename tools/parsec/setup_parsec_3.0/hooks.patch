@@ -1,0 +1,54 @@
+diff --git a/pkgs/libs/hooks/src/config.h b/pkgs/libs/hooks/src/config.h
+index 0cff79a..33948c3 100644
+--- a/pkgs/libs/hooks/src/config.h
++++ b/pkgs/libs/hooks/src/config.h
+@@ -131,7 +131,20 @@
+ #include "/opt/PTLsim/ptlcalls.h"
+ #endif
+ 
+-
++/** \brief Run Graphite simulator models only in ROI
++ *
++ * If this macro is set to 1, then CarbonEnableModels() is called at the
++ * start of the region-of-interest (ROI) and CarbonDisableModels() at the end of
++ * it, so just the ROI in the program is modeled. For most parallel
++ * benchmarking purposes, the ROI is the parallel part of the program.
++ *
++ * This functionality is disabled by default and must be enabled using
++ * a compile-time macro (using -DENABLE_GRAPHITE).
++ */
++/* Path to the include file */
++#ifdef ENABLE_GRAPHITE
++#include "carbon_user.h"
++#endif
+ 
+ /** \brief Prefix for all output.
+  *
+diff --git a/pkgs/libs/hooks/src/hooks.c b/pkgs/libs/hooks/src/hooks.c
+index 9658425..5c878f7 100644
+--- a/pkgs/libs/hooks/src/hooks.c
++++ b/pkgs/libs/hooks/src/hooks.c
+@@ -195,6 +195,11 @@ void __parsec_roi_begin() {
+   #if ENABLE_PTLSIM_TRIGGER
+   ptlcall_switch_to_sim();
+   #endif //ENABLE_PTLSIM_TRIGGER
++
++  // Graphite Enable Models
++  #ifdef ENABLE_GRAPHITE
++  CarbonEnableModels();
++  #endif
+ }
+ 
+ 
+@@ -221,6 +226,11 @@ void __parsec_roi_end() {
+   time_end = (double)t.tv_sec+(double)t.tv_usec*1e-6;
+   #endif //ENABLE_TIMING
+ 
++  // Graphite Disable Models
++  #ifdef ENABLE_GRAPHITE
++  CarbonDisableModels();
++  #endif
++  
+   printf(HOOKS_PREFIX" Leaving ROI\n");
+   fflush(NULL);
+ }

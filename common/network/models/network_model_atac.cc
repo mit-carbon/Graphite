@@ -61,9 +61,6 @@ NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id):
    // Initialize ANet topology
    initializeANetTopologyParams();
 
-   // Initialize Laser Capability
-   initializeLaserModes();
-
    // Initialize ENet, ONet and BNet parameters
    createANetRouterAndLinkModels();
 }
@@ -72,35 +69,6 @@ NetworkModelAtac::~NetworkModelAtac()
 {
    // Destroy the Link Models
    destroyANetRouterAndLinkModels();
-}
-
-void
-NetworkModelAtac::initializeLaserModes()
-{
-   string laser_modes;
-   try
-   {
-      laser_modes = Sim()->getCfg()->getString("network/atac/laser_modes");
-   }
-   catch (...)
-   {
-      LOG_PRINT_ERROR("Could not read laser capabilities from the cfg file");
-   }
-
-   vector<string> laser_modes_vec;
-   splitIntoTokens(laser_modes, laser_modes_vec, ",");
-  
-   for (vector<string>::iterator it = laser_modes_vec.begin(); it != laser_modes_vec.end(); it++)
-   {
-      if ((*it) == "idle")
-         _laser_modes.idle = true;
-      else if ((*it) == "unicast")
-         _laser_modes.unicast = true;
-      else if ((*it) == "broadcast")
-         _laser_modes.broadcast = true;
-      else
-         LOG_PRINT_ERROR("Unrecognzied Laser Mode(%s)", (*it).c_str());
-   }
 }
 
 void
@@ -254,8 +222,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
 
       // Optical Network Link Models
       volatile double waveguide_length = computeOpticalLinkLength();   // In mm
-      _optical_link = new OpticalLinkModel(this, _laser_modes, _num_clusters, _frequency, waveguide_length, _flit_width);
-      assert(_optical_link->getDelay() == 3);
+      _optical_link = new OpticalLinkModel(this, _num_clusters, _frequency, waveguide_length, _flit_width);
+      LOG_ASSERT_ERROR(_optical_link->getDelay() == 3, "Optical link delay should be 3. Now %llu", _optical_link->getDelay());
 
       // Receive Hub Router Models
       _receive_hub_router = new RouterModel(this, _frequency, _num_clusters, _num_receive_networks_per_cluster,
@@ -263,17 +231,17 @@ NetworkModelAtac::createANetRouterAndLinkModels()
                                             _contention_model_enabled, contention_model_type);
 
          // Receive Net
-      if (_receive_net_type == HTREE) // HTree BNet
+      if (_receive_net_type == BTREE) // Broadcast-Tree
       {
          // Just the Htree link
-         volatile double htree_link_length = _tile_width * _cluster_size;
+         volatile double btree_link_length = _tile_width * _cluster_size;
          
-         _htree_link_list.resize(_num_receive_networks_per_cluster);
+         _btree_link_list.resize(_num_receive_networks_per_cluster);
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
-            _htree_link_list[i] = new ElectricalLinkModel(this, electrical_link_type,
-                                                          _frequency, htree_link_length, _flit_width);
-            assert(_htree_link_list[i]->getDelay() == 1);
+            _btree_link_list[i] = new ElectricalLinkModel(this, electrical_link_type,
+                                                          _frequency, btree_link_length, _flit_width);
+            assert(_btree_link_list[i]->getDelay() == 1);
          }
       }
       else // (_receive_net_type == STAR)
@@ -337,10 +305,10 @@ NetworkModelAtac::destroyANetRouterAndLinkModels()
       delete _receive_hub_router;
 
       // Receive Net
-      if (_receive_net_type == HTREE)
+      if (_receive_net_type == BTREE)
       {
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
-            delete _htree_link_list[i];
+            delete _btree_link_list[i];
       }
       else // (_receive_net_type == STAR)
       {
@@ -453,7 +421,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
    {
       if (pkt_receiver == NetPacket::BROADCAST)
       {
-         if (_laser_modes.broadcast)
+         if (_optical_link->getLaserModes().broadcast)
          {
             UInt64 zero_load_delay = 0;
             UInt64 contention_delay = 0;
@@ -467,7 +435,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
                next_hops.push(hop);
             }
          }
-         else if (_laser_modes.unicast)
+         else if (_optical_link->getLaserModes().unicast)
          {
             for (SInt32 i = 0 ; i < _num_clusters; i++)
             {
@@ -477,7 +445,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
                _send_hub_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
                _optical_link->processPacket(pkt, 1 /* send to only 1 endpoint */, zero_load_delay);
               
-               LOG_PRINT_WARNING("i(%i), contention delay(%llu)", i, contention_delay); 
+               LOG_PRINT("Cluster: %i, Contention delay: %llu", i, contention_delay); 
                Hop hop(pkt, getTileIDWithOpticalHub(i), RECEIVE_HUB, zero_load_delay, contention_delay);
                next_hops.push(hop);
             }
@@ -516,10 +484,10 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
       // Update router event counters, get delay, update dynamic energy
       _receive_hub_router->processPacket(pkt, receive_net_id, zero_load_delay, contention_delay);
 
-      if (_receive_net_type == HTREE)
+      if (_receive_net_type == BTREE)
       {
          // Update link counters, get delay, update dynamic energy
-         _htree_link_list[receive_net_id]->processPacket(pkt, zero_load_delay);
+         _btree_link_list[receive_net_id]->processPacket(pkt, zero_load_delay);
       }
       else // (_receive_net_type == STAR)
       {
@@ -571,6 +539,7 @@ void
 NetworkModelAtac::outputSummary(ostream &out)
 {
    NetworkModel::outputSummary(out);
+   outputPowerSummary(out);
    outputEventCountSummary(out);
    if (_contention_model_enabled)
       outputContentionModelsSummary(out);
@@ -843,8 +812,8 @@ NetworkModelAtac::computeGlobalRoute(tile_id_t sender, tile_id_t receiver)
 NetworkModelAtac::ReceiveNetType
 NetworkModelAtac::parseReceiveNetType(string str)
 {
-   if (str == "htree")
-      return HTREE;
+   if (str == "btree")
+      return BTREE;
    else if (str == "star")
       return STAR;
    else
@@ -998,12 +967,12 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
       // Receive Net
       if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
       {
-         if (_receive_net_type == HTREE)
+         if (_receive_net_type == BTREE)
          {
-            UInt64 total_htree_link_traversals = 0;
+            UInt64 total_btree_link_traversals = 0;
             for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
-               total_htree_link_traversals += _htree_link_list[i]->getTotalTraversals();
-            out << "      HTree Link Traversals: " << total_htree_link_traversals << endl;
+               total_btree_link_traversals += _btree_link_list[i]->getTotalTraversals();
+            out << "      BTree Link Traversals: " << total_btree_link_traversals << endl;
          }
          else // (_receive_net_type == STAR)
          {
@@ -1036,9 +1005,9 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
       }
       else
       {
-         if (_receive_net_type == HTREE)
+         if (_receive_net_type == BTREE)
          {
-            out << "      HTree Link Traversals: " << endl;
+            out << "      BTree Link Traversals: " << endl;
          }
          else // (_receive_net_type == STAR)
          {
@@ -1084,9 +1053,9 @@ NetworkModelAtac::outputEventCountSummary(ostream& out)
       out << "      Receive Hub Router Crossbar Traversals: " << endl;
      
       // Receive Net
-      if (_receive_net_type == HTREE)
+      if (_receive_net_type == BTREE)
       {
-         out << "      HTree Link Traversals: " << endl;
+         out << "      BTree Link Traversals: " << endl;
       }
       else // (_receive_net_type == STAR)
       {
@@ -1193,5 +1162,125 @@ NetworkModelAtac::outputContentionModelsSummary(ostream& out)
    else
    {
       LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
+   }
+}
+
+void
+NetworkModelAtac::outputPowerSummary(ostream& out)
+{
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
+   out << "    Energy Counters:" << endl;
+
+   double enet_router_static_power = 0.0;
+   double enet_router_dynamic_energy = 0.0;
+   double enet_link_static_power = 0.0;
+   double enet_link_dynamic_energy = 0.0;
+   double optical_link_static_power = 0.0;
+   double optical_link_dynamic_energy = 0.0;
+   double receive_hub_router_static_power = 0.0;
+   double receive_hub_router_dynamic_energy = 0.0;
+   double receive_net_static_power = 0.0;
+   double receive_net_dynamic_energy = 0.0;
+ 
+
+   if (isApplicationTile(_tile_id))
+   {
+      // ENet Router
+      enet_router_static_power += _enet_router->getPowerModel()->getStaticPower();
+      enet_router_dynamic_energy += _enet_router->getPowerModel()->getDynamicEnergy();
+      
+      // ENet Link
+      for (SInt32 i = 0; i < _num_enet_router_ports; i++)
+      {
+         enet_link_static_power += _enet_link_list[i]->getPowerModel()->getStaticPower();
+         enet_link_dynamic_energy += _enet_link_list[i]->getPowerModel()->getDynamicEnergy();
+      }
+      
+      // Access Point
+      if (isAccessPoint(_tile_id))
+      {
+         enet_link_static_power += _enet_link_list[_num_enet_router_ports]->getPowerModel()->getStaticPower();
+         enet_link_dynamic_energy += _enet_link_list[_num_enet_router_ports]->getPowerModel()->getDynamicEnergy();
+      }
+
+      // Send Hub Router
+      if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
+      {
+         enet_router_static_power += _send_hub_router->getPowerModel()->getStaticPower();
+         enet_router_dynamic_energy += _send_hub_router->getPowerModel()->getDynamicEnergy();
+      }
+
+      // Optical Link
+      if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
+      {
+         optical_link_static_power += _optical_link->getPowerModel()->getStaticPower();
+         optical_link_dynamic_energy += _optical_link->getPowerModel()->getDynamicEnergy();
+      }
+
+      // Receive Hub Router
+      if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
+      {
+         receive_hub_router_static_power += _receive_hub_router->getPowerModel()->getStaticPower();
+         receive_hub_router_dynamic_energy += _receive_hub_router->getPowerModel()->getDynamicEnergy();
+      }
+     
+      // Receive Net
+      if (_receive_net_type == BTREE)
+      {
+         if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
+         {
+            for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
+            {
+               receive_net_static_power += _btree_link_list[i]->getPowerModel()->getStaticPower();
+               receive_net_dynamic_energy += _btree_link_list[i]->getPowerModel()->getDynamicEnergy();
+            }
+         }
+      }
+      else // (_receive_net_type == STAR)
+      {
+         if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
+         {
+            for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
+            {
+               receive_net_static_power += _star_net_router_list[i]->getPowerModel()->getStaticPower();
+               receive_net_dynamic_energy += _star_net_router_list[i]->getPowerModel()->getDynamicEnergy();
+               for (SInt32 j = 0; j < _cluster_size; j++)
+               {
+                  receive_net_static_power += _star_net_link_list[i][j]->getPowerModel()->getStaticPower();
+                  receive_net_dynamic_energy += _star_net_link_list[i][j]->getPowerModel()->getStaticPower();
+               }
+            }
+         }
+      }
+   }
+   
+   double total_static_power = enet_router_static_power + enet_link_static_power + 
+                               optical_link_static_power + 
+                               receive_hub_router_static_power + receive_net_static_power;
+   double total_dynamic_energy = enet_router_dynamic_energy + enet_link_dynamic_energy +
+                                 optical_link_dynamic_energy +
+                                 receive_hub_router_dynamic_energy + receive_net_dynamic_energy;
+
+   out << "      Total Static Power (in W): " << total_static_power << endl; 
+   out << "      Total Dynamic Energy (in J): " << total_dynamic_energy << endl;
+   out << "      ENet Router Static Power (in W): " << enet_router_static_power << endl; 
+   out << "      ENet Router Dynamic Energy (in J): " << enet_router_dynamic_energy << endl; 
+   out << "      ENet Link Static Power (in W): " << enet_link_static_power << endl; 
+   out << "      ENet Link Dynamic Energy (in J): " << enet_link_dynamic_energy << endl; 
+   out << "      Optical Link Static Power (in W): " << optical_link_static_power << endl; 
+   out << "      Optical Link Dynamic Energy (in J): " << optical_link_dynamic_energy << endl; 
+   out << "      Receive Hub Static Power (in W): " << receive_hub_router_static_power << endl; 
+   out << "      Receive Hub Dynamic Energy (in J): " << receive_hub_router_dynamic_energy << endl;
+   if (_receive_net_type == BTREE)
+   {
+      out << "      BTree Static Power (in W): " << receive_net_static_power << endl; 
+      out << "      BTree Dynamic Energy (in J): " << receive_net_dynamic_energy << endl;
+   }
+   else // (_receive_net_type == STAR)
+   {
+      out << "      StarNet Static Power (in W): " << receive_net_static_power << endl; 
+      out << "      StarNet Dynamic Energy (in J): " << receive_net_dynamic_energy << endl;
    }
 }

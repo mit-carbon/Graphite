@@ -32,6 +32,15 @@ public:
       STORE
    };
 
+   enum OperationType
+   {
+      TAG_ARRAY_READ = 0,
+      TAG_ARRAY_WRITE,
+      DATA_ARRAY_READ,
+      DATA_ARRAY_WRITE,
+      NUM_OPERATION_TYPES
+   };
+
    enum MissType
    {
       COLD_MISS = 0,
@@ -149,10 +158,7 @@ private:
    UInt64 _total_dirty_evictions;
    
    // Event counters for tracking tag/data array reads and writes
-   UInt64 _tag_array_reads;
-   UInt64 _tag_array_writes;
-   UInt64 _data_array_reads;
-   UInt64 _data_array_writes;
+   UInt64 _event_counters[NUM_OPERATION_TYPES];
 
    // Cache line state counters - Number of exclusive and shared lines
    vector<UInt64> _cache_line_state_counters;

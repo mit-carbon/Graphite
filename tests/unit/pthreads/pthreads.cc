@@ -46,6 +46,8 @@ int main(int argc, char* argv[])  // main begins
    counter = 0;
    cycle = false;
 
+   fprintf(stdout, "Starting pthread tests.\n");
+
    for(int i = 0; i < 2; i++)
    {
       //spawn test
@@ -83,7 +85,9 @@ int main(int argc, char* argv[])  // main begins
      for(int j = 0; j < 2; j++)
          pthread_join(threads[j], NULL);
    }
-  
+ 
+   fprintf(stdout, "Finished pthread tests.\n");
+
    // De-initialize for barrier test 
    pthread_barrier_destroy(&barrier);
 
@@ -167,7 +171,7 @@ void* cond_broadcast_func(void *threadid)
 
 void* cond_signal_func(void *threadid)
 {
-   fprintf(stdout, "Cond Variable Signal Test : Spawned thread #(%li)\n", (long) threadid);
+   fprintf(stdout, "Condition Variable Signal Test : Spawned thread #(%li)\n", (long) threadid);
 
    for (unsigned int i = 0; i < 50; i++)
    {

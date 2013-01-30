@@ -72,6 +72,8 @@ Cache::~Cache()
 void
 Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32 num_bytes)
 {
+   LOG_PRINT("accessCacheLine: Address(%#lx), AccessType(%s), Num Bytes(%u) start",
+             address, (access_type == 0) ? "LOAD": "STORE", num_bytes);
    assert((buf == NULL) == (num_bytes == 0));
 
    CacheSet* set = getSet(address);
@@ -79,7 +81,6 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
    UInt32 line_offset = getLineOffset(address);
    UInt32 line_index = -1;
   
-   // FIXME: This is an expensive operation. Remove if possible 
    __attribute(__unused__) CacheLineInfo* cache_line_info = set->find(tag, &line_index);
    LOG_ASSERT_ERROR(cache_line_info, "Address(%#lx)", address);
 
@@ -91,18 +92,18 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
    if (_enabled)
    {
       // Update data array reads/writes
-      if (access_type == LOAD)
-         _data_array_reads ++;
-      else
-         _data_array_writes ++;
+      OperationType operation_type = (access_type == LOAD) ? DATA_ARRAY_READ : DATA_ARRAY_WRITE;
+      _event_counters[operation_type] ++;
    }
+   LOG_PRINT("accessCacheLine: Address(%#lx), AccessType(%s), Num Bytes(%u) end",
+             address, (access_type == 0) ? "LOAD": "STORE", num_bytes);
 }
 
 void
 Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
                        bool* eviction, IntPtr* evicted_address, CacheLineInfo* evicted_cache_line_info, Byte* writeback_buf)
 {
-   LOG_PRINT("insertCacheLine[Address(%#lx)] start", inserted_address);
+   LOG_PRINT("insertCacheLine: Address(%#lx) start", inserted_address);
 
    CacheSet* set = getSet(inserted_address);
 
@@ -145,9 +146,9 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
 
          // Update tag/data array reads
          // Read data array only if there is an eviction
-         _tag_array_reads ++;
-         _data_array_reads ++;
-         
+         _event_counters[TAG_ARRAY_READ] ++;
+         _event_counters[DATA_ARRAY_READ] ++;
+      
          // Increment number of evictions and dirty evictions
          _total_evictions ++;
          // Update number of dirty evictions
@@ -159,22 +160,22 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          assert(evicted_cache_line_info->getCState() == CacheState::INVALID);
          
          // Update tag array reads
-         _tag_array_reads ++;
+         _event_counters[TAG_ARRAY_READ] ++;
       }
 
       // Update tag/data array writes
-      _tag_array_writes ++;
-      _data_array_writes ++;
+      _event_counters[TAG_ARRAY_WRITE] ++;
+      _event_counters[DATA_ARRAY_WRITE] ++;
    }
    
-   LOG_PRINT("insertCacheLine[Address(%#lx)] end", inserted_address);
+   LOG_PRINT("insertCacheLine: Address(%#lx) end", inserted_address);
 }
 
 // Single line cache access at address
 void
 Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
 {
-   LOG_PRINT("getCacheLineInfo[Address(%#lx), Cache Line Info Ptr(%p)] start", address, cache_line_info);
+   LOG_PRINT("getCacheLineInfo: Address(%#lx) start", address);
 
    CacheLineInfo* line_info = getCacheLineInfo(address);
 
@@ -185,10 +186,10 @@ Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
    if (_enabled)
    {
       // Update tag/data array reads/writes
-      _tag_array_reads ++;
+      _event_counters[TAG_ARRAY_READ] ++;
    }
 
-   LOG_PRINT("getCacheLineInfo[Address(%#lx), Cache Line Info Ptr(%p)] end", address, cache_line_info);
+   LOG_PRINT("getCacheLineInfo: Address(%#lx) end", address);
 }
 
 CacheLineInfo*
@@ -205,6 +206,7 @@ Cache::getCacheLineInfo(IntPtr address)
 void
 Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
 {
+   LOG_PRINT("setCacheLineInfo: Address(%#lx) start", address);
    CacheLineInfo* cache_line_info = getCacheLineInfo(address);
    LOG_ASSERT_ERROR(cache_line_info, "Address(%#lx)", address);
 
@@ -221,8 +223,9 @@ Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
    if (_enabled)
    {
       // Update tag/data array reads/writes
-      _tag_array_writes ++;
+      _event_counters[TAG_ARRAY_WRITE] ++;
    }
+   LOG_PRINT("setCacheLineInfo: Address(%#lx) end", address);
 }
 
 void
@@ -257,10 +260,8 @@ Cache::initializeEvictionCounters()
 void
 Cache::initializeTagAndDataArrayCounters()
 {
-   _tag_array_reads = 0;
-   _tag_array_writes = 0;
-   _data_array_reads = 0;
-   _data_array_writes = 0;
+   for (UInt32 i = 0; i < NUM_OPERATION_TYPES; i++)
+      _event_counters[i] = 0;
 }
 
 void
@@ -420,11 +421,11 @@ Cache::outputSummary(ostream& out)
    }
 
    // Cache Access Counters Summary
-   out << "    Access Counters:" << endl;
-   out << "      Tag Array Reads: " << _tag_array_reads << endl;
-   out << "      Tag Array Writes: " << _tag_array_writes << endl;
-   out << "      Data Array Reads: " << _data_array_reads << endl;
-   out << "      Data Array Writes: " << _data_array_writes << endl;
+   out << "    Event Counters:" << endl;
+   out << "      Tag Array Reads: " << _event_counters[TAG_ARRAY_READ] << endl;
+   out << "      Tag Array Writes: " << _event_counters[TAG_ARRAY_WRITE] << endl;
+   out << "      Data Array Reads: " << _event_counters[DATA_ARRAY_READ] << endl;
+   out << "      Data Array Writes: " << _event_counters[DATA_ARRAY_WRITE] << endl;
 }
 
 // Utilities

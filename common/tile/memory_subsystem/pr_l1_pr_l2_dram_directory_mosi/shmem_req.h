@@ -10,18 +10,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 {
    class ShmemReq
    {
-   private:
-      ShmemMsg* _shmem_msg;
-      
-      UInt64 _arrival_time;
-      UInt64 _processing_start_time;
-      UInt64 _processing_finish_time;
-      
-      DirectoryState::Type _initial_dstate;
-      bool _initial_broadcast_mode;
-      tile_id_t _sharer_tile_id;
-      bool _upgrade_reply;
-
    public:
       ShmemReq(ShmemMsg* shmem_msg, UInt64 time);
       ~ShmemReq();
@@ -32,15 +20,16 @@ namespace PrL1PrL2DramDirectoryMOSI
       { return _processing_start_time - _arrival_time; }
       UInt64 getProcessingTime() const
       { return _processing_finish_time - _processing_start_time; }
-      UInt64 getTime() const
-      { return _processing_finish_time; }
+      
       UInt64 getArrivalTime() const
       { return _arrival_time; }
       UInt64 getProcessingStartTime() const
       { return _processing_start_time; }
       UInt64 getProcessingFinishTime() const
       { return _processing_finish_time; }
-     
+      UInt64 getTime() const
+      { return _processing_finish_time; }
+    
       void updateProcessingStartTime(UInt64 time);
       void updateProcessingFinishTime(UInt64 time);
 
@@ -63,5 +52,19 @@ namespace PrL1PrL2DramDirectoryMOSI
       { _upgrade_reply = true; }
       bool isUpgradeReply() const
       { return _upgrade_reply; }
+  
+      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+
+   private:
+      ShmemMsg* _shmem_msg;
+      
+      UInt64 _arrival_time;
+      UInt64 _processing_start_time;
+      UInt64 _processing_finish_time;
+      
+      DirectoryState::Type _initial_dstate;
+      bool _initial_broadcast_mode;
+      tile_id_t _sharer_tile_id;
+      bool _upgrade_reply;
    };
 }

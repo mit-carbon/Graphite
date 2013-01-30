@@ -1,7 +1,9 @@
 #pragma once
 
+#include <map>
 #include <string>
-using namespace std;
+using std::map;
+using std::string;
 
 // Forward Decls
 namespace PrL1PrL2DramDirectoryMOSI
@@ -10,7 +12,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 }
 
 #include "directory_cache.h"
-#include "hash_map_queue.h"
+#include "hash_map_list.h"
 #include "dram_cntlr.h"
 #include "address_home_lookup.h"
 #include "shmem_req.h"
@@ -36,28 +38,30 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
 
+      // Function to call when changing frequencies
+      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+      
       DirectoryCache* getDramDirectoryCache() { return _dram_directory_cache; }
      
-      void enable() { _enabled = true; }
-      void disable() { _enabled = false; }
-
       void outputSummary(ostream& out);
       static void dummyOutputSummary(ostream& out);
    
+      void enable() { _enabled = true; }
+      void disable() { _enabled = false; }
+
    private:
       class DataList
       {
-      private:
-         UInt32 _block_size;
-         std::map<IntPtr, Byte*> _data_list;
-
       public:
-         DataList(UInt32 block_size);
+         DataList();
          ~DataList();
          
-         void insert(IntPtr address, Byte* data);
+         void insert(IntPtr address, Byte* data, UInt32 size);
          Byte* lookup(IntPtr address);
          void erase(IntPtr address);
+      
+      private:
+         map<IntPtr, Byte*> _data_list;
       };
 
       // Functional Models
@@ -68,8 +72,8 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Type of directory - (full_map, limited_broadcast, limited_no_broadcast, ackwise, limitless)
       DirectoryType _directory_type;
 
-      HashMapQueue<IntPtr,ShmemReq*>* _dram_directory_req_queue_list;
-      DataList* _cached_data_list;
+      HashMapList<IntPtr,ShmemReq*> _dram_directory_req_queue;
+      DataList _cached_data_list;
 
       bool _enabled;
 
@@ -104,13 +108,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_sharers_invalidated_broadcast_mode;
       UInt64 _total_invalidation_processing_time_broadcast_mode;
 
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      // Computing sharer count vs private copy threshold
-      UInt32 _max_sharers_by_PCT[MAX_PRIVATE_COPY_THRESHOLD+1];
-      UInt64 _total_sharers_invalidated_by_utilization[MAX_TRACKED_UTILIZATION+1];
-      UInt64 _total_invalidations;
-#endif
-
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager() { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
@@ -144,18 +141,5 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Add/Remove Sharer
       bool addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id);
       void removeSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id, bool reply_expected);
-
-#ifdef TRACK_DETAILED_CACHE_COUNTERS
-      void initializeSharerCounters();
-      // Cache Line Utilization
-      void updateCacheLineUtilizationCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                              tile_id_t sender, const ShmemMsg* shmem_msg);
-      void updateSharerCounters(const ShmemReq* dir_request, DirectoryEntry* directory_entry,
-                                tile_id_t sender, UInt32 cache_line_utilization);
-      
-      // Output summary
-      void outputSharerCountSummary(ostream& out);
-      static void dummyOutputSharerCountSummary(ostream& out);
-#endif
    };
 }

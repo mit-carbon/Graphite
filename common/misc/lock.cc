@@ -1,7 +1,5 @@
 #include "lock.h"
 
-#include "log.h"
-
 Lock::Lock()
 {
    pthread_mutex_init(&_mutx, NULL);

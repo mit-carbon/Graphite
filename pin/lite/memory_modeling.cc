@@ -52,6 +52,9 @@ void addMemoryModeling(INS ins)
 
 void handleMemoryRead(bool is_atomic_update, IntPtr read_address, UInt32 read_data_size)
 {
+   if (!Sim()->isEnabled())
+      return;
+
    Byte read_data_buf[read_data_size];
 
    Core* core = Sim()->getTileManager()->getCurrentCore();
@@ -66,6 +69,9 @@ void handleMemoryRead(bool is_atomic_update, IntPtr read_address, UInt32 read_da
 
 void handleMemoryWrite(bool is_atomic_update, IntPtr write_address, UInt32 write_data_size)
 {
+   if (!Sim()->isEnabled())
+      return;
+
    Core* core = Sim()->getTileManager()->getCurrentCore();
    core->initiateMemoryAccess(MemComponent::L1_DCACHE,
          (is_atomic_update) ? Core::UNLOCK : Core::NONE,

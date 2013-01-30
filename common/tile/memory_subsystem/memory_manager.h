@@ -57,6 +57,11 @@ public:
    static CachingProtocolType parseProtocolType(std::string& protocol_type);
    static MemoryManager* createMMU(std::string protocol_type, Tile* tile);
    
+   virtual void computeEnergy() = 0;
+
+   virtual double getDynamicEnergy() = 0;
+   virtual double getStaticPower() = 0;
+
    // Cache line replication trace
    static void openCacheLineReplicationTraceFiles();
    static void closeCacheLineReplicationTraceFiles();

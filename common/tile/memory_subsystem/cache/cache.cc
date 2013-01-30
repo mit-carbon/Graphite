@@ -428,6 +428,22 @@ Cache::outputSummary(ostream& out)
    out << "      Data Array Writes: " << _event_counters[DATA_ARRAY_WRITE] << endl;
 }
 
+void Cache::computeEnergy()
+{
+   _mcpat_cache_interface->computeEnergy(this);
+}
+
+double Cache::getDynamicEnergy()
+{
+   double dynamic_energy = _mcpat_cache_interface->getDynamicEnergy();
+   return dynamic_energy;
+}
+double Cache::getStaticPower()
+{
+   double static_power = _mcpat_cache_interface->getStaticPower();
+   return static_power;
+}
+
 // Utilities
 IntPtr
 Cache::getTag(IntPtr address) const

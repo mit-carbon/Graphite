@@ -483,4 +483,32 @@ MemoryManager::outputSummary(std::ostream &os)
    ::MemoryManager::outputSummary(os);
 }
 
+void
+MemoryManager::computeEnergy()
+{
+   _L1_cache_cntlr->getL1ICache()->computeEnergy();
+   _L1_cache_cntlr->getL1DCache()->computeEnergy();
+   _L2_cache_cntlr->getL2Cache()->computeEnergy();
+}
+
+double
+MemoryManager::getDynamicEnergy()
+{
+   double dynamic_energy = _L1_cache_cntlr->getL1ICache()->getDynamicEnergy() +
+                           _L1_cache_cntlr->getL1DCache()->getDynamicEnergy() +
+                           _L2_cache_cntlr->getL2Cache()->getDynamicEnergy();
+
+   return dynamic_energy;
+}
+
+double
+MemoryManager::getStaticPower()
+{
+   double static_power = _L1_cache_cntlr->getL1ICache()->getStaticPower() +
+                         _L1_cache_cntlr->getL1DCache()->getStaticPower() +
+                         _L2_cache_cntlr->getL2Cache()->getStaticPower();
+
+   return static_power;
+}
+
 }

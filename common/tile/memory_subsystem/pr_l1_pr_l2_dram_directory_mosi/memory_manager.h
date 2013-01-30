@@ -56,7 +56,13 @@ namespace PrL1PrL2DramDirectoryMOSI
       { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
       void outputSummary(std::ostream &os);
-      
+
+      // Energy monitoring
+      void computeEnergy();
+
+      double getDynamicEnergy();
+      double getStaticPower();
+
       // Cache line replication trace
       static void openCacheLineReplicationTraceFiles();
       static void closeCacheLineReplicationTraceFiles();

@@ -450,8 +450,36 @@ MemoryManager::outputSummary(std::ostream &os)
       os << "Dram Directory Cache Summary:\n";
       DirectoryCache::dummyOutputSummary(os, getTile()->getId());
    }
-
+   
    ::MemoryManager::outputSummary(os);
+}
+
+void
+MemoryManager::computeEnergy()
+{
+   _l1_cache_cntlr->getL1ICache()->computeEnergy();
+   _l1_cache_cntlr->getL1DCache()->computeEnergy();
+   _l2_cache_cntlr->getL2Cache()->computeEnergy();
+}
+
+double
+MemoryManager::getDynamicEnergy()
+{
+   double dynamic_energy = _l1_cache_cntlr->getL1ICache()->getDynamicEnergy() +
+                           _l1_cache_cntlr->getL1DCache()->getDynamicEnergy() +
+                           _l2_cache_cntlr->getL2Cache()->getDynamicEnergy();
+
+   return dynamic_energy;
+}
+
+double
+MemoryManager::getStaticPower()
+{
+   double static_power = _l1_cache_cntlr->getL1ICache()->getStaticPower() +
+                         _l1_cache_cntlr->getL1DCache()->getStaticPower() +
+                         _l2_cache_cntlr->getL2Cache()->getStaticPower();
+
+   return static_power;
 }
 
 }

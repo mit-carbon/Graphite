@@ -520,3 +520,23 @@ NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out)
       LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
    }
 }
+
+double NetworkModelEMeshHopByHop::getDynamicEnergy()
+{
+   double dynamic_energy = _mesh_router->getPowerModel()->getDynamicEnergy();
+   for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
+   {
+      dynamic_energy += _mesh_link_list[i]->getPowerModel()->getDynamicEnergy();
+   }
+   return 0;
+}
+
+double NetworkModelEMeshHopByHop::getStaticPower()
+{
+   double static_power = _mesh_router->getPowerModel()->getStaticPower();
+   for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
+   {
+      static_power += _mesh_link_list[i]->getPowerModel()->getStaticPower();
+   }
+   return 0;
+}

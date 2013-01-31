@@ -310,6 +310,22 @@ void McPATCoreInterface::initializeOutputDataStructure()
    _mcpat_core_out.exu.bypass.dynamic                  = 0;
 }
 
+//---------------------------------------------------------------------------
+// Insert NOP
+//---------------------------------------------------------------------------
+void McPATCoreInterface::insertNOP(UInt64 cycle_count)
+{
+   // Update Cycle Counters
+   updateCycleCounters(cycle_count);
+   // Update Other Counters
+   _total_instructions ++;
+   _committed_instructions ++;
+   _generic_instructions ++;
+}
+
+//---------------------------------------------------------------------------
+// Update Event Counters
+//---------------------------------------------------------------------------
 void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 total_branch_misprediction_count)
 {
    // Get Instruction Type
@@ -347,6 +363,9 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
    }
 }
 
+//---------------------------------------------------------------------------
+// Update Instruction Counters
+//---------------------------------------------------------------------------
 void McPATCoreInterface::updateInstructionCounters(McPATInstructionType instruction_type, UInt64 total_branch_misprediction_count)
 {
    _total_instructions ++;
@@ -387,6 +406,9 @@ void McPATCoreInterface::updateInstructionCounters(McPATInstructionType instruct
    }
 }
 
+//---------------------------------------------------------------------------
+// Update Reg File Access Counters
+//---------------------------------------------------------------------------
 void McPATCoreInterface::updateRegFileAccessCounters(Operand::Direction operand_direction, UInt32 reg_id)
 {
    if (operand_direction == Operand::READ)
@@ -413,6 +435,9 @@ void McPATCoreInterface::updateRegFileAccessCounters(Operand::Direction operand_
    }
 }
 
+//---------------------------------------------------------------------------
+// Update Execution Unit Access Counters
+//---------------------------------------------------------------------------
 void McPATCoreInterface::updateExecutionUnitAccessCounters(ExecutionUnitType unit_type)
 {
    switch (unit_type)
@@ -438,6 +463,9 @@ void McPATCoreInterface::updateExecutionUnitAccessCounters(ExecutionUnitType uni
    }
 }
 
+//---------------------------------------------------------------------------
+// Update Cycle Counters
+//---------------------------------------------------------------------------
 void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count)
 {
    _total_cycles = cycle_count;
@@ -1034,8 +1062,9 @@ void McPATCoreInterface::fillCoreStatsIntoXML()
    }
 }
 
+//---------------------------------------------------------------------------
 // Dummy Implementations
-
+//---------------------------------------------------------------------------
 __attribute__((weak)) McPATCoreInterface::McPATInstructionType
 getMcPATInstructionType(InstructionType type)
 {

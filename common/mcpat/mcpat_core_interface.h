@@ -105,6 +105,9 @@ public:
    // McPAT Core Interface Destructor
    ~McPATCoreInterface();
 
+   // Insert NOP
+   void insertNOP(UInt64 cycle_count);
+   
    // Update Event Counters
    void updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 total_branch_misprediction_count);
    

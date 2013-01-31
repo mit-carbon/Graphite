@@ -21,6 +21,8 @@ public:
    void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    void outputSummary(std::ostream &os);
 
+   void insertNOP();
+
    void computeEnergy();
 
    double getDynamicEnergy();

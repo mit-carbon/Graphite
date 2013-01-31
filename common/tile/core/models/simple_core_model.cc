@@ -3,6 +3,8 @@
 #include "simple_core_model.h"
 #include "branch_predictor.h"
 #include "clock_converter.h"
+#include "config.hpp"
+#include "simulator.h"
 
 using std::endl;
 
@@ -30,6 +32,15 @@ void SimpleCoreModel::outputSummary(std::ostream &os)
 //   os << "    Total L1-I Cache Stall Time (in ns): " << convertCycleCount(m_total_l1icache_stall_cycles, frequency, 1.0) << endl;
 //   os << "    Total L1-D Cache Read Stall Time (in ns): " << convertCycleCount(m_total_l1dcache_read_stall_cycles, frequency, 1.0) << endl;
 //   os << "    Total L1-D Cache Write Stall Time (in ns): " << convertCycleCount(m_total_l1dcache_write_stall_cycles, frequency, 1.0) << endl;
+}
+
+void SimpleCoreModel::insertNOP()
+{
+   // Get NOP Cost
+   UInt64 nop_cost = Sim()->getCfg()->getInt("core/static_instruction_costs/generic");
+   // Update Cycle and Instruction Count
+   m_cycle_count += nop_cost;
+   m_instruction_count++;
 }
 
 void SimpleCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)

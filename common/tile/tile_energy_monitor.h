@@ -46,7 +46,7 @@ private:
    MemoryManager* m_memory_manager;
 
    // Sampling Period
-   static const double m_delta_t = 1000; // (in ns)
+   double m_delta_t; // (in ns)
 
    // Time
    void initializeTimeCounters();

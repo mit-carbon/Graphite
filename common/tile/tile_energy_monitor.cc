@@ -29,6 +29,9 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
    if (Config::getSingleton()->isSimulatingSharedMemory())
       m_memory_manager = m_tile->getMemoryManager();
 
+   // Initialize Delta T Variable
+   m_delta_t = Sim()->getCfg()->getInt("runtime_energy_modeling/interval");
+
    // Initialize Next Time Variable
    m_next_time = m_delta_t;
 

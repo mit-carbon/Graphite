@@ -1,6 +1,0 @@
-# Tmp files
-.*.swp
-# Library
-libmcpat.a
-# Obj Files
-obj_opt/

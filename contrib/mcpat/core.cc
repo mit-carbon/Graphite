@@ -2095,7 +2095,7 @@ void InstFetchU::computeEnergy(bool is_tdp)
     }
 
     icache.power_t.readOp.dynamic	+= (icache.caches->stats_t.readAc.hit*icache.caches->local_result.power.readOp.dynamic+
-    		//icache.caches->stats_t.readAc.miss*icache.caches->local_result.tag_array2->power.readOp.dynamic+
+         //icache.caches->stats_t.readAc.miss*icache.caches->local_result.tag_array2.power.readOp.dynamic+
     		icache.caches->stats_t.readAc.miss*icache.caches->local_result.power.readOp.dynamic+ //assume tag data accessed in parallel
     		icache.caches->stats_t.readAc.miss*icache.caches->local_result.power.writeOp.dynamic); //read miss in Icache cause a write to Icache
     icache.power_t.readOp.dynamic	+=  icache.missb->stats_t.readAc.access*icache.missb->local_result.power.searchOp.dynamic +
@@ -3096,7 +3096,7 @@ void LoadStoreU::computeEnergy(bool is_tdp)
 	LSQ->power_t.reset();
     dcache.power_t.readOp.dynamic	+= (dcache.caches->stats_t.readAc.hit*dcache.caches->local_result.power.readOp.dynamic+
     		dcache.caches->stats_t.readAc.miss*dcache.caches->local_result.power.readOp.dynamic+
-    		dcache.caches->stats_t.writeAc.miss*dcache.caches->local_result.tag_array2->power.readOp.dynamic+
+         dcache.caches->stats_t.writeAc.miss*dcache.caches->local_result.tag_array2.power.readOp.dynamic+
     		dcache.caches->stats_t.writeAc.access*dcache.caches->local_result.power.writeOp.dynamic);
 
     if (cache_p==Write_back)

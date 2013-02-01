@@ -39,24 +39,6 @@
 #include "nuca.h"
 
 
-class min_values_t
-{
-  public:
-    double min_delay;
-    double min_dyn;
-    double min_leakage;
-    double min_area;
-    double min_cyc;
-
-    min_values_t() : min_delay(BIGNUM), min_dyn(BIGNUM), min_leakage(BIGNUM), min_area(BIGNUM), min_cyc(BIGNUM) { }
-
-    void update_min_values(const min_values_t * val);
-    void update_min_values(const uca_org_t & res);
-    void update_min_values(const nuca_org_t * res);
-    void update_min_values(const mem_array * res);
-};
-
-
 
 struct solution
 {

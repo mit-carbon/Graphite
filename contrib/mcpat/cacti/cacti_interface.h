@@ -47,6 +47,7 @@ using namespace std;
 class min_values_t;
 class mem_array;
 class uca_org_t;
+class nuca_org_t;
 
 
 class powerComponents
@@ -107,13 +108,15 @@ enum Wire_type
 
 
 
-class InputParameter
+struct InputParameter
 {
-  public:
+    InputParameter();
     void parse_cfg(const string & infile);
 
     bool error_checking();  // return false if the input parameters are problematic
     void display_ip();
+
+    long first; // used to know where the interesting data is
 
     unsigned int cache_sz;  // in bytes
     unsigned int line_sz;
@@ -200,6 +203,8 @@ class InputParameter
   int pipeline_stages;
   int per_stage_vector;
   bool with_clock_grid;
+
+    long last; // used to know where the interesting data is
 };
 
 
@@ -351,11 +356,117 @@ typedef struct{
 } results_mem_array;
 
 
+class min_values_t
+{
+  public:
+    double min_delay;
+    double min_dyn;
+    double min_leakage;
+    double min_area;
+    double min_cyc;
+
+    min_values_t() : min_delay(BIGNUM), min_dyn(BIGNUM), min_leakage(BIGNUM), min_area(BIGNUM), min_cyc(BIGNUM) { }
+
+    void update_min_values(const min_values_t * val);
+    void update_min_values(const uca_org_t & res);
+    void update_min_values(const nuca_org_t * res);
+    void update_min_values(const mem_array * res);
+};
+
+
+class mem_array
+{
+  public:
+  int    Ndcm;
+  int    Ndwl;
+  int    Ndbl;
+  double Nspd;
+  int    deg_bl_muxing;
+  int    Ndsam_lev_1;
+  int    Ndsam_lev_2;
+  double access_time;
+  double cycle_time;
+  double multisubbank_interleave_cycle_time;
+  double area_ram_cells;
+  double area;
+  powerDef power;
+  double delay_senseamp_mux_decoder;
+  double delay_before_subarray_output_driver;
+  double delay_from_subarray_output_driver_to_output;
+  double height;
+  double width;
+
+  double mat_height;
+  double mat_length;
+  double subarray_length;
+  double subarray_height;
+
+  double delay_route_to_bank,
+         delay_input_htree,
+         delay_row_predecode_driver_and_block,
+         delay_row_decoder,
+         delay_bitlines,
+         delay_sense_amp,
+         delay_subarray_output_driver,
+         delay_dout_htree,
+         delay_comparator,
+         delay_matchlines;
+
+  double all_banks_height,
+         all_banks_width,
+         area_efficiency;
+
+  powerDef power_routing_to_bank;
+  powerDef power_addr_input_htree;
+  powerDef power_data_input_htree;
+  powerDef power_data_output_htree;
+  powerDef power_htree_in_search;
+  powerDef power_htree_out_search;
+  powerDef power_row_predecoder_drivers;
+  powerDef power_row_predecoder_blocks;
+  powerDef power_row_decoders;
+  powerDef power_bit_mux_predecoder_drivers;
+  powerDef power_bit_mux_predecoder_blocks;
+  powerDef power_bit_mux_decoders;
+  powerDef power_senseamp_mux_lev_1_predecoder_drivers;
+  powerDef power_senseamp_mux_lev_1_predecoder_blocks;
+  powerDef power_senseamp_mux_lev_1_decoders;
+  powerDef power_senseamp_mux_lev_2_predecoder_drivers;
+  powerDef power_senseamp_mux_lev_2_predecoder_blocks;
+  powerDef power_senseamp_mux_lev_2_decoders;
+  powerDef power_bitlines;
+  powerDef power_sense_amps;
+  powerDef power_prechg_eq_drivers;
+  powerDef power_output_drivers_at_subarray;
+  powerDef power_dataout_vertical_htree;
+  powerDef power_comparators;
+
+  powerDef power_cam_bitline_precharge_eq_drv;
+  powerDef power_searchline;
+  powerDef power_searchline_precharge;
+  powerDef power_matchlines;
+  powerDef power_matchline_precharge;
+  powerDef power_matchline_to_wordline_drv;
+
+  min_values_t arr_min;
+  enum Wire_type wt;
+
+  // dram stats
+  double activate_energy, read_energy, write_energy, precharge_energy,
+  refresh_power, leak_power_subbank_closed_page, leak_power_subbank_open_page,
+  leak_power_request_and_reply_networks;
+
+  double precharge_delay;
+
+  static bool lt(const mem_array * m1, const mem_array * m2);
+};
+
+
 class uca_org_t
 {
   public:
-    mem_array * tag_array2;
-    mem_array * data_array2;
+    mem_array tag_array2;
+    mem_array data_array2;
     double access_time;
     double cycle_time;
     double area;
@@ -540,93 +651,6 @@ uca_org_t cacti_interface(
     int nuca_dev_func_cycle_time,
     int REPEATERS_IN_HTREE_SEGMENTS_in,//TODO for now only wires with repeaters are supported
     int p_input);
-
-class mem_array
-{
-  public:
-  int    Ndcm;
-  int    Ndwl;
-  int    Ndbl;
-  double Nspd;
-  int    deg_bl_muxing;
-  int    Ndsam_lev_1;
-  int    Ndsam_lev_2;
-  double access_time;
-  double cycle_time;
-  double multisubbank_interleave_cycle_time;
-  double area_ram_cells;
-  double area;
-  powerDef power;
-  double delay_senseamp_mux_decoder;
-  double delay_before_subarray_output_driver;
-  double delay_from_subarray_output_driver_to_output;
-  double height;
-  double width;
-
-  double mat_height;
-  double mat_length;
-  double subarray_length;
-  double subarray_height;
-
-  double delay_route_to_bank,
-         delay_input_htree,
-         delay_row_predecode_driver_and_block,
-         delay_row_decoder,
-         delay_bitlines,
-         delay_sense_amp,
-         delay_subarray_output_driver,
-         delay_dout_htree,
-         delay_comparator,
-         delay_matchlines;
-
-  double all_banks_height,
-         all_banks_width,
-         area_efficiency;
-
-  powerDef power_routing_to_bank;
-  powerDef power_addr_input_htree;
-  powerDef power_data_input_htree;
-  powerDef power_data_output_htree;
-  powerDef power_htree_in_search;
-  powerDef power_htree_out_search;
-  powerDef power_row_predecoder_drivers;
-  powerDef power_row_predecoder_blocks;
-  powerDef power_row_decoders;
-  powerDef power_bit_mux_predecoder_drivers;
-  powerDef power_bit_mux_predecoder_blocks;
-  powerDef power_bit_mux_decoders;
-  powerDef power_senseamp_mux_lev_1_predecoder_drivers;
-  powerDef power_senseamp_mux_lev_1_predecoder_blocks;
-  powerDef power_senseamp_mux_lev_1_decoders;
-  powerDef power_senseamp_mux_lev_2_predecoder_drivers;
-  powerDef power_senseamp_mux_lev_2_predecoder_blocks;
-  powerDef power_senseamp_mux_lev_2_decoders;
-  powerDef power_bitlines;
-  powerDef power_sense_amps;
-  powerDef power_prechg_eq_drivers;
-  powerDef power_output_drivers_at_subarray;
-  powerDef power_dataout_vertical_htree;
-  powerDef power_comparators;
-
-  powerDef power_cam_bitline_precharge_eq_drv;
-  powerDef power_searchline;
-  powerDef power_searchline_precharge;
-  powerDef power_matchlines;
-  powerDef power_matchline_precharge;
-  powerDef power_matchline_to_wordline_drv;
-
-  min_values_t *arr_min;
-  enum Wire_type wt;
-
-  // dram stats
-  double activate_energy, read_energy, write_energy, precharge_energy,
-  refresh_power, leak_power_subbank_closed_page, leak_power_subbank_open_page,
-  leak_power_request_and_reply_networks;
-
-  double precharge_delay;
-
-  static bool lt(const mem_array * m1, const mem_array * m2);
-};
 
 
 #endif

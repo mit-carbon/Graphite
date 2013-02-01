@@ -447,48 +447,48 @@ bool calculate_time(
 
 
 
-bool check_uca_org(uca_org_t & u, min_values_t *minval)
+bool check_uca_org(uca_org_t & u, const min_values_t & minval)
 {
-  if (((u.access_time - minval->min_delay)*100/minval->min_delay) > g_ip->delay_dev) {
+  if (((u.access_time - minval.min_delay)*100/minval.min_delay) > g_ip->delay_dev) {
     return false;
   }
-  if (((u.power.readOp.dynamic - minval->min_dyn)/minval->min_dyn)*100 >
+  if (((u.power.readOp.dynamic - minval.min_dyn)/minval.min_dyn)*100 >
       g_ip->dynamic_power_dev) {
     return false;
   }
-  if (((u.power.readOp.leakage - minval->min_leakage)/minval->min_leakage)*100 >
+  if (((u.power.readOp.leakage - minval.min_leakage)/minval.min_leakage)*100 >
       g_ip->leakage_power_dev) {
     return false;
   }
-  if (((u.cycle_time - minval->min_cyc)/minval->min_cyc)*100 >
+  if (((u.cycle_time - minval.min_cyc)/minval.min_cyc)*100 >
       g_ip->cycle_time_dev) {
     return false;
   }
-  if (((u.area - minval->min_area)/minval->min_area)*100 >
+  if (((u.area - minval.min_area)/minval.min_area)*100 >
       g_ip->area_dev) {
     return false;
   }
   return true;
 }
 
-bool check_mem_org(mem_array & u, const min_values_t *minval)
+bool check_mem_org(mem_array & u, const min_values_t & minval)
 {
-  if (((u.access_time - minval->min_delay)*100/minval->min_delay) > g_ip->delay_dev) {
+  if (((u.access_time - minval.min_delay)*100/minval.min_delay) > g_ip->delay_dev) {
     return false;
   }
-  if (((u.power.readOp.dynamic - minval->min_dyn)/minval->min_dyn)*100 >
+  if (((u.power.readOp.dynamic - minval.min_dyn)/minval.min_dyn)*100 >
       g_ip->dynamic_power_dev) {
     return false;
   }
-  if (((u.power.readOp.leakage - minval->min_leakage)/minval->min_leakage)*100 >
+  if (((u.power.readOp.leakage - minval.min_leakage)/minval.min_leakage)*100 >
       g_ip->leakage_power_dev) {
     return false;
   }
-  if (((u.cycle_time - minval->min_cyc)/minval->min_cyc)*100 >
+  if (((u.cycle_time - minval.min_cyc)/minval.min_cyc)*100 >
       g_ip->cycle_time_dev) {
     return false;
   }
-  if (((u.area - minval->min_area)/minval->min_area)*100 >
+  if (((u.area - minval.min_area)/minval.min_area)*100 >
       g_ip->area_dev) {
     return false;
   }
@@ -498,7 +498,7 @@ bool check_mem_org(mem_array & u, const min_values_t *minval)
 
 
 
-void find_optimal_uca(uca_org_t *res, min_values_t * minval, list<uca_org_t> & ulist)
+void find_optimal_uca(uca_org_t * res, const min_values_t & minval, list<uca_org_t> & ulist)
 {
   double cost = 0;
   double min_cost = BIGNUM;
@@ -520,7 +520,7 @@ void find_optimal_uca(uca_org_t *res, min_values_t * minval, list<uca_org_t> & u
   {
     if (g_ip->ed == 1)
     {
-      cost = ((niter)->access_time/minval->min_delay) * ((niter)->power.readOp.dynamic/minval->min_dyn);
+      cost = ((niter)->access_time/minval.min_delay) * ((niter)->power.readOp.dynamic/minval.min_dyn);
       if (min_cost > cost)
       {
         min_cost = cost;
@@ -529,9 +529,9 @@ void find_optimal_uca(uca_org_t *res, min_values_t * minval, list<uca_org_t> & u
     }
     else if (g_ip->ed == 2)
     {
-      cost = ((niter)->access_time/minval->min_delay)*
-             ((niter)->access_time/minval->min_delay)*
-             ((niter)->power.readOp.dynamic/minval->min_dyn);
+      cost = ((niter)->access_time/minval.min_delay)*
+             ((niter)->access_time/minval.min_delay)*
+             ((niter)->power.readOp.dynamic/minval.min_dyn);
       if (min_cost > cost)
       {
         min_cost = cost;
@@ -549,11 +549,11 @@ void find_optimal_uca(uca_org_t *res, min_values_t * minval, list<uca_org_t> & u
 
       if (v)
       {
-        cost = (d  * ((niter)->access_time/minval->min_delay) +
-                c  * ((niter)->cycle_time/minval->min_cyc) +
-                dp * ((niter)->power.readOp.dynamic/minval->min_dyn) +
-                lp * ((niter)->power.readOp.leakage/minval->min_leakage) +
-                a  * ((niter)->area/minval->min_area));
+        cost = (d  * ((niter)->access_time/minval.min_delay) +
+                c  * ((niter)->cycle_time/minval.min_cyc) +
+                dp * ((niter)->power.readOp.dynamic/minval.min_dyn) +
+                lp * ((niter)->power.readOp.leakage/minval.min_leakage) +
+                a  * ((niter)->area/minval.min_area));
         //fprintf(stderr, "cost = %g\n", cost);
 
         if (min_cost > cost) {
@@ -581,7 +581,7 @@ void find_optimal_uca(uca_org_t *res, min_values_t * minval, list<uca_org_t> & u
 
 
 
-void filter_tag_arr(const min_values_t * min, list<mem_array *> & list)
+void filter_tag_arr(const min_values_t & min, list<mem_array *> & list)
 {
   double cost = BIGNUM;
   double cur_cost;
@@ -600,11 +600,11 @@ void filter_tag_arr(const min_values_t * min, list<mem_array *> & list)
     bool v = check_mem_org(*list.back(), min);
     if (v)
     {
-      cur_cost = wt_delay   * (list.back()->access_time/min->min_delay) +
-        wt_dyn     * (list.back()->power.readOp.dynamic/min->min_dyn) +
-        wt_leakage * (list.back()->power.readOp.leakage/min->min_leakage) +
-        wt_area    * (list.back()->area/min->min_area) +
-        wt_cyc     * (list.back()->cycle_time/min->min_cyc);
+      cur_cost = wt_delay   * (list.back()->access_time/min.min_delay) +
+        wt_dyn     * (list.back()->power.readOp.dynamic/min.min_dyn) +
+        wt_leakage * (list.back()->power.readOp.leakage/min.min_leakage) +
+        wt_area    * (list.back()->area/min.min_area) +
+        wt_cyc     * (list.back()->cycle_time/min.min_cyc);
     }
     else
     {
@@ -652,8 +652,8 @@ void filter_data_arr(list<mem_array *> & curr_list)
 
     if (m == NULL) exit(1);
 
-    if(((m->access_time - m->arr_min->min_delay)/m->arr_min->min_delay > 0.5) &&
-       ((m->power.readOp.dynamic - m->arr_min->min_dyn)/m->arr_min->min_dyn > 0.5))
+    if(((m->access_time - m->arr_min.min_delay)/m->arr_min.min_delay > 0.5) &&
+       ((m->power.readOp.dynamic - m->arr_min.min_dyn)/m->arr_min.min_dyn > 0.5))
     {
       delete m;
       iter = curr_list.erase(iter);
@@ -784,14 +784,14 @@ void solve(uca_org_t *fin_res)
 //  }
 
 
-  min_values_t * d_min = new min_values_t();
-  min_values_t * t_min = new min_values_t();
-  min_values_t * cache_min = new min_values_t();
+  min_values_t d_min = min_values_t();
+  min_values_t t_min = min_values_t();
+  min_values_t cache_min = min_values_t();
 
   for (uint32_t t = 0; t < nthreads; t++)
   {
-    d_min->update_min_values(calc_array[t].data_res);
-    t_min->update_min_values(calc_array[t].tag_res);
+    d_min.update_min_values(calc_array[t].data_res);
+    t_min.update_min_values(calc_array[t].tag_res);
   }
 
   for (miter = data_arr.begin(); miter != data_arr.end(); miter++)
@@ -814,8 +814,8 @@ void solve(uca_org_t *fin_res)
     for (miter = data_arr.begin(); miter != data_arr.end(); miter++)
     {
       uca_org_t & curr_org  = sol_list.back();
-      curr_org.tag_array2  = NULL;
-      curr_org.data_array2 = (*miter);
+      //curr_org.tag_array2  = NULL;
+      curr_org.data_array2 = *(*miter);
 
       curr_org.find_delay();
       curr_org.find_energy();
@@ -823,7 +823,7 @@ void solve(uca_org_t *fin_res)
       curr_org.find_cyc();
 
       //update min values for the entire cache
-      cache_min->update_min_values(curr_org);
+      cache_min.update_min_values(curr_org);
 
       sol_list.push_back(uca_org_t());
     }
@@ -839,8 +839,8 @@ void solve(uca_org_t *fin_res)
       for (miter = data_arr.begin(); miter != data_arr.end(); miter++)
       {
         uca_org_t & curr_org  = sol_list.back();
-        curr_org.tag_array2  = arr_temp;
-        curr_org.data_array2 = (*miter);
+        curr_org.tag_array2  = *arr_temp;
+        curr_org.data_array2 = *(*miter);
 
         curr_org.find_delay();
         curr_org.find_energy();
@@ -848,7 +848,7 @@ void solve(uca_org_t *fin_res)
         curr_org.find_cyc();
 
         //update min values for the entire cache
-        cache_min->update_min_values(curr_org);
+        cache_min.update_min_values(curr_org);
 
         sol_list.push_back(uca_org_t());
       }
@@ -861,13 +861,6 @@ void solve(uca_org_t *fin_res)
 
   sol_list.clear();
 
-  for (miter = data_arr.begin(); miter != data_arr.end(); ++miter)
-  {
-    if (*miter != fin_res->data_array2)
-    {
-      delete *miter;
-    }
-  }
   data_arr.clear();
 
   for (uint32_t t = 0; t < nthreads; t++)
@@ -877,34 +870,28 @@ void solve(uca_org_t *fin_res)
   }
 
   delete [] calc_array;
-  delete cache_min;
-  delete d_min;
-  delete t_min;
 }
 
 void update(uca_org_t *fin_res)
 {
-  if(fin_res->tag_array2)
-  {
     init_tech_params(g_ip->F_sz_um,true);
-    DynamicParameter tag_arr_dyn_p(true, g_ip->pure_ram, g_ip->pure_cam, fin_res->tag_array2->Nspd, fin_res->tag_array2->Ndwl, fin_res->tag_array2->Ndbl, fin_res->tag_array2->Ndcm, fin_res->tag_array2->Ndsam_lev_1, fin_res->tag_array2->Ndsam_lev_2, g_ip->is_main_mem);
+    DynamicParameter tag_arr_dyn_p(true, g_ip->pure_ram, g_ip->pure_cam, fin_res->tag_array2.Nspd, fin_res->tag_array2.Ndwl, fin_res->tag_array2.Ndbl, fin_res->tag_array2.Ndcm, fin_res->tag_array2.Ndsam_lev_1, fin_res->tag_array2.Ndsam_lev_2, g_ip->is_main_mem);
     if(tag_arr_dyn_p.is_valid)
     {
       UCA * tag_arr = new UCA(tag_arr_dyn_p);
-      fin_res->tag_array2->power = tag_arr->power;
+      fin_res->tag_array2.power = tag_arr->power;
     }
     else
     {
       cout << "ERROR: Cannot retrieve array structure for leakage feedback" << endl;
       exit(1);
     }
-  }
   init_tech_params(g_ip->F_sz_um,false);
-  DynamicParameter data_arr_dyn_p(false, g_ip->pure_ram, g_ip->pure_cam, fin_res->data_array2->Nspd, fin_res->data_array2->Ndwl, fin_res->data_array2->Ndbl, fin_res->data_array2->Ndcm, fin_res->data_array2->Ndsam_lev_1, fin_res->data_array2->Ndsam_lev_2, g_ip->is_main_mem);
+  DynamicParameter data_arr_dyn_p(false, g_ip->pure_ram, g_ip->pure_cam, fin_res->data_array2.Nspd, fin_res->data_array2.Ndwl, fin_res->data_array2.Ndbl, fin_res->data_array2.Ndcm, fin_res->data_array2.Ndsam_lev_1, fin_res->data_array2.Ndsam_lev_2, g_ip->is_main_mem);
   if(data_arr_dyn_p.is_valid)
   {
     UCA * data_arr = new UCA(data_arr_dyn_p);
-    fin_res->data_array2->power = data_arr->power;
+    fin_res->data_array2.power = data_arr->power;
   }
   else
   {

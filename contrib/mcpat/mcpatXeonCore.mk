@@ -9,7 +9,7 @@ endif
 
 
 LIBS = 
-INCS = -lm
+INCS = -lm -ldb
 
 ifeq ($(TAG),dbg)
   DBG = -Wall 

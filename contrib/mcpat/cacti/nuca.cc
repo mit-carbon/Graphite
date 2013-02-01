@@ -236,8 +236,8 @@ Nuca::sim_nuca()
   }
   cout << "Simulating various NUCA configurations\n";
   for (it=bank_start; it<iterations; it++) { /* different bank count values */
-    ures.tag_array2 = &tag;
-    ures.data_array2 = &data;
+    ures.tag_array2 = tag;
+    ures.data_array2 = data;
     /*
      * find the optimal bank organization
      */

@@ -123,7 +123,7 @@ void ArrayST::optimize_array()
 
 			//		from best area to worst area -->worst timing to best timing
 			if ((((local_result.cycle_time - throughput) <= 1e-10 ) && (local_result.access_time - latency)<= 1e-10)||
-					(local_result.data_array2->area_efficiency < area_efficiency_threshold && l_ip.assoc == 0))
+               (local_result.data_array2.area_efficiency < area_efficiency_threshold && l_ip.assoc == 0))
 			{  //if no satisfiable solution is found,the most aggressive one is left
 				candidate_solutions.push_back(local_result);
 				//output_data_csv(candidate_solutions.back());
@@ -229,24 +229,24 @@ void ArrayST::optimize_array()
 		local_result.power.readOp.leakage*long_channel_device_reduction;
 	local_result.power = local_result.power* pppm_t;
 
-	local_result.data_array2->power.readOp.dynamic *= sckRation;
-	local_result.data_array2->power.writeOp.dynamic *= sckRation;
-	local_result.data_array2->power.searchOp.dynamic *= sckRation;
-	local_result.data_array2->power.readOp.leakage *= l_ip.nbanks;
-	local_result.data_array2->power.readOp.longer_channel_leakage =
-		local_result.data_array2->power.readOp.leakage*long_channel_device_reduction;
-	local_result.data_array2->power = local_result.data_array2->power* pppm_t;
+   local_result.data_array2.power.readOp.dynamic *= sckRation;
+   local_result.data_array2.power.writeOp.dynamic *= sckRation;
+   local_result.data_array2.power.searchOp.dynamic *= sckRation;
+   local_result.data_array2.power.readOp.leakage *= l_ip.nbanks;
+   local_result.data_array2.power.readOp.longer_channel_leakage =
+      local_result.data_array2.power.readOp.leakage*long_channel_device_reduction;
+   local_result.data_array2.power = local_result.data_array2.power* pppm_t;
 
 
 	if (!(l_ip.pure_cam || l_ip.pure_ram || l_ip.fully_assoc) && l_ip.is_cache)
 	{
-		local_result.tag_array2->power.readOp.dynamic *= sckRation;
-		local_result.tag_array2->power.writeOp.dynamic *= sckRation;
-		local_result.tag_array2->power.searchOp.dynamic *= sckRation;
-		local_result.tag_array2->power.readOp.leakage *= l_ip.nbanks;
-		local_result.tag_array2->power.readOp.longer_channel_leakage =
-			local_result.tag_array2->power.readOp.leakage*long_channel_device_reduction;
-		local_result.tag_array2->power = local_result.tag_array2->power* pppm_t;
+      local_result.tag_array2.power.readOp.dynamic *= sckRation;
+      local_result.tag_array2.power.writeOp.dynamic *= sckRation;
+      local_result.tag_array2.power.searchOp.dynamic *= sckRation;
+      local_result.tag_array2.power.readOp.leakage *= l_ip.nbanks;
+      local_result.tag_array2.power.readOp.longer_channel_leakage =
+         local_result.tag_array2.power.readOp.leakage*long_channel_device_reduction;
+      local_result.tag_array2.power = local_result.tag_array2.power* pppm_t;
 	}
 
 
@@ -277,21 +277,21 @@ void ArrayST::leakage_feedback(double temperature)
   local_result.power.readOp.longer_channel_leakage = local_result.power.readOp.leakage*long_channel_device_reduction;
   local_result.power = local_result.power* pppm_t;
 
-  local_result.data_array2->power.readOp.dynamic *= sckRation;
-  local_result.data_array2->power.writeOp.dynamic *= sckRation;
-  local_result.data_array2->power.searchOp.dynamic *= sckRation;
-  local_result.data_array2->power.readOp.leakage *= l_ip.nbanks;
-  local_result.data_array2->power.readOp.longer_channel_leakage = local_result.data_array2->power.readOp.leakage*long_channel_device_reduction;
-  local_result.data_array2->power = local_result.data_array2->power* pppm_t;
+  local_result.data_array2.power.readOp.dynamic *= sckRation;
+  local_result.data_array2.power.writeOp.dynamic *= sckRation;
+  local_result.data_array2.power.searchOp.dynamic *= sckRation;
+  local_result.data_array2.power.readOp.leakage *= l_ip.nbanks;
+  local_result.data_array2.power.readOp.longer_channel_leakage = local_result.data_array2.power.readOp.leakage*long_channel_device_reduction;
+  local_result.data_array2.power = local_result.data_array2.power* pppm_t;
 
   if (!(l_ip.pure_cam || l_ip.pure_ram || l_ip.fully_assoc) && l_ip.is_cache)
   {
-    local_result.tag_array2->power.readOp.dynamic *= sckRation;
-    local_result.tag_array2->power.writeOp.dynamic *= sckRation;
-    local_result.tag_array2->power.searchOp.dynamic *= sckRation;
-    local_result.tag_array2->power.readOp.leakage *= l_ip.nbanks;
-    local_result.tag_array2->power.readOp.longer_channel_leakage = local_result.tag_array2->power.readOp.leakage*long_channel_device_reduction;
-    local_result.tag_array2->power = local_result.tag_array2->power* pppm_t;
+    local_result.tag_array2.power.readOp.dynamic *= sckRation;
+    local_result.tag_array2.power.writeOp.dynamic *= sckRation;
+    local_result.tag_array2.power.searchOp.dynamic *= sckRation;
+    local_result.tag_array2.power.readOp.leakage *= l_ip.nbanks;
+    local_result.tag_array2.power.readOp.longer_channel_leakage = local_result.tag_array2.power.readOp.leakage*long_channel_device_reduction;
+    local_result.tag_array2.power = local_result.tag_array2.power* pppm_t;
   }
 }
 

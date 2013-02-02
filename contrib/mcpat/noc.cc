@@ -41,7 +41,8 @@
 #include <assert.h>
 #include "noc.h"
 
-
+namespace McPAT
+{
 
 NoC::NoC(ParseXML *XML_interface, int ithNoC_, InputParameter* interface_ip_, double M_traffic_pattern_, double link_len_)
 :XML(XML_interface),
@@ -353,4 +354,6 @@ NoC ::~NoC(){
 
 	if(router) 	               {delete router; router = 0;}
 	if(link_bus) 	           {delete link_bus; link_bus = 0;}
+}
+
 }

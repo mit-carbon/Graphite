@@ -39,6 +39,9 @@
 
 using namespace std;
 
+namespace McPAT
+{
+
 #define UNI_LEAK_STACK_FACTOR 0.43
 
 int powers (int base, int n);
@@ -243,6 +246,8 @@ inline void set_sppm(
 		sppv[0]= a;
 		sppv[1]= b;
 		sppv[2]= c;
+}
+
 }
 
 #endif

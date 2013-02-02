@@ -39,7 +39,12 @@
 #define EXTERN extern
 #endif
 
+namespace McPAT
+{
+
 EXTERN bool opt_for_clk;
+
+}
 
 #endif /* GLOBALVAR_H_ */
 

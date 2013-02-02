@@ -34,6 +34,8 @@
 #include "bank.h"
 #include <iostream>
 
+namespace McPAT
+{
 
 Bank::Bank(const DynamicParameter & dyn_p):
   dp(dyn_p), mat(dp),
@@ -196,3 +198,4 @@ void Bank::compute_power_energy()
 
 }
 
+}

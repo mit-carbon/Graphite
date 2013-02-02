@@ -39,6 +39,9 @@
 
 using namespace std;
 
+namespace McPAT
+{
+
 void print_usage(char * argv0);
 
 int main(int argc,char *argv[])
@@ -98,4 +101,6 @@ void print_usage(char * argv0)
     cerr << "  mcpat -infile <input file name>  -print_level < level of details 0~5 >  -opt_for_clk < 0 (optimize for ED^2P only)/1 (optimzed for target clock rate)>"<< endl;
     //cerr << "    Note:default print level is at processor level, please increase it to see the details" << endl;
     exit(1);
+}
+
 }

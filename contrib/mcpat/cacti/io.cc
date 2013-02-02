@@ -49,6 +49,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 /* Parses "cache.cfg" file */
   void
@@ -2383,4 +2385,6 @@ void reconfigure(InputParameter *local_interface, uca_org_t *fin_res)
 
   // This corresponds to solve() in the initialization process.
   update(fin_res);
+}
+
 }

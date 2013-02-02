@@ -40,6 +40,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 Decoder::Decoder(
     int    _num_dec_signals,
@@ -1574,3 +1576,4 @@ double Driver::compute_delay(double inrisetime)
   return this_delay / (1.0 - 0.5);
 }
 
+}

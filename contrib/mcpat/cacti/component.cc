@@ -42,7 +42,8 @@
 
 using namespace std;
 
-
+namespace McPAT
+{
 
 Component::Component()
   :area(), power(), rt_power(),delay(0)
@@ -234,3 +235,4 @@ int Component::logical_effort(
   return num_gates;
 }
 
+}

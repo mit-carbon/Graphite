@@ -183,6 +183,8 @@
     #define TRUE 1
 #endif /* TRUE */
 
+namespace McPAT
+{
 
 /// Enumeration for XML parse errors.
 typedef enum XMLError
@@ -760,5 +762,7 @@ private:
 /** @} */
 
 #undef XMLDLLENTRY
+
+}
 
 #endif

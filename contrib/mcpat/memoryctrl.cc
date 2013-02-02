@@ -68,6 +68,9 @@
  *
  */
 
+namespace McPAT
+{
+
 MCBackend::MCBackend(InputParameter* interface_ip_, const MCParam & mcp_, enum MemoryCtrl_type mc_type_)
 :l_ip(*interface_ip_),
  mc_type(mc_type_),
@@ -733,3 +736,4 @@ MemoryController ::~MemoryController(){
 	if(pipeLogic) 	               {delete pipeLogic; pipeLogic = 0;}
 }
 
+}

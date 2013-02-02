@@ -38,6 +38,9 @@
 #include <assert.h>
 #include <cmath>
 
+namespace McPAT
+{
+
 uint32_t _log2(uint64_t num)
 {
   uint32_t log2 = 0;
@@ -825,4 +828,6 @@ double shortcircuit(
 
 	p_short_circuit_discharge = k_v*vdd*vdd*c_in*fo_p*fo_p/((vdd-vt)*g_v_alpha*fanout*beta_ratio/2/k_v + h_v_alpha*fo_p);
   return (p_short_circuit);
+}
+
 }

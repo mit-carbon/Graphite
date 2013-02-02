@@ -39,6 +39,8 @@
 #include "mat.h"
 #include "htree2.h"
 
+namespace McPAT
+{
 
 class Bank : public Component
 {
@@ -65,6 +67,6 @@ class Bank : public Component
     int  num_addr_b_routed_to_mat_for_rd_or_wr;
 };
 
-
+}
 
 #endif

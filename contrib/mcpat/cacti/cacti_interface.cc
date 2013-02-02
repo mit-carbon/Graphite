@@ -47,6 +47,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 bool mem_array::lt(const mem_array * m1, const mem_array * m2)
 {
@@ -174,4 +176,6 @@ InputParameter::InputParameter()
     size_t o1 = offsetof(InputParameter, first),
            o2 = offsetof(InputParameter, last);
     memset((char*)this + o1, 0, o2 - o1);
+}
+
 }

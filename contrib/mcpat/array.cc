@@ -41,6 +41,9 @@
 
 using namespace std;
 
+namespace McPAT
+{
+
 ArrayST::ArrayST(const InputParameter *configure_interface,
 		               string _name,
 		               enum Device_ty device_ty_,
@@ -298,4 +301,6 @@ void ArrayST::leakage_feedback(double temperature)
 ArrayST:: ~ArrayST()
 {
 	local_result.cleanup();
+}
+
 }

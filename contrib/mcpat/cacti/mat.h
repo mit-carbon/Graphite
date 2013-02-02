@@ -39,6 +39,9 @@
 #include "wire.h"
 #include "subarray.h"
 
+namespace McPAT
+{
+
 class Mat : public Component
 {
   public:
@@ -143,6 +146,6 @@ class Mat : public Component
     int SCHP;
 };
 
-
+}
 
 #endif

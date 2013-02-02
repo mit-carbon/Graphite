@@ -46,6 +46,9 @@
 #include "noc.h"
 #include "iocontrollers.h"
 
+namespace McPAT
+{
+
 class Processor : public Component
 {
   public:
@@ -74,5 +77,7 @@ class Processor : public Component
     void displayInterconnectType(int interconnect_type_, uint32_t indent = 0);
     ~Processor();
 };
+
+}
 
 #endif /* PROCESSOR_H_ */

@@ -36,6 +36,9 @@
 #include "parameter.h"
 #include <vector>
 
+namespace McPAT
+{
+
 const double cdb_overhead = 1.1;
 
 enum FU_type {
@@ -261,4 +264,7 @@ public:
     double duty_cycle, perc_load;
     ~PCIeParam(){};
 };
+
+}
+
 #endif /* BASIC_COMPONENTS_H_ */

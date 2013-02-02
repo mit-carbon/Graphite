@@ -33,6 +33,9 @@
 
 #include "router.h"
 
+namespace McPAT
+{
+
 Router::Router(
     double flit_size_,
     double vc_buf, /* vc size = vc_buffer_size * flit_size */
@@ -309,3 +312,4 @@ Router::print_router()
 
 }
 
+}

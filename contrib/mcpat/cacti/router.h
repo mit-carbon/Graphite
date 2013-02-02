@@ -45,7 +45,8 @@
 #include "crossbar.h"
 #include "arbiter.h"
 
-
+namespace McPAT
+{
 
 class Router : public Component
 {
@@ -111,5 +112,7 @@ class Router : public Component
 
 
 };
+
+}
 
 #endif

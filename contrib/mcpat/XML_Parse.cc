@@ -37,6 +37,9 @@
 
 using namespace std;
 
+namespace McPAT
+{
+
 void ParseXML::parse(char* filepath)
 {
 	unsigned int i,j,k,m,n;
@@ -1794,4 +1797,6 @@ void ParseXML::initialize() //Initialize all
 	sys.flashc.type =1;
 	sys.flashc.duty_cycle =1;
 	sys.flashc.total_load_perc=1;
+}
+
 }

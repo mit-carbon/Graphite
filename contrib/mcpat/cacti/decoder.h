@@ -40,6 +40,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 class Decoder : public Component
 {
@@ -242,5 +244,6 @@ class Driver : public Component
   double compute_delay(double inrisetime);
 };
 
+}
 
 #endif

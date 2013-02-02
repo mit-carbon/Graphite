@@ -32,6 +32,9 @@
 #ifndef ARCH_CONST_H_
 #define ARCH_CONST_H_
 
+namespace McPAT
+{
+
 typedef struct{
 	unsigned int capacity;
 	unsigned int assoc;//fully
@@ -272,5 +275,6 @@ mem_side=system.tol2bus.port[2]
 //[system.cpu0.dtb]
 //type=AlphaDT
 
+}
 
 #endif /* ARCH_CONST_H_ */

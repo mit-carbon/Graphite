@@ -38,6 +38,9 @@
 #include <stdio.h>
 #include <math.h>
 
+namespace McPAT
+{
+
 /*  The following are things you might want to change
  *  when compiling
  */
@@ -265,6 +268,6 @@ const double pppm_Isub[4] = {0,1,0,0};
 const double pppm_Ig[4]   = {0,0,1,0};
 const double pppm_sc[4]   = {0,0,0,1};
 
-
+}
 
 #endif

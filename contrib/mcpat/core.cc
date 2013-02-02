@@ -42,6 +42,9 @@
 #include "core.h"
 //#include "globalvar.h"
 
+namespace McPAT
+{
+
 InstFetchU::InstFetchU(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_, const CoreDynParam & dyn_p_, bool exist_)
 :XML(XML_interface),
  ithCore(ithCore_),
@@ -4131,4 +4134,6 @@ if (coredynp.core_ty==OOO)
 	coredynp.regWindowing= (XML->sys.core[ithCore].register_windows_size>0&&coredynp.core_ty==Inorder)?true:false;
 	coredynp.executionTime = XML->sys.total_cycles/coredynp.clockRate;
 	set_pppm(coredynp.pppm_lkg_multhread, 0, coredynp.num_hthreads, coredynp.num_hthreads, 0);
+}
+
 }

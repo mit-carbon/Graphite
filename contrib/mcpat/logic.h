@@ -49,6 +49,9 @@
 
 using namespace std;
 
+namespace McPAT
+{
+
 class selection_logic : public Component{
 public:
 	selection_logic(bool _is_default, int    win_entries_,
@@ -230,4 +233,7 @@ public:
 
 
 };
+
+}
+
 #endif /* LOGIC_H_ */

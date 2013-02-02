@@ -31,6 +31,9 @@
 
 #include "arbiter.h"
 
+namespace McPAT
+{
+
 Arbiter::Arbiter(
     double n_req,
     double flit_size_,
@@ -127,4 +130,4 @@ void Arbiter::print_arbiter()
   cout << "Leakage Power    : " << power.readOp.leakage*1e3 << " (mW)" << endl;
 }
 
-
+}

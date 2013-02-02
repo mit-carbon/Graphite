@@ -45,6 +45,9 @@
 #include <assert.h>
 #include "sharedcache.h"
 
+namespace McPAT
+{
+
 SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter* interface_ip_, enum cache_level cacheL_)
 :XML(XML_interface),
  ithCache(ithCache_),
@@ -1160,3 +1163,4 @@ void SharedCache::set_cache_param()
 	//cachep.cache_duty_cycle=cachep.dir_duty_cycle = 0.35;
 }
 
+}

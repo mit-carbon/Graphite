@@ -40,6 +40,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 class Subarray : public Component
 {
@@ -64,7 +66,7 @@ class Subarray : public Component
     void compute_C();  // compute bitline and wordline capacitance
 };
 
-
+}
 
 #endif
 

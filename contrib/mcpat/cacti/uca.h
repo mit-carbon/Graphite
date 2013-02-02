@@ -40,6 +40,8 @@
 #include "parameter.h"
 #include "htree2.h"
 
+namespace McPAT
+{
 
 class UCA : public Component
 {
@@ -91,6 +93,8 @@ class UCA : public Component
     double precharge_delay;
     double multisubbank_interleave_cycle_time;
 };
+
+}
 
 #endif
 

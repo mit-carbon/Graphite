@@ -42,6 +42,9 @@
 
 using namespace std;
 
+namespace McPAT
+{
+
 class ArrayST :public Component{
  public:
   ArrayST(){};
@@ -96,5 +99,7 @@ public:
 				delete wbb; wbb=0;}
    };
 };
+
+}
 
 #endif /* TLB_H_ */

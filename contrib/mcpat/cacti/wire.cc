@@ -31,6 +31,10 @@
 
 #include "wire.h"
 #include "cmath"
+
+namespace McPAT
+{
+
 // use this constructor to calculate wire stats
 Wire::Wire(
     enum Wire_type wire_model,
@@ -830,3 +834,4 @@ Wire::print_wire()
 
 }
 
+}

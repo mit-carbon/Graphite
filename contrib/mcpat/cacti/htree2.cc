@@ -36,6 +36,9 @@
 #include <assert.h>
 #include <iostream>
 
+namespace McPAT
+{
+
 Htree2::Htree2(
     enum Wire_type wire_model, double mat_w, double mat_h,
     int a_bits, int d_inbits, int search_data_in, int d_outbits, int search_data_out, int bl, int wl, enum Htree_type htree_type,
@@ -638,3 +641,4 @@ void Htree2::out_htree()
   if (wtemp3) delete wtemp3;
 }
 
+}

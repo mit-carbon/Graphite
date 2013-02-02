@@ -39,6 +39,9 @@
 #include <vector>
 #include "basic_components.h"
 
+namespace McPAT
+{
+
 class SharedCache :public Component{
   public:
     ParseXML * XML;
@@ -84,5 +87,7 @@ class CCdir :public Component{
     void displayEnergy(uint32_t indent = 0,bool is_tdp=true);
     ~CCdir();
 };
+
+}
 
 #endif /* SHAREDCACHE_H_ */

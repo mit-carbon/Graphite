@@ -34,6 +34,9 @@
 
 #include "parameter.h"
 
+namespace McPAT
+{
+
 double wire_resistance(double resistivity, double wire_width, double wire_thickness,
     double barrier_thickness, double dishing_thickness, double alpha_scatter)
 {
@@ -2770,3 +2773,4 @@ void init_tech_params(double technology, bool is_tag)
   g_tp.FO4 = horowitz(0, tf, 0.5, 0.5, RISE);
 }
 
+}

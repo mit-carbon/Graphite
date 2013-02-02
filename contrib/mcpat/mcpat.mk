@@ -1,4 +1,4 @@
-TARGET = mcpat
+TARGET = libmcpat.a
 SHELL = /bin/sh
 .PHONY: all depend clean
 .SUFFIXES: .cc .o
@@ -15,15 +15,14 @@ ifeq ($(TAG),dbg)
   DBG = -Wall 
   OPT = -ggdb -g -O0 -DNTHREADS=1 -Icacti
 else
-  DBG = 
+  DBG = -Wall
   OPT = -O3 -msse2 -mfpmath=sse -DNTHREADS=$(NTHREADS) -Icacti
-  #OPT = -O0 -DNTHREADS=$(NTHREADS)
 endif
 
 #CXXFLAGS = -Wall -Wno-unknown-pragmas -Winline $(DBG) $(OPT) 
 CXXFLAGS = -Wno-unknown-pragmas $(DBG) $(OPT) 
-CXX = g++
-CC  = gcc
+CXX = g++ -fPIC
+CC  = gcc -fPIC
 
 VPATH = cacti
 
@@ -46,7 +45,6 @@ SRCS  = \
   io.cc \
   iocontrollers.cc \
   logic.cc \
-  main.cc \
   mat.cc \
   memoryctrl.cc \
   noc.cc \
@@ -67,15 +65,10 @@ all: obj_$(TAG)/$(TARGET)
 	cp -f obj_$(TAG)/$(TARGET) $(TARGET)
 
 obj_$(TAG)/$(TARGET) : $(OBJS)
-	$(CXX) $(OBJS) -o $@ $(INCS) $(CXXFLAGS) $(LIBS) -pthread
-
-#obj_$(TAG)/%.o : %.cc
-#	$(CXX) -c $(CXXFLAGS) $(INCS) -o $@ $<
+	ar rcs $@ $^
 
 obj_$(TAG)/%.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	-rm -f *.o $(TARGET)
-
-
+	$(RM) *.o $(TARGET)

@@ -575,12 +575,21 @@ typedef struct{
 	system_pcie pcie;
 } root_system;
 
+//---------------------------
+// ParseXML Class
+//---------------------------
 class ParseXML
 {
 public:
-	void parse(char* filepath);
-    void initialize();
+   // Fill ParseXML Data Structures from XML File
+   void parse(char* filepath);
+   // Initialize ParseXML Data Structures
+   void initialize();
+   // Fill ParseXML Data Structures with Niagara 1
+   void setNiagara1();
+
 public:
+   // ParseXML Data Structures for Parameters and Statistics
 	root_system sys;
 };
 

@@ -7,10 +7,6 @@ ifndef NTHREADS
   NTHREADS = 4
 endif
 
-
-LIBS = 
-INCS = -lm -ldb
-
 ifeq ($(TAG),dbg)
   DBG = -Wall 
   OPT = -ggdb -g -O0 -DNTHREADS=1 -Icacti

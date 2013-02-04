@@ -40,15 +40,19 @@ KERNEL = SQUEEZE
 
 CXXFLAGS += -DKERNEL_$(KERNEL) -fPIC
 
-BOOST_SUFFIX = mt
-
-LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
-
-# Other Libraries in Contrib
+# Libraries in contrib (DSent, McPAT)
 LD_LIBS += -ldsent_contrib
 LD_FLAGS += -L$(SIM_ROOT)/contrib/dsent
 LD_LIBS += -lmcpat
 LD_FLAGS += -L$(SIM_ROOT)/contrib/mcpat
+
+# Boost library
+BOOST_SUFFIX = mt
+LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX)
+# BerkeleyDB library
+LD_LIBS += -ldb
+# Math, pthread libraries
+LD_LIBS += -lm -pthread
 
 LD_FLAGS += -L$(SIM_ROOT)/lib
 export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(PIN_HOME)/intel64/runtime:$(LD_LIBRARY_PATH)

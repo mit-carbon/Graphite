@@ -86,6 +86,10 @@ class InstFetchU :public Component {
 	inst_decoder * ID_operand;
 	inst_decoder * ID_misc;
 	bool exist;
+   // [graphite] Created new variables X, to use in computeEnergy()
+   double ID_inst_power_readOp_dynamic_ref;
+   double ID_operand_power_readOp_dynamic_ref;
+   double ID_misc_power_readOp_dynamic_ref;
 
 	InstFetchU(ParseXML *XML_interface, int ithCore_, InputParameter* interface_ip_,const CoreDynParam & dyn_p_, bool exsit=true);
     void computeEnergy(bool is_tdp=true);

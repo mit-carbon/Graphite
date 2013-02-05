@@ -289,6 +289,12 @@ InstFetchU::InstFetchU(ParseXML* XML_interface, int ithCore_, InputParameter* in
     		  8/* Prefix field etc upto 14B*/, 1,
     		  coredynp.x86,
     		  Core_device, coredynp.core_ty);
+
+      // [graphite] Created new variables X, to use in computeEnergy()
+      ID_inst_power_readOp_dynamic_ref    = ID_inst->power.readOp.dynamic;
+      ID_operand_power_readOp_dynamic_ref = ID_operand->power.readOp.dynamic;
+      ID_misc_power_readOp_dynamic_ref    = ID_misc->power.readOp.dynamic;
+
       //TODO: X86 decoder should decode the inst in cyclic mode under the control of squencer.
       //So the dynamic power should be multiplied by a few times.
       area.set_area(area.get_area()+ (ID_inst->area.get_area()
@@ -1847,6 +1853,16 @@ void BranchPredictor::computeEnergy(bool is_tdp)
 	if (!exist) return;
 	double r_access;
 	double w_access;
+
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          = XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (is_tdp)
     {
     	r_access = coredynp.predictionW*coredynp.BR_duty_cycle;
@@ -2010,6 +2026,16 @@ void BranchPredictor::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 void InstFetchU::computeEnergy(bool is_tdp)
 {
 	if (!exist) return;
+
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (is_tdp)
     {
 		//init stats for Peak
@@ -2095,6 +2121,12 @@ void InstFetchU::computeEnergy(bool is_tdp)
     if (coredynp.predictionW>0)
     {
     	BTB->power_t.reset();
+
+      // [graphite] Reset Component power
+      if (is_tdp)
+         BPT->power.reset();
+      else
+         BPT->rt_power.reset();
     }
 
     icache.power_t.readOp.dynamic	+= (icache.caches->stats_t.readAc.hit*icache.caches->local_result.power.readOp.dynamic+
@@ -2140,13 +2172,15 @@ void InstFetchU::computeEnergy(bool is_tdp)
     		power     = power  + BTB->power + BPT->power;
     	}
 
-    	ID_inst->power_t.readOp.dynamic    = ID_inst->power.readOp.dynamic;
-    	ID_operand->power_t.readOp.dynamic = ID_operand->power.readOp.dynamic;
-    	ID_misc->power_t.readOp.dynamic    = ID_misc->power.readOp.dynamic;
+      // [graphite] Went from A = B to A = X
+      ID_inst->power_t.readOp.dynamic    = ID_inst_power_readOp_dynamic_ref;
+      ID_operand->power_t.readOp.dynamic = ID_operand_power_readOp_dynamic_ref;
+      ID_misc->power_t.readOp.dynamic    = ID_misc_power_readOp_dynamic_ref;
 
-    	ID_inst->power.readOp.dynamic    *= ID_inst->tdp_stats.readAc.access;
-    	ID_operand->power.readOp.dynamic *= ID_operand->tdp_stats.readAc.access;
-    	ID_misc->power.readOp.dynamic    *= ID_misc->tdp_stats.readAc.access;
+      // [graphite] Went from B = B*tdp_stats to B = A*tdp_stats
+      ID_inst->power.readOp.dynamic    = ID_inst->power_t.readOp.dynamic*ID_inst->tdp_stats.readAc.access;
+      ID_operand->power.readOp.dynamic = ID_operand->power_t.readOp.dynamic*ID_operand->tdp_stats.readAc.access;
+      ID_misc->power.readOp.dynamic    = ID_misc->power_t.readOp.dynamic*ID_misc->tdp_stats.readAc.access;
 
     	power = power + (ID_inst->power +
 							ID_operand->power +
@@ -2174,9 +2208,10 @@ void InstFetchU::computeEnergy(bool is_tdp)
     		rt_power     = rt_power + BTB->rt_power + BPT->rt_power;
     	}
 
-    	ID_inst->rt_power.readOp.dynamic    = ID_inst->power_t.readOp.dynamic*ID_inst->rtp_stats.readAc.access;
-    	ID_operand->rt_power.readOp.dynamic = ID_operand->power_t.readOp.dynamic * ID_operand->rtp_stats.readAc.access;
-    	ID_misc->rt_power.readOp.dynamic    = ID_misc->power_t.readOp.dynamic * ID_misc->rtp_stats.readAc.access;
+      // [graphite] C = A*rtp_stats
+      ID_inst->rt_power.readOp.dynamic    = ID_inst->power_t.readOp.dynamic*ID_inst->rtp_stats.readAc.access;
+      ID_operand->rt_power.readOp.dynamic = ID_operand->power_t.readOp.dynamic * ID_operand->rtp_stats.readAc.access;
+      ID_misc->rt_power.readOp.dynamic    = ID_misc->power_t.readOp.dynamic * ID_misc->rtp_stats.readAc.access;
 
     	rt_power = rt_power + (ID_inst->rt_power +
 							ID_operand->rt_power +
@@ -2281,6 +2316,16 @@ void RENAMINGU::computeEnergy(bool is_tdp)
 {
 	if (!exist) return;
 	double pppm_t[4]    = {1,1,1,1};
+
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (is_tdp)
 	{//init stats for Peak
 		if (coredynp.core_ty==OOO){
@@ -2747,6 +2792,16 @@ void SchedulerU::computeEnergy(bool is_tdp)
 //					+ coredynp.num_fpus>0?coredynp.FPU_duty_cycle:0)*1.1:1;
 	ROB_duty_cycle = 1;
 	//init stats
+
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (is_tdp)
 	{
 		if (coredynp.core_ty==OOO)
@@ -3001,6 +3056,16 @@ void SchedulerU::displayEnergy(uint32_t indent,int plevel,bool is_tdp)
 void LoadStoreU::computeEnergy(bool is_tdp)
 {
 	if (!exist) return;
+
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (is_tdp)
 	    {
 	    	//init stats for Peak
@@ -3271,6 +3336,16 @@ void MemManU::computeEnergy(bool is_tdp)
 {
 
 	if (!exist) return;
+
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (is_tdp)
     {
     	//init stats for Peak
@@ -3368,6 +3443,16 @@ void RegFU::computeEnergy(bool is_tdp)
  * And the same stats can be used for both.
  */
 	if (!exist) return;
+
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (is_tdp)
     {
     	//init stats for Peak
@@ -3513,16 +3598,16 @@ void EXECU::computeEnergy(bool is_tdp)
 {
 	if (!exist) return;
 	double pppm_t[4]    = {1,1,1,1};
-//	rfu->power.reset();
-//	rfu->rt_power.reset();
-//	scheu->power.reset();
-//	scheu->rt_power.reset();
-//	exeu->power.reset();
-//	exeu->rt_power.reset();
 
-	rfu->computeEnergy(is_tdp);
-	scheu->computeEnergy(is_tdp);
-	exeu->computeEnergy(is_tdp);
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (coredynp.num_fpus >0)
 	{
 		fp_u->computeEnergy(is_tdp);
@@ -3534,7 +3619,18 @@ void EXECU::computeEnergy(bool is_tdp)
 
 	if (is_tdp)
 	{
-		set_pppm(pppm_t, 2*coredynp.ALU_cdb_duty_cycle, 2, 2, 2*coredynp.ALU_cdb_duty_cycle);//2 means two source operands needs to be passed for each int instruction.
+      // [graphite] Reset Component power
+      rfu->power.reset();
+      scheu->power.reset();
+      exeu->power.reset();
+      bypass.power.reset();
+
+      // [graphite] Compute Component energy
+      rfu->computeEnergy(is_tdp);
+      scheu->computeEnergy(is_tdp);
+      exeu->computeEnergy(is_tdp);
+
+      set_pppm(pppm_t, 2*coredynp.ALU_cdb_duty_cycle, 2, 2, 2*coredynp.ALU_cdb_duty_cycle);//2 means two source operands needs to be passed for each int instruction.
 		bypass.power = bypass.power + intTagBypass->power*pppm_t + int_bypass->power*pppm_t;
 		if (coredynp.num_muls >0)
 		{
@@ -3553,7 +3649,18 @@ void EXECU::computeEnergy(bool is_tdp)
 	}
 	else
 	{
-		set_pppm(pppm_t, XML->sys.core[ithCore].cdb_alu_accesses, 2, 2, XML->sys.core[ithCore].cdb_alu_accesses);
+      // [graphite] Reset Component power
+      rfu->rt_power.reset();
+      scheu->rt_power.reset();
+      exeu->rt_power.reset();
+      bypass.rt_power.reset();
+
+      // [graphite] Compute Component energy
+      rfu->computeEnergy(is_tdp);
+      scheu->computeEnergy(is_tdp);
+      exeu->computeEnergy(is_tdp);
+
+      set_pppm(pppm_t, XML->sys.core[ithCore].cdb_alu_accesses, 2, 2, XML->sys.core[ithCore].cdb_alu_accesses);
 		bypass.rt_power = bypass.rt_power + intTagBypass->power*pppm_t;
 		bypass.rt_power = bypass.rt_power + int_bypass->power*pppm_t;
 
@@ -3647,12 +3754,33 @@ void Core::computeEnergy(bool is_tdp)
 	double pppm_t[4]    = {1,1,1,1};
     double rtp_pipeline_coe;
     double num_units = 4.0;
+
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (is_tdp)
 	{
-		ifu->computeEnergy(is_tdp);
-		lsu->computeEnergy(is_tdp);
-		mmu->computeEnergy(is_tdp);
-		exu->computeEnergy(is_tdp);
+      // [graphite] Reset Component power
+      if (coredynp.core_ty==OOO)
+      {
+         rnu->power.reset();
+      }
+      ifu->power.reset();
+      lsu->power.reset();
+      mmu->power.reset();
+      exu->power.reset();
+
+      // [graphite] Compute Component energy
+      ifu->computeEnergy(is_tdp);
+      lsu->computeEnergy(is_tdp);
+      mmu->computeEnergy(is_tdp);
+      exu->computeEnergy(is_tdp);
 
 		if (coredynp.core_ty==OOO)
 		{
@@ -3714,10 +3842,22 @@ void Core::computeEnergy(bool is_tdp)
 	}
 	else
 	{
-		ifu->computeEnergy(is_tdp);
-		lsu->computeEnergy(is_tdp);
-		mmu->computeEnergy(is_tdp);
-		exu->computeEnergy(is_tdp);
+      // [graphite] Reset Component power
+      if (coredynp.core_ty==OOO)
+      {
+         rnu->rt_power.reset();
+      }
+      ifu->rt_power.reset();
+      lsu->rt_power.reset();
+      mmu->rt_power.reset();
+      exu->rt_power.reset();
+
+      // [graphite] Compute Component energy
+      ifu->computeEnergy(is_tdp);
+      lsu->computeEnergy(is_tdp);
+      mmu->computeEnergy(is_tdp);
+      exu->computeEnergy(is_tdp);
+
 		if (coredynp.core_ty==OOO)
 		{
 			num_units = 5.0;

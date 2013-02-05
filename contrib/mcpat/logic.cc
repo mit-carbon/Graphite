@@ -564,6 +564,16 @@ void FunctionalUnit::computeEnergy(bool is_tdp)
 {
 	double pppm_t[4]    = {1,1,1,1};
 	double FU_duty_cycle;
+
+   // [graphite] Update clockRate and executionTime
+   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate          *= 1e6;
+   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+
+   // [graphite] Update clockRate and executionTime
+   clockRate = coredynp.clockRate;
+   executionTime = coredynp.executionTime;
+
 	if (is_tdp)
 	{
 

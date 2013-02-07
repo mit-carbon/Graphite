@@ -143,8 +143,18 @@ L2CacheCntlr::insertCacheLineInL1(MemComponent::Type mem_component, IntPtr addre
       // Get the cache line info first
       PrL2CacheLineInfo evicted_cache_line_info;
       _l2_cache->getCacheLineInfo(evicted_address, &evicted_cache_line_info);
+      
       // Clear the present bit and store the info back
-      evicted_cache_line_info.clearCachedLoc(mem_component);
+      if (evicted_cache_line_info.getCachedLoc() != mem_component)
+      {
+         // LOG_PRINT_WARNING("Address(%#lx) removed from (L1-ICACHE)", evicted_address);
+         LOG_ASSERT_ERROR(mem_component == MemComponent::L1_ICACHE, "address(%#lx), mem_component(%s), cached_loc(%s)",
+                          address, SPELL_MEMCOMP(mem_component), SPELL_MEMCOMP(evicted_cache_line_info.getCachedLoc()));
+      }
+      else // (evicted_cache_line_info.getCachedLoc() == mem_component)
+      {
+         evicted_cache_line_info.clearCachedLoc(mem_component);
+      }
       _l2_cache->setCacheLineInfo(evicted_address, &evicted_cache_line_info);
    }
 }
@@ -188,7 +198,18 @@ L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, C
       insertCacheLineInL1(mem_component, address, cstate, data_buf);
       
       // Set that the cache line in present in the L1 cache in the L2 tags
-      l2_cache_line_info.setCachedLoc(mem_component);
+      if (l2_cache_line_info.getCachedLoc() != MemComponent::INVALID)
+      {
+         assert(l2_cache_line_info.getCachedLoc() == MemComponent::L1_ICACHE);
+         assert(mem_component == MemComponent::L1_DCACHE);
+         assert(cstate == CacheState::SHARED);
+         // LOG_PRINT_WARNING("Address(%#lx) cached first in (L1-ICACHE), then in (L1-DCACHE)", address);
+         l2_cache_line_info.setForcedCachedLoc(mem_component);
+      }
+      else // (l2_cache_line_info.getCachedLoc() == MemComponent::INVALID)
+      {
+         l2_cache_line_info.setCachedLoc(mem_component);
+      }
       _l2_cache->setCacheLineInfo(address, &l2_cache_line_info);
    }
    

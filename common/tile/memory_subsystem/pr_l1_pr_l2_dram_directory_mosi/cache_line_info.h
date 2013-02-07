@@ -22,6 +22,7 @@ public:
 
    MemComponent::Type getCachedLoc();
    void setCachedLoc(MemComponent::Type cached_loc);
+   void setForcedCachedLoc(MemComponent::Type cached_loc);
    void clearCachedLoc(MemComponent::Type cached_loc);
 
    void invalidate();

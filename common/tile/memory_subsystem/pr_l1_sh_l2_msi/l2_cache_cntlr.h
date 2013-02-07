@@ -71,7 +71,7 @@ namespace PrL1ShL2MSI
 
       // L2 cache operations
       void getCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_info,
-                            ShmemMsg::Type shmem_msg_type = ShmemMsg::INVALID_MSG_TYPE, bool update_miss_counters = false);
+                            ShmemMsg::Type shmem_msg_type, bool update_miss_counters = false);
       void setCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_info);
       void readCacheLine(IntPtr address, Byte* data_buf);
       void writeCacheLine(IntPtr address, Byte* data_buf);

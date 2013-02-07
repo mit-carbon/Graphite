@@ -63,6 +63,7 @@ L2CacheCntlr::getCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_
    map<IntPtr,ShL2CacheLineInfo>::iterator it = _evicted_cache_line_map.find(address);
    if (it == _evicted_cache_line_map.end())
    {
+      assert(shmem_msg_type != ShmemMsg::NULLIFY_REQ);
       // Read it from the cache
       _L2_cache->getCacheLineInfo(address, L2_cache_line_info);
       if (update_miss_counters)
@@ -74,11 +75,18 @@ L2CacheCntlr::getCacheLineInfo(IntPtr address, ShL2CacheLineInfo* L2_cache_line_
 
       if (L2_cache_line_info->getCState() == CacheState::INVALID)
       {
-         // allocate a cache line with garbage data
-         allocateCacheLine(address, L2_cache_line_info);
+         if ((shmem_msg_type == ShmemMsg::EX_REQ) || (shmem_msg_type == ShmemMsg::SH_REQ))
+         {
+            // allocate a cache line with garbage data
+            allocateCacheLine(address, L2_cache_line_info);
+         }
+         else
+         {
+            LOG_PRINT_ERROR("Unrecognized shmem msg type(%u)", shmem_msg_type);
+         }
       }
    }
-   else
+   else // (present in the evicted map [_evicted_cache_line_map])
    {
       assert(!update_miss_counters);
       // Read it from the evicted cache line map
@@ -202,24 +210,39 @@ L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
    {
       // Get the ShL2CacheLineInfo object
       ShL2CacheLineInfo L2_cache_line_info;
-      getCacheLineInfo(address, &L2_cache_line_info);
-      // I either find the cache line in the evicted_cache_line_map or in the L2 cache
+      getCacheLineInfo(address, &L2_cache_line_info, shmem_msg_type);
       assert(L2_cache_line_info.isValid());
 
-      switch (shmem_msg_type)
+      if (L2_cache_line_info.getCachingComponent() != shmem_msg->getSenderMemComponent())
       {
-      case ShmemMsg::INV_REP:
-         processInvRepFromL1Cache(sender, shmem_msg, &L2_cache_line_info);
-         break;
-      case ShmemMsg::FLUSH_REP:
-         processFlushRepFromL1Cache(sender, shmem_msg, &L2_cache_line_info);
-         break;
-      case ShmemMsg::WB_REP:
-         processWbRepFromL1Cache(sender, shmem_msg, &L2_cache_line_info);
-         break;
-      default:
-         LOG_PRINT_ERROR("Unrecognized Shmem Msg Type: %u", shmem_msg_type);
-         break;
+         // LOG_PRINT_WARNING("Address(%#lx) removed from (L1-ICACHE)", address);
+         LOG_ASSERT_ERROR(shmem_msg->getSenderMemComponent() == MemComponent::L1_ICACHE,
+                          "Msg'ing component(%s)", SPELL_MEMCOMP(shmem_msg->getSenderMemComponent()));
+         LOG_ASSERT_ERROR(L2_cache_line_info.getCachingComponent() == MemComponent::L1_DCACHE,
+                          "Caching component(%s), Valid(%s), State(%s)",
+                          SPELL_MEMCOMP(L2_cache_line_info.getCachingComponent()), L2_cache_line_info.isValid() ? "true" : "false",
+                          SPELL_CSTATE(L2_cache_line_info.getCState()));
+         assert(shmem_msg_type == ShmemMsg::INV_REP);
+         // Drop the message
+      }
+      else // (L2_cache_line_info.getCachingComponent() == shmem_msg->getSenderMemComponent())
+      {
+         // I either find the cache line in the evicted_cache_line_map or in the L2 cache
+         switch (shmem_msg_type)
+         {
+         case ShmemMsg::INV_REP:
+            processInvRepFromL1Cache(sender, shmem_msg, &L2_cache_line_info);
+            break;
+         case ShmemMsg::FLUSH_REP:
+            processFlushRepFromL1Cache(sender, shmem_msg, &L2_cache_line_info);
+            break;
+         case ShmemMsg::WB_REP:
+            processWbRepFromL1Cache(sender, shmem_msg, &L2_cache_line_info);
+            break;
+         default:
+            LOG_PRINT_ERROR("Unrecognized Shmem Msg Type: %u", shmem_msg_type);
+            break;
+         }
       }
 
       // Update the evicted cache line map or the L2 cache directly
@@ -248,7 +271,7 @@ L2CacheCntlr::handleMsgFromDram(tile_id_t sender, ShmemMsg* shmem_msg)
    IntPtr address = shmem_msg->getAddress();
 
    ShL2CacheLineInfo L2_cache_line_info;
-   getCacheLineInfo(address, &L2_cache_line_info);
+   _L2_cache->getCacheLineInfo(address, &L2_cache_line_info);
 
    // Write the data into the L2 cache if it is a SH_REQ
    ShmemReq* shmem_req = _L2_cache_req_queue.front(address);
@@ -347,7 +370,7 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
 
    // get cache line info 
    ShL2CacheLineInfo L2_cache_line_info;
-   getCacheLineInfo(address, &L2_cache_line_info);
+   getCacheLineInfo(address, &L2_cache_line_info, ShmemMsg::NULLIFY_REQ);
 
    assert(L2_cache_line_info.getCState() != CacheState::INVALID);
 
@@ -506,7 +529,6 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             assert(directory_entry->getNumSharers() == 0);
           
             // Set caching component 
-            assert(L2_cache_line_info.getCachingComponent() == MemComponent::INVALID);
             L2_cache_line_info.setCachingComponent(MemComponent::L1_DCACHE);
 
             // Add the sharer and set that as the owner 
@@ -590,6 +612,24 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
          {
             LOG_ASSERT_ERROR(directory_entry->getNumSharers() > 0, "Address(%#lx), State(%u), Num Sharers(%u)",
                              address, curr_dstate, directory_entry->getNumSharers());
+            
+            if (L2_cache_line_info.getCachingComponent() != requester_mem_component)
+            {
+               assert(L2_cache_line_info.getCachingComponent() == MemComponent::L1_ICACHE);
+               assert(requester_mem_component == MemComponent::L1_DCACHE);
+               assert(directory_entry->getNumSharers() == 1);
+               assert(directory_entry->hasSharer(requester));
+               
+               // LOG_PRINT_WARNING("Address(%#lx) cached first in (L1-ICACHE), then in (L1-DCACHE)", address);
+               L2_cache_line_info.setCachingComponent(MemComponent::L1_DCACHE);
+               
+               // Read the cache-line from the L2 cache and send it to L1
+               readCacheLineAndSendToL1Cache(ShmemMsg::SH_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
+               // set completed to true 
+               completed = true;
+               break;
+            }
+
             LOG_ASSERT_ERROR(L2_cache_line_info.getCachingComponent() == requester_mem_component,
                              "Address(%#lx), Num sharers(%i), caching component(%u), requester component(%u)",
                              address, directory_entry->getNumSharers(), L2_cache_line_info.getCachingComponent(), requester_mem_component);
@@ -623,7 +663,6 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             assert(directory_entry->getNumSharers() == 0);
           
             // Set caching component 
-            assert(L2_cache_line_info.getCachingComponent() == MemComponent::INVALID);
             L2_cache_line_info.setCachingComponent(requester_mem_component);
             
             // Modifiy the directory entry contents
@@ -683,7 +722,6 @@ L2CacheCntlr::processInvRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_m
       if (directory_entry->getNumSharers() == 0)
       {
          directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::UNCACHED);
-         L2_cache_line_info->setCachingComponent(MemComponent::INVALID);
       }
       break;
 
@@ -727,7 +765,6 @@ L2CacheCntlr::processFlushRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem
          directory_entry->removeSharer(sender, false);
          directory_entry->setOwner(INVALID_TILE_ID);
          directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::UNCACHED);
-         L2_cache_line_info->setCachingComponent(MemComponent::INVALID);
       }
       break;
 

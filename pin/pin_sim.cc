@@ -291,7 +291,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             Core *core = Sim()->getTileManager()->getCurrentCore();
 
             // main thread clock is not affected by start-up time of other processes
-            core->getNetwork()->netRecv(Tile::getMainCoreId(0), core->getId(), SYSTEM_INITIALIZATION_NOTIFY);
+            core->getTile()->getNetwork()->netRecv(Tile::getMainCoreId(0), core->getId(), SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
             copyInitialStackData(reg_esp, Tile::getMainCoreId(tile_id));

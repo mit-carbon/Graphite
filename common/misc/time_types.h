@@ -12,7 +12,8 @@ class Latency
 {
    public:
       Latency(UInt64 cycles, Frequency freq):_cycles(cycles), _freq(freq){};
-      Latency(const Latency& lat):_cycles(lat._cycles){};
+      Latency(const Latency& lat):_cycles(lat._cycles),
+                                  _freq(lat._freq) {};
       ~Latency(){};
 
       Latency operator+(const Latency& lat);
@@ -31,32 +32,32 @@ class Time
 {
    public:
       Time(UInt64 picosec=0):_picosec(picosec){};
-      Time(const Time& time):_picosec(time.getTime()){};
+      Time(const Time& time):_picosec(time._picosec){};
       ~Time(){};
 
       Time operator+(const Time& time)
-            { return Time(_picosec + time.getTime());};
+            { return Time(_picosec + time._picosec);};
 
       Time operator+(const Latency& lat)
             { return Time (_picosec + lat.toPicosec());};
 
       Time operator-(const Time& time) const
-            { return Time(_picosec - time.getTime());};
+            { return Time(_picosec - time._picosec);};
 
       bool operator>(const Time& time)
-            { return _picosec > time.getTime(); };
+            { return _picosec > time._picosec; };
 
       bool operator<(const Time& time)
-            { return _picosec < time.getTime(); };
+            { return _picosec < time._picosec; };
 
       bool operator<=(const Time& time)
-            { return _picosec <= time.getTime(); };
+            { return _picosec <= time._picosec; };
 
       Time operator+=(const Time& time)
-            { _picosec += time.getTime(); return *this; };
+            { _picosec += time._picosec; return *this; };
 
       Time operator=(const Time& time)
-            { _picosec = time.getTime(); return *this; };
+            { _picosec = time._picosec; return *this; };
 
       Time operator=(const UInt64& picosec)
             {_picosec = picosec; return *this; };

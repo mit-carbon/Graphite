@@ -400,25 +400,19 @@ MemoryManager::incrCurrTime(MemComponent::Type mem_component, CachePerfModel::Ca
    {
    case MemComponent::L1_ICACHE:
       {
-         Latency lat(_L1_icache_perf_model->getLatency(access_type),
-            getTile()->getFrequency());
-         getShmemPerfModel()->incrCurrTime(lat);
+         getShmemPerfModel()->incrCurrTime(Latency(_L1_icache_perf_model->getLatency(access_type), getTile()->getFrequency()));
          break;
       }
 
    case MemComponent::L1_DCACHE:
       {
-         Latency lat(_L1_dcache_perf_model->getLatency(access_type),
-            getTile()->getFrequency());
-         getShmemPerfModel()->incrCurrTime(lat);
+         getShmemPerfModel()->incrCurrTime(Latency(_L1_dcache_perf_model->getLatency(access_type), getTile()->getFrequency()));
          break;
       }
 
    case MemComponent::L2_CACHE:
       {
-         Latency lat(_L2_cache_perf_model->getLatency(access_type),
-            getTile()->getFrequency());
-         getShmemPerfModel()->incrCurrTime(lat);
+         getShmemPerfModel()->incrCurrTime(Latency(_L2_cache_perf_model->getLatency(access_type), getTile()->getFrequency()));
          break;
       }
 

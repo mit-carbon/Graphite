@@ -9,10 +9,10 @@ public:
    ShmemPerfModel();
    ~ShmemPerfModel();
 
-   void setCurrTime(Time& time);
+   void setCurrTime(Time time);
    Time getCurrTime();
-   void incrCurrTime(Latency& time);
-   void updateCurrTime(Time& time);
+   void incrCurrTime(Latency time);
+   void updateCurrTime(Time time);
 
    void setCycleCount(UInt64 count);
    UInt64 getCycleCount();

@@ -16,7 +16,7 @@ ShmemPerfModel::~ShmemPerfModel()
 
 
 void 
-ShmemPerfModel::setCurrTime(Time& time)
+ShmemPerfModel::setCurrTime(Time time)
 {
    //LOG_PRINT("setCurrTime: count(%llu)", time._picosec);
    _curr_time = time;
@@ -29,7 +29,7 @@ ShmemPerfModel::getCurrTime()
 }
 
 void
-ShmemPerfModel::updateCurrTime(Time& time)
+ShmemPerfModel::updateCurrTime(Time time)
 {
    //LOG_PRINT("updateCurrTime: time(%llu)", time._picosec);
    if (_curr_time < time)
@@ -37,7 +37,7 @@ ShmemPerfModel::updateCurrTime(Time& time)
 }
 
 void
-ShmemPerfModel::incrCurrTime(Latency& lat)
+ShmemPerfModel::incrCurrTime(Latency lat)
 {
    if (_enabled)
       _curr_time = _curr_time + lat;

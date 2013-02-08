@@ -5,33 +5,34 @@ using std::vector;
 #include "shmem_msg.h"
 #include "fixed_types.h"
 #include "directory_state.h"
+#include "time_types.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
    class ShmemReq
    {
    public:
-      ShmemReq(ShmemMsg* shmem_msg, UInt64 time);
+      ShmemReq(ShmemMsg* shmem_msg, Time time);
       ~ShmemReq();
 
       ShmemMsg* getShmemMsg() const
       { return _shmem_msg; }
-      UInt64 getSerializationTime() const
+      Time getSerializationTime() const
       { return _processing_start_time - _arrival_time; }
-      UInt64 getProcessingTime() const
+      Time getProcessingTime() const
       { return _processing_finish_time - _processing_start_time; }
       
-      UInt64 getArrivalTime() const
+      Time getArrivalTime() const
       { return _arrival_time; }
-      UInt64 getProcessingStartTime() const
+      Time getProcessingStartTime() const
       { return _processing_start_time; }
-      UInt64 getProcessingFinishTime() const
+      Time getProcessingFinishTime() const
       { return _processing_finish_time; }
-      UInt64 getTime() const
+      Time getTime() const
       { return _processing_finish_time; }
     
-      void updateProcessingStartTime(UInt64 time);
-      void updateProcessingFinishTime(UInt64 time);
+      void updateProcessingStartTime(Time time);
+      void updateProcessingFinishTime(Time time);
 
       DirectoryState::Type getInitialDState() const
       { return _initial_dstate; }
@@ -58,9 +59,9 @@ namespace PrL1PrL2DramDirectoryMOSI
    private:
       ShmemMsg* _shmem_msg;
       
-      UInt64 _arrival_time;
-      UInt64 _processing_start_time;
-      UInt64 _processing_finish_time;
+      Time _arrival_time;
+      Time _processing_start_time;
+      Time _processing_finish_time;
       
       DirectoryState::Type _initial_dstate;
       bool _initial_broadcast_mode;

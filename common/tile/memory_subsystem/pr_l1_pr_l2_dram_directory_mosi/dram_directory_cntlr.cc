@@ -50,7 +50,7 @@ void
 DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    switch (shmem_msg_type)
    {
@@ -112,6 +112,7 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
+/*
    HashMapList<IntPtr,ShmemReq*>::iterator it1 = _dram_directory_req_queue.begin();
    for ( ; it1 != _dram_directory_req_queue.end(); it1++)
    {
@@ -135,6 +136,7 @@ DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency
                                                                         old_frequency, new_frequency);
    _total_invalidation_processing_time_broadcast_mode = convertCycleCount(_total_invalidation_processing_time_broadcast_mode,
                                                                           old_frequency, new_frequency);
+*/
 }
 
 void
@@ -148,7 +150,7 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
    ShmemReq* completed_shmem_req = _dram_directory_req_queue.dequeue(address);
 
    // Update Finish time
-   completed_shmem_req->updateProcessingFinishTime(getShmemPerfModel()->getCycleCount());
+   completed_shmem_req->updateProcessingFinishTime(getShmemPerfModel()->getCurrTime());
 
    // Update latency counters
    updateShmemReqLatencyCounters(completed_shmem_req);
@@ -164,9 +166,9 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
       LOG_PRINT("A new shmem req for address(%#lx) found", address);
       ShmemReq* shmem_req = _dram_directory_req_queue.front(address);
 
-      // Update the Shared Mem Cycle Counts appropriately
-      shmem_req->updateProcessingStartTime(getShmemPerfModel()->getCycleCount());
-      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+      // Update the Shared Mem time appropriately
+      shmem_req->updateProcessingStartTime(getShmemPerfModel()->getCurrTime());
+      getShmemPerfModel()->updateCurrTime(shmem_req->getTime());
 
       switch (shmem_req->getShmemMsg()->getType())
       {
@@ -190,7 +192,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
 {
    IntPtr address = shmem_req->getShmemMsg()->getAddress();
    tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    std::vector<DirectoryEntry*> replacement_candidate_list;
    _dram_directory_cache->getReplacementCandidates(address, replacement_candidate_list);
@@ -821,8 +823,8 @@ void
 DramDirectoryCntlr::restartShmemReq(tile_id_t sender, ShmemReq* shmem_req, DirectoryEntry* directory_entry)
 {
    // Update Request & ShmemPerfModel times
-   shmem_req->updateProcessingFinishTime(getShmemPerfModel()->getCycleCount());
-   getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+   shmem_req->updateProcessingFinishTime(getShmemPerfModel()->getCurrTime());
+   getShmemPerfModel()->updateCurrTime(shmem_req->getTime());
 
    ShmemMsg::Type msg_type = shmem_req->getShmemMsg()->getType();
 
@@ -1037,7 +1039,7 @@ DramDirectoryCntlr::updateShmemReqLatencyCounters(const ShmemReq* shmem_req)
 }
 
 void
-DramDirectoryCntlr::updateInvalidationLatencyCounters(bool initial_broadcast_mode, UInt64 invalidation_processing_time)
+DramDirectoryCntlr::updateInvalidationLatencyCounters(bool initial_broadcast_mode, Time invalidation_processing_time)
 {
    if (initial_broadcast_mode)
       _total_invalidation_processing_time_broadcast_mode += invalidation_processing_time;
@@ -1079,9 +1081,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - Upgrade Reply: " << _total_exreq_with_upgrade_replies << endl;
 
       out << "    Average Exclusive Request Serialization Time (in ns): "
-          << 1.0 * _total_exreq_serialization_time / (frequency * _total_exreq) << endl;
+          << 1.0 * _total_exreq_serialization_time.getTime() / (frequency * _total_exreq) << endl;
       out << "    Average Exclusive Request Processing Time (in ns): "
-          << 1.0 * _total_exreq_processing_time / (frequency * _total_exreq) << endl;
+          << 1.0 * _total_exreq_processing_time.getTime() / (frequency * _total_exreq) << endl;
    }
    else
    {
@@ -1101,9 +1103,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - UNCACHED State: " << _total_shreq_in_uncached_state << endl;
 
       out << "    Average Shared Request Serialization Time (in ns): "
-          << 1.0 * _total_shreq_serialization_time / (frequency * _total_shreq) << endl;
+          << 1.0 * _total_shreq_serialization_time.getTime() / (frequency * _total_shreq) << endl;
       out << "    Average Shared Request Processing Time (in ns): "
-          << 1.0 * _total_shreq_processing_time / (frequency * _total_shreq) << endl;
+          << 1.0 * _total_shreq_processing_time.getTime() / (frequency * _total_shreq) << endl;
    }
    else
    {
@@ -1122,9 +1124,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - UNCACHED State: " << _total_nullifyreq_in_uncached_state << endl;
 
       out << "    Average Nullify Request Serialization Time (in ns): "
-          << 1.0 * _total_nullifyreq_serialization_time / (frequency * _total_nullifyreq) << endl;
+          << 1.0 * _total_nullifyreq_serialization_time.getTime() / (frequency * _total_nullifyreq) << endl;
       out << "    Average Nullify Request Processing Time (in ns): "
-          << 1.0 * _total_nullifyreq_processing_time / (frequency * _total_nullifyreq) << endl;
+          << 1.0 * _total_nullifyreq_processing_time.getTime() / (frequency * _total_nullifyreq) << endl;
    }
    else
    {
@@ -1142,7 +1144,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Average Sharers Invalidated - Unicast Mode: "
           << 1.0 * _total_sharers_invalidated_unicast_mode / _total_invalidations_unicast_mode << endl;
       out << "    Average Invalidation Processing Time - Unicast Mode (in ns): "
-          << 1.0 * _total_invalidation_processing_time_unicast_mode / (frequency * _total_invalidations_unicast_mode) << endl;
+          << 1.0 * _total_invalidation_processing_time_unicast_mode.getTime() / (frequency * _total_invalidations_unicast_mode) << endl;
    }
    else
    {
@@ -1156,7 +1158,7 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Average Sharers Invalidated - Broadcast Mode: "
          << 1.0 * _total_sharers_invalidated_broadcast_mode / _total_invalidations_broadcast_mode << endl;
       out << "    Average Invalidation Processing Time - Broadcast Mode (in ns): "
-         << 1.0 * _total_invalidation_processing_time_broadcast_mode / (frequency * _total_invalidations_broadcast_mode) << endl;
+         << 1.0 * _total_invalidation_processing_time_broadcast_mode.getTime() / (frequency * _total_invalidations_broadcast_mode) << endl;
    }
    else
    {

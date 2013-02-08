@@ -19,9 +19,10 @@ class Latency
 
       UInt64 toPicosec() const;
 
-      UInt64 _cycles;
+      UInt64 getCycles() const {return _cycles; };
 
    private:
+      UInt64 _cycles;
       Frequency _freq;
 
 };
@@ -30,19 +31,42 @@ class Time
 {
    public:
       Time(UInt64 picosec=0):_picosec(picosec){};
-      Time(const Time& time):_picosec(time._picosec){};
+      Time(const Time& time):_picosec(time.getTime()){};
       ~Time(){};
 
-      Time operator+(const Time& time){return Time(_picosec + time._picosec); };
-      Time operator+(const Latency& lat){return Time(_picosec + lat.toPicosec()); };
-      bool operator>(const Time& time){return _picosec > time._picosec; };
-      bool operator<(const Time& time){return _picosec < time._picosec; };
-      bool operator<=(const Time& time){return _picosec <= time._picosec; };
+      Time operator+(const Time& time)
+            { return Time(_picosec + time.getTime());};
+
+      Time operator+(const Latency& lat)
+            { return Time (_picosec + lat.toPicosec());};
+
+      Time operator-(const Time& time) const
+            { return Time(_picosec - time.getTime());};
+
+      bool operator>(const Time& time)
+            { return _picosec > time.getTime(); };
+
+      bool operator<(const Time& time)
+            { return _picosec < time.getTime(); };
+
+      bool operator<=(const Time& time)
+            { return _picosec <= time.getTime(); };
+
+      Time operator+=(const Time& time)
+            { _picosec += time.getTime(); return *this; };
+
+      Time operator=(const Time& time)
+            { _picosec = time.getTime(); return *this; };
+
+      Time operator=(const UInt64& picosec)
+            {_picosec = picosec; return *this; };
 
       UInt64 toCycles(Frequency freq);
 
-      UInt64 _picosec;
+      UInt64 getTime() const {return _picosec; };
 
+   private:
+      UInt64 _picosec;
 };
 
 
@@ -61,7 +85,7 @@ inline Latency Latency::operator+(const Latency& lat)
    LOG_ASSERT_ERROR(_freq == lat._freq,
       "Attempting to add latencies from different frequencies");
 
-   return Latency(_cycles + lat._cycles, _freq);
+   return Latency(_cycles + lat.getCycles(), _freq);
 }
 
 inline UInt64 Time::toCycles(Frequency freq) 

@@ -24,6 +24,6 @@ public:
 
 private:
    Time _curr_time;
-   UInt64 _cycle_count;
+   //UInt64 _cycle_count;
    bool _enabled;
 };

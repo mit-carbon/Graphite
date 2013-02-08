@@ -270,7 +270,7 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
 
    // Set Outstanding shmem req parameters
    _outstanding_shmem_msg = *shmem_msg;
-   _outstanding_shmem_msg_time = getShmemPerfModel()->getCycleCount();
+   _outstanding_shmem_msg_time = getShmemPerfModel()->getCurrTime();
 
    ShmemMsg send_shmem_msg(shmem_msg_type, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY,
                            getTileId(), INVALID_TILE_ID, false, address, shmem_msg->isModeled()); 
@@ -311,7 +311,7 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
    
    if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP) || (shmem_msg_type == ShmemMsg::UPGRADE_REP))
    {
-      assert(_outstanding_shmem_msg_time <= getShmemPerfModel()->getCycleCount());
+      assert(_outstanding_shmem_msg_time <= getShmemPerfModel()->getCurrTime());
       
       // Reset the clock to the time the request left the tile is miss type is not modeled
       LOG_ASSERT_ERROR(_outstanding_shmem_msg.isModeled() == shmem_msg->isModeled(), "Request(%s), Response(%s)",
@@ -319,10 +319,10 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
                        shmem_msg->isModeled() ? "MODELED" : "UNMODELED");
 
       if (!_outstanding_shmem_msg.isModeled())
-         getShmemPerfModel()->setCycleCount(_outstanding_shmem_msg_time);
+         getShmemPerfModel()->setCurrTime(_outstanding_shmem_msg_time);
 
       // Increment the clock by the time taken to update the L2 cache
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
       // There are no more outstanding memory requests
       _outstanding_shmem_msg = ShmemMsg();
@@ -335,7 +335,7 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   _outstanding_shmem_msg_time = convertCycleCount(_outstanding_shmem_msg_time, old_frequency, new_frequency);
+   //_outstanding_shmem_msg_time = convertCycleCount(_outstanding_shmem_msg_time, old_frequency, new_frequency);
 }
 
 void
@@ -416,9 +416,9 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
       assert(cstate == CacheState::SHARED);
 
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
       // Update Shared Mem perf counters for access to L1 Cache
-      getMemoryManager()->incrCycleCount(L2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(L2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
 
       // SHARED -> INVALID 
 
@@ -440,7 +440,7 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
    else
    {
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
 
       if (shmem_msg->isReplyExpected())
       {
@@ -464,9 +464,9 @@ L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem
    if (cstate != CacheState::INVALID)
    {
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
       // Update Shared Mem perf counters for access to L1 Cache
-      getMemoryManager()->incrCycleCount(L2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(L2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
 
       // (MODIFIED, OWNED, SHARED) -> INVALID
      
@@ -493,7 +493,7 @@ L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem
    else
    {
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
 
       if (shmem_msg->isReplyExpected())
       {
@@ -519,9 +519,9 @@ L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
    if (cstate != CacheState::INVALID)
    {
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
       // Update Shared Mem perf counters for access to L1 Cache
-      getMemoryManager()->incrCycleCount(L2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(L2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
 
       // MODIFIED -> OWNED, OWNED -> OWNED, SHARED -> SHARED
       CacheState::Type new_cstate = (cstate == CacheState::MODIFIED) ? CacheState::OWNED : cstate;
@@ -547,7 +547,7 @@ L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
    else
    {
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
    }
 }
 

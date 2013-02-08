@@ -29,7 +29,7 @@ class Latency
 class Time
 {
    public:
-      Time(UInt64 picosec):_picosec(picosec){};
+      Time(UInt64 picosec=0):_picosec(picosec){};
       Time(const Time& time):_picosec(time._picosec){};
       ~Time(){};
 
@@ -37,6 +37,7 @@ class Time
       Time operator+(const Latency& lat){return Time(_picosec + lat.toPicosec()); };
       bool operator>(const Time& time){return _picosec > time._picosec; };
       bool operator<(const Time& time){return _picosec < time._picosec; };
+      bool operator<=(const Time& time){return _picosec <= time._picosec; };
 
       UInt64 toCycles(Frequency freq);
 

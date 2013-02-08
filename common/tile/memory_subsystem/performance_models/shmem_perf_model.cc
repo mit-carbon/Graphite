@@ -6,7 +6,7 @@
 
 ShmemPerfModel::ShmemPerfModel()
    : _curr_time(0)
-   , _cycle_count(0)
+   //, _cycle_count(0)
    , _enabled(false)
 {}
 

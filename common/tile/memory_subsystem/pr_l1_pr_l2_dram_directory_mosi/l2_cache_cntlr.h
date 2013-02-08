@@ -20,6 +20,7 @@ using std::map;
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
+#include "time_types.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -69,7 +70,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Outstanding ShmemReq info
       ShmemMsg _outstanding_shmem_msg;
-      UInt64 _outstanding_shmem_msg_time;
+      Time _outstanding_shmem_msg_time;
 
       // Is enabled?
       bool _enabled;

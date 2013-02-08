@@ -61,6 +61,8 @@ namespace PrL1PrL2DramDirectoryMOSI
       static void openCacheLineReplicationTraceFiles();
       static void closeCacheLineReplicationTraceFiles();
       static void outputCacheLineReplicationSummary();
+
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
       
       void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
 

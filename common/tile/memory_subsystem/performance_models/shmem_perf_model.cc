@@ -6,6 +6,7 @@
 
 ShmemPerfModel::ShmemPerfModel()
    : _curr_time(0)
+   , _cycle_count(0)
    , _enabled(false)
 {}
 
@@ -17,7 +18,7 @@ ShmemPerfModel::~ShmemPerfModel()
 void 
 ShmemPerfModel::setCurrTime(Time& time)
 {
-   LOG_PRINT("setCurrTime: count(%llu)", time._picosec);
+   //LOG_PRINT("setCurrTime: count(%llu)", time._picosec);
    _curr_time = time;
 }
 
@@ -30,16 +31,16 @@ ShmemPerfModel::getCurrTime()
 void
 ShmemPerfModel::updateCurrTime(Time& time)
 {
-   LOG_PRINT("updateCurrTime: time(%llu)", time._picosec);
+   //LOG_PRINT("updateCurrTime: time(%llu)", time._picosec);
    if (_curr_time < time)
       _curr_time = time;
 }
 
 void
-ShmemPerfModel::incrCurrTime(Time& time)
+ShmemPerfModel::incrCurrTime(Latency& lat)
 {
    if (_enabled)
-      _curr_time = _curr_time + time;
+      _curr_time = _curr_time + lat;
 }
 
 
@@ -52,11 +53,17 @@ ShmemPerfModel::setCycleCount(UInt64 count)
    Latency lat(count, Sim()->getTileManager()->getCurrentTile()->getFrequency());
    Time time(lat.toPicosec());
    setCurrTime(time);
+
+  // _cycle_count = count;
 }
 
 UInt64
 ShmemPerfModel::getCycleCount()
 {
+
+//   LOG_PRINT("_curr_time(%llu), _cycle_count(%llu)", _curr_time.toCycles(Sim()->getTileManager()->getCurrentTile()->getFrequency()), _cycle_count);
+
+ //  return _cycle_count;
 
    return _curr_time.toCycles(Sim()->getTileManager()->getCurrentTile()->getFrequency());
 }
@@ -64,18 +71,23 @@ ShmemPerfModel::getCycleCount()
 void
 ShmemPerfModel::updateCycleCount(UInt64 cycle_count)
 {
-   LOG_PRINT("updateCycleCount: cycle_count(%llu)", cycle_count);
    Latency lat(cycle_count, Sim()->getTileManager()->getCurrentTile()->getFrequency());
    Time time(lat.toPicosec());
    updateCurrTime(time);
+
+   //if (_cycle_count < cycle_count)
+    //  _cycle_count = cycle_count;
 }
 
 void
 ShmemPerfModel::incrCycleCount(UInt64 count)
 {
    Latency lat(count, Sim()->getTileManager()->getCurrentTile()->getFrequency());
-   Time time(lat.toPicosec());
-   incrCurrTime(time);
+   //Time time(lat.toPicosec());
+   incrCurrTime(lat);
+
+   //if (_enabled)
+   //   _cycle_count += count;
 }
 
 

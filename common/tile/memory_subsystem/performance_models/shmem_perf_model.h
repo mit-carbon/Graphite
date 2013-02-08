@@ -11,7 +11,7 @@ public:
 
    void setCurrTime(Time& time);
    Time getCurrTime();
-   void incrCurrTime(Time& time);
+   void incrCurrTime(Latency& time);
    void updateCurrTime(Time& time);
 
    void setCycleCount(UInt64 count);

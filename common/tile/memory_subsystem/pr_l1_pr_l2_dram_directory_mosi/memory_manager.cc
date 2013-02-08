@@ -394,21 +394,33 @@ MemoryManager::getPacketType(MemComponent::Type sender_mem_component, MemCompone
 }
 
 void
-MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
+MemoryManager::incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
 {
    switch (mem_component)
    {
    case MemComponent::L1_ICACHE:
-      getShmemPerfModel()->incrCycleCount(_L1_icache_perf_model->getLatency(access_type));
-      break;
+      {
+         Latency lat(_L1_icache_perf_model->getLatency(access_type),
+            getTile()->getFrequency());
+         getShmemPerfModel()->incrCurrTime(lat);
+         break;
+      }
 
    case MemComponent::L1_DCACHE:
-      getShmemPerfModel()->incrCycleCount(_L1_dcache_perf_model->getLatency(access_type));
-      break;
+      {
+         Latency lat(_L1_dcache_perf_model->getLatency(access_type),
+            getTile()->getFrequency());
+         getShmemPerfModel()->incrCurrTime(lat);
+         break;
+      }
 
    case MemComponent::L2_CACHE:
-      getShmemPerfModel()->incrCycleCount(_L2_cache_perf_model->getLatency(access_type));
-      break;
+      {
+         Latency lat(_L2_cache_perf_model->getLatency(access_type),
+            getTile()->getFrequency());
+         getShmemPerfModel()->incrCurrTime(lat);
+         break;
+      }
 
    case MemComponent::INVALID:
       break;
@@ -417,6 +429,12 @@ MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::
       LOG_PRINT_ERROR("Unrecognized mem component type(%u)", mem_component);
       break;
    }
+}
+
+void
+MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
+{
+   incrCurrTime(mem_component, access_type);
 }
 
 void

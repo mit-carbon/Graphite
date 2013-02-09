@@ -3,6 +3,7 @@
 #include "queue_model.h"
 #include "fixed_types.h"
 #include "moving_average.h"
+#include "time_types.h"
 
 // Note: Each Dram Controller owns a single DramModel object
 // Hence, m_dram_bandwidth is the bandwidth for a single DRAM controller
@@ -50,7 +51,7 @@ class DramPerfModel
 
       ~DramPerfModel();
 
-      UInt64 getAccessLatency(UInt64 pkt_time, UInt64 pkt_size);
+      Latency getAccessLatency(Time pkt_time, UInt64 pkt_size);
       void enable();
       void disable();
 

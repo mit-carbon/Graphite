@@ -6,6 +6,7 @@
 #include "memory_manager.h"
 #include "clock_converter.h"
 #include "log.h"
+#include "constants.h"
 
 DramCntlr::DramCntlr(Tile* tile,
       float dram_access_cost,
@@ -43,9 +44,9 @@ DramCntlr::getDataFromDram(IntPtr address, Byte* data_buf, bool modeled)
    }
    memcpy((void*) data_buf, (void*) _data_map[address], _cache_line_size);
 
-   UInt64 dram_access_latency = modeled ? runDramPerfModel() : 0;
-   LOG_PRINT("Dram Access Latency(%llu)", dram_access_latency);
-   getShmemPerfModel()->incrCycleCount(dram_access_latency);
+   Latency dram_access_latency = modeled ? runDramPerfModel() : Latency(0,DRAM_FREQUENCY);
+   LOG_PRINT("Dram Access Latency(%llu)", dram_access_latency.getCycles());
+   getShmemPerfModel()->incrCurrTime(dram_access_latency);
 
    addToDramAccessCount(address, READ);
 }
@@ -57,23 +58,20 @@ DramCntlr::putDataToDram(IntPtr address, Byte* data_buf, bool modeled)
    
    memcpy((void*) _data_map[address], (void*) data_buf, _cache_line_size);
 
-   __attribute(__unused__) UInt64 dram_access_latency = modeled ? runDramPerfModel() : 0;
+   __attribute(__unused__) Latency dram_access_latency = modeled ? runDramPerfModel() : Latency(0,DRAM_FREQUENCY);
    
    addToDramAccessCount(address, WRITE);
 }
 
-UInt64
+Latency
 DramCntlr::runDramPerfModel()
 {
-   UInt64 pkt_cycle_count = getShmemPerfModel()->getCycleCount();
+
+   Time pkt_time = getShmemPerfModel()->getCurrTime();
+
    UInt64 pkt_size = (UInt64) _cache_line_size;
 
-   float tile_frequency = _tile->getFrequency();
-   UInt64 pkt_time = convertCycleCount(pkt_cycle_count, tile_frequency, 1.0);
-
-   UInt64 dram_access_latency = _dram_perf_model->getAccessLatency(pkt_time, pkt_size);
-   
-   return convertCycleCount(dram_access_latency, 1.0, tile_frequency);
+   return _dram_perf_model->getAccessLatency(pkt_time, pkt_size);
 }
 
 void

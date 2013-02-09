@@ -6,6 +6,8 @@ using namespace std;
 #include "dram_perf_model.h"
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
+#include "clock_converter.h"
+#include "constants.h"
 
 // Note: Each Dram Controller owns a single DramModel object
 // Hence, m_dram_bandwidth is the bandwidth for a single DRAM controller
@@ -70,15 +72,22 @@ DramPerfModel::initializePerformanceCounters()
    m_total_queueing_delay = 0;
 }
 
-UInt64 
-DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
+Latency 
+DramPerfModel::getAccessLatency(Time pkt_time, UInt64 pkt_size)
 {
+
+   // In the following we assume a 1GHz frequency, so that
+   // 1 cycle = 1 nanosecond.
+   
+   // convert to nanoseconds
+   UInt64 pkt_time_ns = (UInt64) ceil(pkt_time.getTime()/1000.0);
+
    // pkt_size is in 'Bytes'
    // m_dram_bandwidth is in 'Bytes per clock cycle'
    if (!m_enabled) 
    {
       LOG_PRINT("Not enabled. Return 0");
-      return 0;
+      return Latency(0,DRAM_FREQUENCY);
    }
 
    UInt64 processing_time = (UInt64) ((float) pkt_size/m_dram_bandwidth) + 1;
@@ -88,7 +97,7 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
    UInt64 queue_delay;
    if (m_queue_model)
    {
-      queue_delay = m_queue_model->computeQueueDelay(pkt_time, processing_time);
+      queue_delay = m_queue_model->computeQueueDelay(pkt_time_ns, processing_time);
    }
    else
    {
@@ -104,7 +113,7 @@ DramPerfModel::getAccessLatency(UInt64 pkt_time, UInt64 pkt_size)
    m_total_access_latency += (double) access_latency;
    m_total_queueing_delay += (double) queue_delay;
 
-   return access_latency;
+   return Latency(access_latency,DRAM_FREQUENCY);
 }
 
 void

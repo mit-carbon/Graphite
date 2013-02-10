@@ -77,17 +77,17 @@ MemoryManager::__coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                           Core::mem_op_t mem_op_type,
                                           IntPtr address, UInt32 offset,
                                           Byte* data_buf, UInt32 data_length,
-                                          UInt64& curr_time, bool modeled)
+                                          Time& curr_time, bool modeled)
 {
    if (lock_signal != Core::UNLOCK)
       _lock.acquire();
    
-   _shmem_perf_model->setCycleCount(curr_time);
+   _shmem_perf_model->setCurrTime(curr_time);
 
    bool ret = coreInitiateMemoryAccess(mem_component, lock_signal, mem_op_type,
                                        address, offset, data_buf, data_length, modeled);
 
-   curr_time = _shmem_perf_model->getCycleCount();
+   curr_time = _shmem_perf_model->getCurrTime();
 
    if (lock_signal != Core::LOCK)
       _lock.release();

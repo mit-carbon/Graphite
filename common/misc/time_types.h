@@ -33,6 +33,7 @@ class Time
    public:
       Time(UInt64 picosec=0):_picosec(picosec){};
       Time(const Time& time):_picosec(time._picosec){};
+      Time(const Latency& lat){_picosec = lat.toPicosec();};
       ~Time(){};
 
       Time operator+(const Time& time)
@@ -53,6 +54,9 @@ class Time
       bool operator<=(const Time& time)
             { return _picosec <= time._picosec; };
 
+      bool operator>=(const Time& time)
+            { return _picosec >= time._picosec; };
+
       Time operator+=(const Time& time)
             { _picosec += time._picosec; return *this; };
 
@@ -62,9 +66,12 @@ class Time
       Time operator=(const UInt64& picosec)
             {_picosec = picosec; return *this; };
 
-      UInt64 toCycles(Frequency freq);
 
       UInt64 getTime() const {return _picosec; };
+
+      UInt64 toCycles(Frequency freq);
+
+      UInt64 toNanosec() const;
 
    private:
       UInt64 _picosec;
@@ -91,13 +98,19 @@ inline Latency Latency::operator+(const Latency& lat)
 
 inline UInt64 Time::toCycles(Frequency freq) 
 {
-   UInt64 cycles = (UInt64) ceil(((double) (_picosec) * ((double) freq))/1000.0);
+   UInt64 cycles = (UInt64) ceil(((double) (_picosec) * ((double) freq))/double(1000));
 
    LOG_PRINT("Convert picoseconds(%llu) with frequency(%f) to cycles(%llu)",
              _picosec, freq, cycles);
 
    return cycles;
 }
+
+inline UInt64 Time::toNanosec() const
+{
+   return (UInt64) ceil(((double) _picosec)/double(1000));
+}
+
 
 
 #endif

@@ -18,6 +18,7 @@ class PinMemoryManager;
 #include "capi.h"
 #include "packet_type.h"
 #include "lock.h"
+#include "time_types.h"
 
 class Core
 {
@@ -53,13 +54,16 @@ public:
    int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    
+   virtual Time readInstructionMemoryUsingTime(IntPtr address, UInt32 instruction_size);
    virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size);
 
-   virtual pair<UInt32, UInt64> initiateMemoryAccess(MemComponent::Type mem_component,
+   virtual pair<UInt32, Time> initiateMemoryAccess(MemComponent::Type mem_component,
                                                      lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                                      Byte* data_buf, UInt32 data_size, bool push_info = false,
-                                                     UInt64 time = 0);
+                                                     Time time = 0);
    
+   virtual pair<UInt32, Time> accessMemoryUsingTime(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
+                                             char* data_buffer, UInt32 data_size, bool push_info = false);
    virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                              char* data_buffer, UInt32 data_size, bool push_info = false);
 
@@ -98,10 +102,10 @@ private:
    Lock _lock;
 
    UInt64 _num_memory_accesses;
-   UInt64 _total_memory_access_latency;   // In clock-cycles
+   Time _total_memory_access_latency;
 
    void initializeMemoryAccessLatencyCounters();
-   void incrTotalMemoryAccessLatency(UInt64 memory_access_latency);
+   void incrTotalMemoryAccessLatency(Time memory_access_latency);
    PacketType getPacketTypeFromUserNetType(carbon_network_t net_type);
 };
 

@@ -106,14 +106,25 @@ Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_network
 // Return Value:
 //   (number of misses, memory access latency) :: the number of cache misses and memory access latency
 
-pair<UInt32, UInt64>
-Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size, bool push_info)
+
+pair<UInt32, Time>
+Core::accessMemoryUsingTime(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size, bool push_info)
 {
    return initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, address, (Byte*) data_buffer, data_size, push_info);
 }
 
-UInt64
-Core::readInstructionMemory(IntPtr address, UInt32 instruction_size)
+// Original function definition currently being supported.
+// This should be removed once the conversion is complete.
+pair<UInt32, UInt64>
+Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size, bool push_info)
+{
+   pair<UInt32, Time> result = initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, address, (Byte*) data_buffer, data_size, push_info);
+
+   return make_pair(result.first,result.second.toCycles(_tile->getFrequency()));
+}
+
+Time
+Core::readInstructionMemoryUsingTime(IntPtr address, UInt32 instruction_size)
 {
    LOG_PRINT("Instruction: Address(%#lx), Size(%u), Start READ", address, instruction_size);
 
@@ -121,10 +132,21 @@ Core::readInstructionMemory(IntPtr address, UInt32 instruction_size)
    return initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second;
 }
 
-pair<UInt32, UInt64>
+// Original function definition currently being supported.
+// This should be removed once the conversion to time types is complete.
+UInt64
+Core::readInstructionMemory(IntPtr address, UInt32 instruction_size)
+{
+   LOG_PRINT("Instruction: Address(%#lx), Size(%u), Start READ", address, instruction_size);
+
+   Byte buf[instruction_size];
+   return initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second.toCycles(_tile->getFrequency());
+}
+
+pair<UInt32, Time>
 Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_signal, mem_op_t mem_op_type,
                            IntPtr address, Byte* data_buf, UInt32 data_size,
-                           bool push_info, UInt64 time)
+                           bool push_info, Time time)
 {
    LOG_ASSERT_ERROR(Config::getSingleton()->isSimulatingSharedMemory(), "Shared Memory Disabled");
 
@@ -136,15 +158,16 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
          if (_core_model)
             _core_model->pushDynamicInstructionInfo(info);
       }
-      return make_pair<UInt32, UInt64>(0,0);
+      return make_pair<UInt32, Time>(0,Time(0));
    }
 
    // Setting the initial time
-   UInt64 initial_time = (time == 0) ? _core_model->getCycleCount() : time;
-   UInt64 curr_time = initial_time;
+   Latency cycle_count(_core_model->getCycleCount(),_tile->getFrequency());
+   Time initial_time = (time.getTime() == 0) ? Time(cycle_count) : Time(time);
+   Time curr_time = initial_time;
 
    LOG_PRINT("Time(%llu), %s - ADDR(%#lx), data_size(%u), START",
-             initial_time, ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
+             initial_time.toNanosec(), ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
 
    UInt32 num_misses = 0;
    UInt32 cache_line_size = _tile->getMemoryManager()->getCacheLineSize();
@@ -208,24 +231,24 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
    }
 
    // Get the final cycle time
-   UInt64 final_time = curr_time;
-   LOG_ASSERT_ERROR(final_time >= initial_time, "final_time(%llu) < initial_time(%llu)", final_time, initial_time);
+   Time final_time = curr_time;
+   LOG_ASSERT_ERROR(final_time >= initial_time, "final_time(%llu) < initial_time(%llu)", final_time.getTime(), initial_time.getTime());
    
    LOG_PRINT("Time(%llu), %s - ADDR(%#lx), data_size(%u), END", 
-             final_time, ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
+             final_time.getTime(), ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
 
    // Calculate the round-trip time
-   UInt64 memory_access_latency = final_time - initial_time;
-   incrTotalMemoryAccessLatency(memory_access_latency);
-   
+   Time memory_access_time = final_time - initial_time;
+   incrTotalMemoryAccessLatency(memory_access_time);
+
    if (push_info)
    {
-      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_latency, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_time.toCycles(_tile->getFrequency()), address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
       if (_core_model)
          _core_model->pushDynamicInstructionInfo(info);
    }
 
-   return make_pair<UInt32, UInt64>(num_misses, memory_access_latency);
+   return make_pair<UInt32, Time>(num_misses, memory_access_time);
 }
 PacketType
 Core::getPacketTypeFromUserNetType(carbon_network_t net_type)
@@ -250,8 +273,7 @@ Core::outputSummary(ostream& os)
    if (_core_model)
       _core_model->outputSummary(os);
    
-   float frequency = _tile->getFrequency();
-   UInt64 total_memory_access_latency_in_ns = convertCycleCount(_total_memory_access_latency, frequency, 1.0);
+   UInt64 total_memory_access_latency_in_ns = _total_memory_access_latency.toNanosec();
    
    os << "Shared Memory Model summary: " << endl;
    os << "    Total Memory Accesses: " << _num_memory_accesses << endl;
@@ -283,10 +305,10 @@ Core::disableModels()
 void
 Core::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   if (_core_model)
-      _core_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   //if (_core_model)
+    //  _core_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 
-   _total_memory_access_latency = convertCycleCount(_total_memory_access_latency, old_frequency, new_frequency);
+   //_total_memory_access_latency = convertCycleCount(_total_memory_access_latency, old_frequency, new_frequency);
 }
 
 void
@@ -297,7 +319,7 @@ Core::initializeMemoryAccessLatencyCounters()
 }
 
 void
-Core::incrTotalMemoryAccessLatency(UInt64 memory_access_latency)
+Core::incrTotalMemoryAccessLatency(Time memory_access_latency)
 {
    if (_enabled)
    {

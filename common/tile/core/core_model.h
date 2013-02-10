@@ -15,6 +15,7 @@ class BranchPredictor;
 #include "fixed_types.h"
 #include "lock.h"
 #include "dynamic_instruction_info.h"
+#include "time_types.h"
 
 class CoreModel
 {
@@ -29,7 +30,9 @@ public:
    virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    void recomputeAverageFrequency(float frequency); 
 
-   UInt64 getCycleCount()                          { return m_cycle_count; }
+   Time getCurrTime(){return m_curr_time; };
+   void setCurrTime(Time time);
+   UInt64 getCycleCount();
    void setCycleCount(UInt64 cycle_count);
 
    void pushDynamicInstructionInfo(DynamicInstructionInfo &i);
@@ -70,10 +73,11 @@ protected:
 
    Core* m_core;
 
-   UInt64 m_cycle_count;
+   Time m_curr_time;
    UInt64 m_instruction_count;
+   UInt64 m_cycle_count;
    
-   void updatePipelineStallCounters(Instruction* i, UInt64 memory_stall_cycles, UInt64 execution_unit_stall_cycles);
+   void updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time);
 
 private:
    class DynamicInstructionInfoNotAvailableException { };
@@ -84,8 +88,8 @@ private:
    void initializePipelineStallCounters();
 
    volatile float m_average_frequency;
-   UInt64 m_total_time;
-   UInt64 m_checkpointed_cycle_count;
+   Time m_total_time;
+   Time m_checkpointed_curr_time;
 
    bool m_enabled;
 
@@ -102,10 +106,10 @@ private:
    // Pipeline Stall Counters
    UInt64 m_total_recv_instructions;
    UInt64 m_total_sync_instructions;
-   UInt64 m_total_recv_instruction_stall_cycles;
-   UInt64 m_total_sync_instruction_stall_cycles;
-   UInt64 m_total_memory_stall_cycles;
-   UInt64 m_total_execution_unit_stall_cycles;
+   Time m_total_recv_instruction_stall_time;
+   Time m_total_sync_instruction_stall_time;
+   Time m_total_memory_stall_time;
+   Time m_total_execution_unit_stall_time;
 };
 
 #endif

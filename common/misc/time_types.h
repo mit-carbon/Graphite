@@ -57,6 +57,9 @@ class Time
       bool operator>=(const Time& time)
             { return _picosec >= time._picosec; };
 
+      bool operator==(const UInt64& picosec)
+            { return _picosec == picosec; } 
+
       Time operator+=(const Time& time)
             { _picosec += time._picosec; return *this; };
 
@@ -65,6 +68,7 @@ class Time
 
       Time operator=(const UInt64& picosec)
             {_picosec = picosec; return *this; };
+
 
 
       UInt64 getTime() const {return _picosec; };

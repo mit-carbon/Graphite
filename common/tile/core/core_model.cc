@@ -10,6 +10,7 @@
 #include "fxsupport.h"
 #include "clock_converter.h"
 #include "utils.h"
+#include "time_types.h"
 
 CoreModel* CoreModel::create(Core* core)
 {
@@ -29,11 +30,12 @@ CoreModel* CoreModel::create(Core* core)
 // Public Interface
 CoreModel::CoreModel(Core *core)
    : m_core(core)
-   , m_cycle_count(0)
+   //, m_cycle_count(0)
+   , m_curr_time(0)
    , m_instruction_count(0)
    , m_average_frequency(0.0)
    , m_total_time(0)
-   , m_checkpointed_cycle_count(0)
+   , m_checkpointed_curr_time(0)
    , m_enabled(false)
    , m_current_ins_index(0)
    , m_bp(0)
@@ -52,19 +54,17 @@ CoreModel::~CoreModel()
 
 void CoreModel::outputSummary(ostream& os)
 {
-   float frequency = m_core->getTile()->getFrequency();
-
    os << "Core Summary:" << endl;
    os << "    Total Instructions: " << m_instruction_count << endl;
-   os << "    Completion Time (in ns): " << convertCycleCount(m_cycle_count, frequency, 1.0) << endl;
+   os << "    Completion Time (in ns): " << m_curr_time.toNanosec() << endl;
    os << "    Average Frequency (in GHz): " << m_average_frequency << endl;
    
    os << "    Total Recv Instructions: " << m_total_recv_instructions << endl;
    os << "    Total Sync Instructions: " << m_total_sync_instructions << endl;
-   os << "    Total Memory Stall Time (in ns): " << convertCycleCount(m_total_memory_stall_cycles, frequency, 1.0) << endl;
-   os << "    Total Execution Unit Stall Time (in ns): " << convertCycleCount(m_total_execution_unit_stall_cycles, frequency, 1.0) << endl;
-   os << "    Total Recv Instruction Stall Time (in ns): " << convertCycleCount(m_total_recv_instruction_stall_cycles, frequency, 1.0) << endl;
-   os << "    Total Sync Instruction Stall Time (in ns): " << convertCycleCount(m_total_sync_instruction_stall_cycles, frequency, 1.0) << endl;
+   os << "    Total Memory Stall Time (in ns): " << m_total_memory_stall_time.toNanosec() << endl;
+   os << "    Total Execution Unit Stall Time (in ns): " << m_total_execution_unit_stall_time.toNanosec() << endl;
+   os << "    Total Recv Instruction Stall Time (in ns): " << m_total_recv_instruction_stall_time.toNanosec() << endl;
+   os << "    Total Sync Instruction Stall Time (in ns): " << m_total_sync_instruction_stall_time.toNanosec() << endl;
 
    // Branch Predictor Summary
    if (m_bp)
@@ -89,24 +89,36 @@ void CoreModel::disable()
 // 1) Whenever frequency is changed
 void CoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   recomputeAverageFrequency(old_frequency);
+   //recomputeAverageFrequency(old_frequency);
    
-   m_cycle_count = convertCycleCount(m_cycle_count, old_frequency, new_frequency);
-   m_checkpointed_cycle_count = m_cycle_count;
+   //m_cycle_count = convertCycleCount(m_cycle_count, old_frequency, new_frequency);
+   //m_checkpointed_cycle_count = m_cycle_count;
 
    // Update Pipeline Stall Counters
-   m_total_memory_stall_cycles = convertCycleCount(m_total_memory_stall_cycles, old_frequency, new_frequency);
-   m_total_execution_unit_stall_cycles = convertCycleCount(m_total_execution_unit_stall_cycles, old_frequency, new_frequency);
-   m_total_recv_instruction_stall_cycles = convertCycleCount(m_total_recv_instruction_stall_cycles, old_frequency, new_frequency);
-   m_total_sync_instruction_stall_cycles = convertCycleCount(m_total_sync_instruction_stall_cycles, old_frequency, new_frequency);
+   //m_total_memory_stall_cycles = convertCycleCount(m_total_memory_stall_cycles, old_frequency, new_frequency);
+   //m_total_execution_unit_stall_cycles = convertCycleCount(m_total_execution_unit_stall_cycles, old_frequency, new_frequency);
+   //m_total_recv_instruction_stall_cycles = convertCycleCount(m_total_recv_instruction_stall_cycles, old_frequency, new_frequency);
+   //m_total_sync_instruction_stall_cycles = convertCycleCount(m_total_sync_instruction_stall_cycles, old_frequency, new_frequency);
 }
+
+void CoreModel::setCurrTime(Time time)
+{
+   m_curr_time = time;
+   m_checkpointed_curr_time = m_curr_time;
+}
+
+
 
 // This function is called:
 // 1) On thread start
 void CoreModel::setCycleCount(UInt64 cycle_count)
 {
-   m_cycle_count = cycle_count;
-   m_checkpointed_cycle_count = m_cycle_count;
+   setCurrTime(Time(Latency(cycle_count, m_core->getTile()->getFrequency())));
+}
+
+UInt64 CoreModel::getCycleCount()
+{
+   return m_curr_time.toCycles(m_core->getTile()->getFrequency());
 }
 
 // This function is called:
@@ -114,44 +126,44 @@ void CoreModel::setCycleCount(UInt64 cycle_count)
 // 2) Whenever frequency is changed
 void CoreModel::recomputeAverageFrequency(float frequency)
 {
-   double cycles_elapsed = (double) (m_cycle_count - m_checkpointed_cycle_count);
-   double total_cycles_executed = (m_average_frequency * m_total_time) + cycles_elapsed;
-   double total_time_taken = m_total_time + (cycles_elapsed / frequency);
+   //double cycles_elapsed = (double) (m_cycle_count - m_checkpointed_cycle_count);
+   //double total_cycles_executed = (m_average_frequency * m_total_time) + cycles_elapsed;
+   //double total_time_taken = m_total_time + (cycles_elapsed / frequency);
 
-   m_average_frequency = total_cycles_executed / total_time_taken;
-   m_total_time = (UInt64) total_time_taken;
+   //m_average_frequency = total_cycles_executed / total_time_taken;
+   //m_total_time = (UInt64) total_time_taken;
 }
 
 void CoreModel::initializePipelineStallCounters()
 {
    m_total_recv_instructions = 0;
    m_total_sync_instructions = 0;
-   m_total_recv_instruction_stall_cycles = 0;
-   m_total_sync_instruction_stall_cycles = 0;
-   m_total_memory_stall_cycles = 0;
-   m_total_execution_unit_stall_cycles = 0;
+   m_total_recv_instruction_stall_time = 0;
+   m_total_sync_instruction_stall_time = 0;
+   m_total_memory_stall_time = 0;
+   m_total_execution_unit_stall_time = 0;
 }
 
-void CoreModel::updatePipelineStallCounters(Instruction* i, UInt64 memory_stall_cycles, UInt64 execution_unit_stall_cycles)
+void CoreModel::updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time)
 {
    switch (i->getType())
    {
    case INST_RECV:
       m_total_recv_instructions ++;
-      m_total_recv_instruction_stall_cycles += i->getCost();
+      m_total_recv_instruction_stall_time += Time(Latency(i->getCost(), m_core->getTile()->getFrequency()));
       break;
 
    case INST_SYNC:
       m_total_sync_instructions ++;
-      m_total_sync_instruction_stall_cycles += i->getCost();
+      m_total_sync_instruction_stall_time += Time(Latency(i->getCost(), m_core->getTile()->getFrequency()));
       break;
 
    default:
       break;
    }
    
-   m_total_memory_stall_cycles += memory_stall_cycles;
-   m_total_execution_unit_stall_cycles += execution_unit_stall_cycles;
+   m_total_memory_stall_time += memory_stall_time;
+   m_total_execution_unit_stall_time += execution_unit_stall_time;
 }
 
 void CoreModel::queueDynamicInstruction(Instruction *i)

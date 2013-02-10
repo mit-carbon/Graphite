@@ -3,6 +3,7 @@
 #include "simple_core_model.h"
 #include "branch_predictor.h"
 #include "clock_converter.h"
+#include "tile.h"
 
 using std::endl;
 
@@ -17,9 +18,9 @@ SimpleCoreModel::~SimpleCoreModel()
 
 void SimpleCoreModel::initializePipelineStallCounters()
 {
-   m_total_l1icache_stall_cycles = 0;
-   m_total_l1dcache_read_stall_cycles = 0;
-   m_total_l1dcache_write_stall_cycles = 0;
+   m_total_l1icache_stall_time = 0;
+   m_total_l1dcache_read_stall_time = 0;
+   m_total_l1dcache_write_stall_time = 0;
 }
 
 void SimpleCoreModel::outputSummary(std::ostream &os)
@@ -35,9 +36,9 @@ void SimpleCoreModel::outputSummary(std::ostream &os)
 void SimpleCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
    // Update Pipeline stall counters due to memory
-   m_total_l1icache_stall_cycles = convertCycleCount(m_total_l1icache_stall_cycles, old_frequency, new_frequency);
-   m_total_l1dcache_read_stall_cycles = convertCycleCount(m_total_l1dcache_read_stall_cycles, old_frequency, new_frequency);
-   m_total_l1dcache_write_stall_cycles = convertCycleCount(m_total_l1dcache_write_stall_cycles, old_frequency, new_frequency);
+   //m_total_l1icache_stall_cycles = convertCycleCount(m_total_l1icache_stall_cycles, old_frequency, new_frequency);
+   //m_total_l1dcache_read_stall_cycles = convertCycleCount(m_total_l1dcache_read_stall_cycles, old_frequency, new_frequency);
+   //m_total_l1dcache_write_stall_cycles = convertCycleCount(m_total_l1dcache_write_stall_cycles, old_frequency, new_frequency);
 
    CoreModel::updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }
@@ -46,15 +47,15 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
 {
    // Execute this first so that instructions have the opportunity to
    // abort further processing (via AbortInstructionException)
-   UInt64 cost = instruction->getCost();
+   Time cost = Time(Latency(instruction->getCost(),m_core->getTile()->getFrequency()));
 
-   UInt64 memory_stall_cycles = 0;
-   UInt64 execution_unit_stall_cycles = 0;
+   Time memory_stall_time = 0;
+   Time execution_unit_stall_time = 0;
 
    // Instruction Memory Modeling
-   UInt64 instruction_memory_access_latency = modelICache(instruction->getAddress(), instruction->getSize());
-   memory_stall_cycles += instruction_memory_access_latency;
-   m_total_l1icache_stall_cycles += instruction_memory_access_latency;
+   Time instruction_memory_access_time = modelICache(instruction->getAddress(), instruction->getSize());
+   memory_stall_time += instruction_memory_access_time;
+   m_total_l1icache_stall_time += instruction_memory_access_time;
 
    const OperandList &ops = instruction->getOperands();
    for (unsigned int i = 0; i < ops.size(); i++)
@@ -70,8 +71,9 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
             LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_READ,
                              "Expected memory read info, got: %d.", info.type);
 
-            memory_stall_cycles += info.memory_info.latency;
-            m_total_l1dcache_read_stall_cycles += info.memory_info.latency;
+            Time access_time(Latency(info.memory_info.latency, m_core->getTile()->getFrequency()));
+            memory_stall_time += access_time;
+            m_total_l1dcache_read_stall_time += access_time;
             // ignore address
          }
          else
@@ -79,8 +81,9 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
             LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_WRITE,
                              "Expected memory write info, got: %d.", info.type);
 
-            memory_stall_cycles += info.memory_info.latency;
-            m_total_l1dcache_write_stall_cycles += info.memory_info.latency;
+            Time access_time(Latency(info.memory_info.latency, m_core->getTile()->getFrequency()));
+            memory_stall_time += access_time;
+            m_total_l1dcache_write_stall_time += access_time;
             // ignore address
          }
 
@@ -90,23 +93,23 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
 
    if (instruction->isDynamic())
    {
-      LOG_ASSERT_ERROR(memory_stall_cycles == 0, "memory_stall_cycles(%llu)", memory_stall_cycles);
-      m_cycle_count += cost;
+      LOG_ASSERT_ERROR(memory_stall_time == 0, "memory_stall_time(%llu)", memory_stall_time.getTime());
+      m_curr_time += cost;
    }
    else // Static Instruction
    {
-      execution_unit_stall_cycles += cost;
-      m_cycle_count += (memory_stall_cycles + execution_unit_stall_cycles);
+      execution_unit_stall_time += cost;
+      m_curr_time += (memory_stall_time + execution_unit_stall_time);
    }
 
    // update counters
    m_instruction_count++;
 
    // Update Common Counters
-   updatePipelineStallCounters(instruction, memory_stall_cycles, execution_unit_stall_cycles);
+   updatePipelineStallCounters(instruction, memory_stall_time, execution_unit_stall_time);
 }
 
-UInt64 SimpleCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)
+Time SimpleCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)
 {
-   return m_core->readInstructionMemory(ins_address, ins_size);
+   return m_core->readInstructionMemoryUsingTime(ins_address, ins_size);
 }

@@ -2,6 +2,7 @@
 #define DYNAMIC_INSTRUCTION_INFO_H
 
 #include "instruction.h"
+#include "time_types.h"
 
 struct DynamicInstructionInfo
 {
@@ -49,11 +50,11 @@ struct DynamicInstructionInfo
       memory_info = rhs.memory_info; // "use bigger one"
    }
 
-   static DynamicInstructionInfo createMemoryInfo(UInt64 l, IntPtr a, Operand::Direction dir, UInt32 num_misses)
+   static DynamicInstructionInfo createMemoryInfo(Time time, IntPtr a, Operand::Direction dir, UInt32 num_misses)
    {
       DynamicInstructionInfo i;
       i.type = (dir == Operand::READ) ? MEMORY_READ : MEMORY_WRITE;
-      i.memory_info.latency = l;
+      i.memory_info.latency = time.getTime(); // time stored in picoseconds
       i.memory_info.addr = a;
       i.memory_info.num_misses = num_misses;
       return i;

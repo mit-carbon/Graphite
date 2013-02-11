@@ -9,6 +9,7 @@ using namespace std;
 #include "simulator.h"
 #include "branch_predictor.h"
 #include "clock_converter.h"
+#include "tile.h"
 
 IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
    : CoreModel(core)
@@ -336,14 +337,14 @@ IOCOOMCoreModel::executeLoad(UInt64 time, const DynamicInstructionInfo &info)
       return make_pair<UInt64,UInt64>(time,0);
 
    // a miss in the l1 forces a miss in the store buffer
-   UInt64 latency = info.memory_info.latency;
+   UInt64 latency = Time(info.memory_info.latency).toCycles(m_core->getTile()->getFrequency());
 
    return make_pair<UInt64,UInt64>(m_load_buffer->execute(time, latency), latency);
 }
 
 UInt64 IOCOOMCoreModel::executeStore(UInt64 time, const DynamicInstructionInfo &info)
 {
-   UInt64 latency = info.memory_info.latency;
+   UInt64 latency = Time(info.memory_info.latency).toCycles(m_core->getTile()->getFrequency());
 
    return m_store_buffer->executeStore(time, latency, info.memory_info.addr);
 }

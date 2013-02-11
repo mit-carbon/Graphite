@@ -71,7 +71,7 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
             LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_READ,
                              "Expected memory read info, got: %d.", info.type);
 
-            Time access_time(Latency(info.memory_info.latency, m_core->getTile()->getFrequency()));
+            Time access_time(info.memory_info.latency);
             memory_stall_time += access_time;
             m_total_l1dcache_read_stall_time += access_time;
             // ignore address
@@ -81,7 +81,7 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
             LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_WRITE,
                              "Expected memory write info, got: %d.", info.type);
 
-            Time access_time(Latency(info.memory_info.latency, m_core->getTile()->getFrequency()));
+            Time access_time(info.memory_info.latency);
             memory_stall_time += access_time;
             m_total_l1dcache_write_stall_time += access_time;
             // ignore address

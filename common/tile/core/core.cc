@@ -154,7 +154,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
    {
       if (push_info)
       {
-         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(0, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, 0);
+         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(Time(0), address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, 0);
          if (_core_model)
             _core_model->pushDynamicInstructionInfo(info);
       }
@@ -243,7 +243,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
 
    if (push_info)
    {
-      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_time.toCycles(_tile->getFrequency()), address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_time, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
       if (_core_model)
          _core_model->pushDynamicInstructionInfo(info);
    }

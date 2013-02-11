@@ -30,7 +30,6 @@ CoreModel* CoreModel::create(Core* core)
 // Public Interface
 CoreModel::CoreModel(Core *core)
    : m_core(core)
-   //, m_cycle_count(0)
    , m_curr_time(0)
    , m_instruction_count(0)
    , m_average_frequency(0.0)

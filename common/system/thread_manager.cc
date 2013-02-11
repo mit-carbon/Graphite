@@ -139,7 +139,9 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
    {
       // Global Clock to Tile Clock
       UInt64 start_cycle_count = convertCycleCount(req->time, 1.0, core->getTile()->getFrequency());
-      core_model->queueDynamicInstruction(new SpawnInstruction(start_cycle_count));
+
+      Latency lat(start_cycle_count, core->getTile()->getFrequency());
+      core_model->queueDynamicInstruction(new SpawnInstruction(Time(lat)));
    }
 }
 

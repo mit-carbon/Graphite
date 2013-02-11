@@ -21,6 +21,7 @@ Core::Core(Tile *tile, core_type_t core_type)
    , _pin_memory_manager(NULL)
    , _enabled(false)
 {
+
    _id = (core_id_t) {_tile->getId(), core_type};
    if (Config::getSingleton()->getEnableCoreModeling())
       _core_model = CoreModel::create(this);
@@ -34,6 +35,8 @@ Core::Core(Tile *tile, core_type_t core_type)
       _pin_memory_manager = new PinMemoryManager(this);
 
    initializeMemoryAccessLatencyCounters();
+
+   LOG_PRINT("Initialized Core.");
 }
 
 Core::~Core()

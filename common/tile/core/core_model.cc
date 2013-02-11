@@ -44,11 +44,43 @@ CoreModel::CoreModel(Core *core)
 
    // Initialize Pipeline Stall Counters
    initializePipelineStallCounters();
+
+   // Initialize instruction costs
+   initializeCoreStaticInstructionModel(core->getTile()->getFrequency());
+   LOG_PRINT("Initialized CoreModel.");
 }
 
 CoreModel::~CoreModel()
 {
    delete m_bp; m_bp = 0;
+}
+
+
+void CoreModel::initializeCoreStaticInstructionModel(volatile float frequency)
+{
+   m_core_instruction_costs.resize(MAX_INSTRUCTION_COUNT);
+   for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
+   {
+       char key_name [1024];
+       snprintf(key_name, 1024, "core/static_instruction_costs/%s", INSTRUCTION_NAMES[i]);
+       UInt32 instruction_cost = Sim()->getCfg()->getInt(key_name, 0);
+       m_core_instruction_costs[i] = Time(Latency(instruction_cost,frequency));
+   }
+}
+
+void CoreModel::updateCoreStaticInstructionModel(volatile float frequency)
+{
+   Instruction::StaticInstructionCosts instruction_costs = Instruction::getStaticInstructionCosts();
+   m_core_instruction_costs.resize(MAX_INSTRUCTION_COUNT);
+   for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
+   {
+       m_core_instruction_costs[i] = Time(Latency(instruction_costs[i],frequency));
+   }
+}
+
+Time CoreModel::getCost(InstructionType type)
+{
+   return m_core_instruction_costs[type];
 }
 
 void CoreModel::outputSummary(ostream& os)
@@ -149,12 +181,12 @@ void CoreModel::updatePipelineStallCounters(Instruction* i, Time memory_stall_ti
    {
    case INST_RECV:
       m_total_recv_instructions ++;
-      m_total_recv_instruction_stall_time += Time(Latency(i->getCost(), m_core->getTile()->getFrequency()));
+      m_total_recv_instruction_stall_time += i->getCost();
       break;
 
    case INST_SYNC:
       m_total_sync_instructions ++;
-      m_total_sync_instruction_stall_time += Time(Latency(i->getCost(), m_core->getTile()->getFrequency()));
+      m_total_sync_instruction_stall_time += i->getCost();
       break;
 
    default:

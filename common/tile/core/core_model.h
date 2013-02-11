@@ -51,6 +51,10 @@ public:
 
    class AbortInstructionException { };
 
+   Time getCost(InstructionType type);
+
+   Core* getCore(){return m_core;};
+
 protected:
    enum RegType
    {
@@ -79,7 +83,10 @@ protected:
    
    void updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time);
 
+   void updateCoreStaticInstructionModel(volatile float frequency);
+
 private:
+
    class DynamicInstructionInfoNotAvailableException { };
 
    virtual void handleInstruction(Instruction *instruction) = 0;
@@ -102,6 +109,11 @@ private:
    UInt32 m_current_ins_index;
 
    BranchPredictor *m_bp;
+
+   // Instruction costs
+   typedef std::vector<Time> CoreStaticInstructionCosts;
+   CoreStaticInstructionCosts m_core_instruction_costs;
+   void initializeCoreStaticInstructionModel(volatile float frequency);
 
    // Pipeline Stall Counters
    UInt64 m_total_recv_instructions;

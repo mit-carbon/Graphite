@@ -1062,7 +1062,8 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
          if (core->getModel())
          {
             UInt64 cycles_elapsed = convertCycleCount(end_time - start_time, 1.0, frequency);
-            core->getModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+            Latency lat(cycles_elapsed,frequency);
+            core->getModel()->queueDynamicInstruction(new SyncInstruction(Time(lat)));
          }
       }
 

@@ -4,6 +4,10 @@
 #include <sstream>
 #include <vector>
 #include "fixed_types.h"
+#include "time_types.h"
+
+// forward declaration
+class CoreModel;
 
 enum InstructionType
 {
@@ -67,12 +71,13 @@ class Instruction
 public:
    Instruction(InstructionType type,
                UInt64 opcode,
-               OperandList &operands);
+               OperandList &operands,
+               CoreModel* core_model);
 
    Instruction(InstructionType type);
 
    virtual ~Instruction() { };
-   virtual UInt64 getCost();
+   virtual Time getCost();
 
    static void initializeStaticInstructionModel();
 
@@ -98,8 +103,11 @@ public:
 
    void print() const;
 
-private:
    typedef std::vector<unsigned int> StaticInstructionCosts;
+
+   static StaticInstructionCosts getStaticInstructionCosts(){ return m_instruction_costs; }
+
+private:
    static StaticInstructionCosts m_instruction_costs;
 
    InstructionType m_type;
@@ -108,31 +116,33 @@ private:
    IntPtr m_address;
    UInt32 m_size;
 
+
 protected:
    OperandList m_operands;
+   CoreModel* m_core_model;
 };
 
 class GenericInstruction : public Instruction
 {
 public:
-   GenericInstruction(UInt64 opcode, OperandList &operands)
-      : Instruction(INST_GENERIC, opcode, operands)
+   GenericInstruction(UInt64 opcode, OperandList &operands, CoreModel* core_model)
+      : Instruction(INST_GENERIC, opcode, operands, core_model)
    {}
 };
 
 class ArithInstruction : public Instruction
 {
 public:
-   ArithInstruction(InstructionType type, UInt64 opcode, OperandList &operands)
-      : Instruction(type, opcode, operands)
+   ArithInstruction(InstructionType type, UInt64 opcode, OperandList &operands, CoreModel* core_model)
+      : Instruction(type, opcode, operands, core_model)
    {}
 };
 
 class JmpInstruction : public Instruction
 {
 public:
-   JmpInstruction(UInt64 opcode, OperandList &dest)
-      : Instruction(INST_JMP, opcode, dest)
+   JmpInstruction(UInt64 opcode, OperandList &dest, CoreModel* core_model)
+      : Instruction(INST_JMP, opcode, dest, core_model)
    {}
 };
 
@@ -141,19 +151,19 @@ public:
 class DynamicInstruction : public Instruction
 {
 public:
-   DynamicInstruction(UInt64 cost, InstructionType type = INST_DYNAMIC_MISC);
+   DynamicInstruction(Time cost, InstructionType type = INST_DYNAMIC_MISC);
    ~DynamicInstruction();
 
-   UInt64 getCost();
+   Time getCost();
 
 private:
-   UInt64 m_cost;
+   Time m_cost;
 };
 
 class RecvInstruction : public DynamicInstruction
 {
 public:
-   RecvInstruction(UInt64 cost)
+   RecvInstruction(Time cost)
       : DynamicInstruction(cost, INST_RECV)
    {}
 };
@@ -161,27 +171,27 @@ public:
 class SyncInstruction : public DynamicInstruction
 {
 public:
-   SyncInstruction(UInt64 cost);
+   SyncInstruction(Time cost);
 };
 
 // set clock to particular time
 class SpawnInstruction : public Instruction
 {
 public:
-   SpawnInstruction(UInt64 time);
-   UInt64 getCost();
+   SpawnInstruction(Time time);
+   Time getCost();
 
 private:
-   UInt64 m_time;
+   Time m_time;
 };
 
 // conditional branches
 class BranchInstruction : public Instruction
 {
 public:
-   BranchInstruction(UInt64 opcode, OperandList &l);
+   BranchInstruction(UInt64 opcode, OperandList &l, CoreModel* core_model);
 
-   UInt64 getCost();
+   Time getCost();
 };
 
 #endif

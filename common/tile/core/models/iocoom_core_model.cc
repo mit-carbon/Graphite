@@ -94,7 +94,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
 {
    // Execute this first so that instructions have the opportunity to
    // abort further processing (via AbortInstructionException)
-   UInt64 cost = instruction->getCost();
+   UInt64 cost = instruction->getCost().toCycles(m_core->getTile()->getFrequency());
 
    // Model Instruction Fetch Stage
    UInt64 instruction_ready = m_cycle_count;

@@ -47,7 +47,7 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
 {
    // Execute this first so that instructions have the opportunity to
    // abort further processing (via AbortInstructionException)
-   Time cost = Time(Latency(instruction->getCost(),m_core->getTile()->getFrequency()));
+   Time cost = instruction->getCost();
 
    Time memory_stall_time = 0;
    Time execution_unit_stall_time = 0;

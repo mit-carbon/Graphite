@@ -90,7 +90,8 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
       {
          // Global Clock to Core Clock
          UInt64 cycles_elapsed = convertCycleCount(time - start_time, 1.0, m_core->getTile()->getFrequency());
-         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+         Latency lat(cycles_elapsed,m_core->getTile()->getFrequency());
+         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(Time(lat)));
       }
    }
 
@@ -198,7 +199,9 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
       {
          // Global Clock to Core Clock
          UInt64 cycles_elapsed = convertCycleCount(time  - start_time, 1.0, m_core->getTile()->getFrequency());
-         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+
+         Latency lat(cycles_elapsed,m_core->getTile()->getFrequency());
+         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(Time(lat)));
       }
    }
 
@@ -347,7 +350,9 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
       {
          // Global Clock to Core Clock
          UInt64 cycles_elapsed = convertCycleCount(time - start_time, 1.0, m_core->getTile()->getFrequency());
-         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+
+         Latency lat(cycles_elapsed,m_core->getTile()->getFrequency());
+         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(Time(lat)));
       }
    }
 

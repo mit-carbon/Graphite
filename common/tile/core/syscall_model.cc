@@ -1346,8 +1346,8 @@ IntPtr SyscallMdl::marshallExitGroupCall(syscall_args_t &args)
    Core *core = Sim()->getTileManager()->getCurrentCore();
    LOG_ASSERT_ERROR(core, "Core = ((NULL))");
 
-   volatile float core_frequency = core->getPerformanceModel()->getFrequency();
-   UInt64 start_time = convertCycleCount(core->getPerformanceModel()->getCycleCount(), core_frequency, 1.0);
+   volatile float core_frequency = core->getTile()->getFrequency();
+   UInt64 start_time = convertCycleCount(core->getModel()->getCycleCount(), core_frequency, 1.0);
 
    m_send_buff << start_time;
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());

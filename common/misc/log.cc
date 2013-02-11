@@ -67,8 +67,11 @@ bool Log::isEnabled(const char* module)
 {
    // either the module is specifically enabled, or all logging is
    // enabled and this one isn't disabled
-   return _enabledModules.find(module) != _enabledModules.end()
-      || (_loggingEnabled && _disabledModules.find(module) == _disabledModules.end());
+   return (
+            (_enabledModules.find(module) != _enabledModules.end())
+             ||
+            (_loggingEnabled && (_disabledModules.find(module) == _disabledModules.end()))
+          );
 }
 
 bool Log::isLoggingEnabled()

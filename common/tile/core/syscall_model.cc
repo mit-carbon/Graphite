@@ -1021,8 +1021,7 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       UInt64 start_time;
       UInt64 end_time;
 
-      volatile float frequency = core->getTile()->getFrequency();
-      start_time = convertCycleCount(core->getModel()->getCycleCount(), frequency, 1.0);
+      start_time = core->getModel()->getCurrTime().getTime();
 
       // Package the arguments for the syscall
       m_send_buff.put(addr1);
@@ -1061,9 +1060,8 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
       {
          if (core->getModel())
          {
-            UInt64 cycles_elapsed = convertCycleCount(end_time - start_time, 1.0, frequency);
-            Latency lat(cycles_elapsed,frequency);
-            core->getModel()->queueDynamicInstruction(new SyncInstruction(Time(lat)));
+            Time time_elapsed = Time(end_time - start_time);
+            core->getModel()->queueDynamicInstruction(new SyncInstruction(time_elapsed));
          }
       }
 

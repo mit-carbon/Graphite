@@ -252,7 +252,7 @@ void ThreadScheduler::migrateThread(thread_id_t thread_id, tile_id_t tile_id)
              thread_id,
              core_id.tile_id,
              core_id.core_type,
-             m_tile_manager->getCurrentCore()->getModel()->getCycleCount());
+             m_tile_manager->getCurrentCore()->getModel()->getCurrTime().toNanosec());
 
    Network *net = m_tile_manager->getCurrentTile()->getNetwork();
 

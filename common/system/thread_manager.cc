@@ -159,7 +159,7 @@ void ThreadManager::onThreadExit()
 
    LOG_PRINT("onThreadExit -- send message to master ThreadManager; thread on core ID (%d,%d) IDX (%d) at time %llu",
              core->getId().tile_id, core->getId().core_type, thread_idx,
-             core->getModel()->getCycleCount());
+             core->getModel()->getCurrTime().toNanosec());
    Network *net = core->getTile()->getNetwork();
 
    // Recompute Average Frequency

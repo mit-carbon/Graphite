@@ -873,32 +873,32 @@ DramDirectoryCntlr::initializeEventCounters()
    _total_exreq_in_shared_state = 0;
    _total_exreq_with_upgrade_replies = 0;
    _total_exreq_in_uncached_state = 0;
-   _total_exreq_serialization_time = 0;
-   _total_exreq_processing_time = 0;
+   _total_exreq_serialization_time = Time(0);
+   _total_exreq_processing_time = Time(0);
 
    // SH_REQ counters
    _total_shreq = 0;
    _total_shreq_in_modified_state = 0;
    _total_shreq_in_shared_state = 0;
    _total_shreq_in_uncached_state = 0;
-   _total_shreq_serialization_time = 0;
-   _total_shreq_processing_time = 0;
+   _total_shreq_serialization_time = Time(0);
+   _total_shreq_processing_time = Time(0);
    
    // NULLIFY_REQ counters
    _total_nullifyreq = 0;
    _total_nullifyreq_in_modified_state = 0;
    _total_nullifyreq_in_shared_state = 0;
    _total_nullifyreq_in_uncached_state = 0;
-   _total_nullifyreq_serialization_time = 0;
-   _total_nullifyreq_processing_time = 0;
+   _total_nullifyreq_serialization_time = Time(0);
+   _total_nullifyreq_processing_time = Time(0);
 
    // Invalidation Counters
    _total_invalidations_unicast_mode = 0;
    _total_invalidations_broadcast_mode = 0;
    _total_sharers_invalidated_unicast_mode = 0;
    _total_sharers_invalidated_broadcast_mode = 0;
-   _total_invalidation_processing_time_unicast_mode = 0;
-   _total_invalidation_processing_time_broadcast_mode = 0;
+   _total_invalidation_processing_time_unicast_mode = Time(0);
+   _total_invalidation_processing_time_broadcast_mode = Time(0);
 }
 
 void

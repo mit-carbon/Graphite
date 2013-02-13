@@ -60,7 +60,7 @@ public:
    virtual pair<UInt32, Time> initiateMemoryAccess(MemComponent::Type mem_component,
                                                      lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                                      Byte* data_buf, UInt32 data_size, bool push_info = false,
-                                                     Time time = 0);
+                                                     Time time = Time(0));
    
    virtual pair<UInt32, Time> accessMemoryUsingTime(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                              char* data_buffer, UInt32 data_size, bool push_info = false);

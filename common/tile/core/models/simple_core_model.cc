@@ -18,9 +18,9 @@ SimpleCoreModel::~SimpleCoreModel()
 
 void SimpleCoreModel::initializePipelineStallCounters()
 {
-   m_total_l1icache_stall_time = 0;
-   m_total_l1dcache_read_stall_time = 0;
-   m_total_l1dcache_write_stall_time = 0;
+   m_total_l1icache_stall_time = Time(0);
+   m_total_l1dcache_read_stall_time = Time(0);
+   m_total_l1dcache_write_stall_time = Time(0);
 }
 
 void SimpleCoreModel::outputSummary(std::ostream &os)
@@ -49,8 +49,8 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
    // abort further processing (via AbortInstructionException)
    Time cost = instruction->getCost();
 
-   Time memory_stall_time = 0;
-   Time execution_unit_stall_time = 0;
+   Time memory_stall_time(0);
+   Time execution_unit_stall_time(0);
 
    // Instruction Memory Modeling
    Time instruction_memory_access_time = modelICache(instruction->getAddress(), instruction->getSize());

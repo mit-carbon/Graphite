@@ -169,10 +169,10 @@ void CoreModel::initializePipelineStallCounters()
 {
    m_total_recv_instructions = 0;
    m_total_sync_instructions = 0;
-   m_total_recv_instruction_stall_time = 0;
-   m_total_sync_instruction_stall_time = 0;
-   m_total_memory_stall_time = 0;
-   m_total_execution_unit_stall_time = 0;
+   m_total_recv_instruction_stall_time = Time(0);
+   m_total_sync_instruction_stall_time = Time(0);
+   m_total_memory_stall_time = Time(0);
+   m_total_execution_unit_stall_time = Time(0);
 }
 
 void CoreModel::updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time)

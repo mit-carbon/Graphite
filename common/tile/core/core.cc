@@ -318,7 +318,7 @@ void
 Core::initializeMemoryAccessLatencyCounters()
 {
    _num_memory_accesses = 0;
-   _total_memory_access_latency = 0;
+   _total_memory_access_latency = Time(0);
 }
 
 void

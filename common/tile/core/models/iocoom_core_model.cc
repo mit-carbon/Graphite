@@ -320,7 +320,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    m_instruction_count++;
 
    // Update Common Pipeline Stall Counters
-   updatePipelineStallCounters(instruction, memory_stall_cycles, execution_unit_stall_cycles);
+   updatePipelineStallCounters(instruction, Latency(memory_stall_cycles, m_core->getTile()->getFrequency()), Latency(execution_unit_stall_cycles, m_core->getTile()->getFrequency()));
 
    // Update Event Counters
    m_mcpat_core_interface->updateEventCounters(instruction, m_cycle_count);

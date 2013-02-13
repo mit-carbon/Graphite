@@ -39,7 +39,7 @@ class Latency
 class Time
 {
    public:
-      Time(UInt64 picosec=0):_picosec(picosec){};
+      explicit Time(UInt64 picosec=0):_picosec(picosec){};
       Time(const Time& time):_picosec(time._picosec){};
       Time(const Latency& lat){_picosec = lat.toPicosec();};
       ~Time(){};
@@ -74,8 +74,8 @@ class Time
       Time operator=(const Time& time)
             { _picosec = time._picosec; return *this; };
 
-      Time operator=(const UInt64& picosec)
-            {_picosec = picosec; return *this; };
+     // Time operator=(const UInt64& picosec)
+      //      {_picosec = picosec; return *this; };
 
       UInt64 getTime() const {return _picosec; };
 

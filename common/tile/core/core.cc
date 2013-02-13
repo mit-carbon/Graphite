@@ -116,6 +116,15 @@ Core::accessMemoryUsingTime(lock_signal_t lock_signal, mem_op_t mem_op_type, Int
    return initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, address, (Byte*) data_buffer, data_size, push_info);
 }
 
+Time
+Core::readInstructionMemoryUsingTime(IntPtr address, UInt32 instruction_size)
+{
+   LOG_PRINT("Instruction: Address(%#lx), Size(%u), Start READ", address, instruction_size);
+
+   Byte buf[instruction_size];
+   return initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second;
+}
+
 // Original function definition currently being supported.
 // This should be removed once the conversion is complete.
 pair<UInt32, UInt64>
@@ -126,14 +135,6 @@ Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr addre
    return make_pair(result.first,result.second.toCycles(_tile->getFrequency()));
 }
 
-Time
-Core::readInstructionMemoryUsingTime(IntPtr address, UInt32 instruction_size)
-{
-   LOG_PRINT("Instruction: Address(%#lx), Size(%u), Start READ", address, instruction_size);
-
-   Byte buf[instruction_size];
-   return initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second;
-}
 
 // Original function definition currently being supported.
 // This should be removed once the conversion to time types is complete.
@@ -165,8 +166,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
    }
 
    // Setting the initial time
-   Latency cycle_count(_core_model->getCycleCount(),_tile->getFrequency());
-   Time initial_time = (time.getTime() == 0) ? Time(cycle_count) : Time(time);
+   Time initial_time = (time.getTime() == 0) ? _core_model->getCurrTime() : Time(time);
    Time curr_time = initial_time;
 
    LOG_PRINT("Time(%llu), %s - ADDR(%#lx), data_size(%u), START",

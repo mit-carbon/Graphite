@@ -324,7 +324,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
    assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataLength() == 0));
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    LOG_PRINT("Sending Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), "
              "requester(%i), sender(%i), receiver(%i)",
@@ -346,7 +346,7 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
    assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataLength() == 0));
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    LOG_PRINT("Broadcasting Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), "
              "requester(%i), sender(%i)",

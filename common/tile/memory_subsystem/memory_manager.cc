@@ -100,11 +100,7 @@ MemoryManager::__handleMsgFromNetwork(NetPacket& packet)
 {
    _lock.acquire();
 
-   // Convert from the network frequency domain to tile frequency domain
-   NetworkModel* network_model = _network->getNetworkModelFromPacketType(packet.type);
-   packet.time = convertCycleCount(packet.time, network_model->getFrequency(), _tile->getFrequency());
-
-   _shmem_perf_model->setCycleCount(packet.time);
+   _shmem_perf_model->setCurrTime(packet.time);
 
    switch (packet.type)
    {

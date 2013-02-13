@@ -20,15 +20,13 @@ class Latency
       Latency operator+(const Latency& lat) const;
 
       Latency operator=(const Latency& lat)
-      {
-         return Latency(lat._cycles, lat._frequency);
-      };
+            { return Latency(lat._cycles, lat._frequency);}
 
-      Latency operator+=(const Latency& lat) const;
+      Latency operator+=(const Latency& lat);
 
       UInt64 toPicosec() const;
 
-      UInt64 getCycles() const {return _cycles; };
+      UInt64 getCycles() const {return _cycles; }
 
    private:
       UInt64 _cycles;
@@ -39,45 +37,45 @@ class Latency
 class Time
 {
    public:
-      explicit Time(UInt64 picosec=0):_picosec(picosec){};
-      Time(const Time& time):_picosec(time._picosec){};
-      Time(const Latency& lat){_picosec = lat.toPicosec();};
+      explicit Time(UInt64 picosec=0):_picosec(picosec){}
+      Time(const Time& time):_picosec(time._picosec){}
+      Time(const Latency& lat){_picosec = lat.toPicosec();}
       ~Time(){};
 
       Time operator+(const Time& time) const
-            { return Time(_picosec + time._picosec);};
+            { return Time(_picosec + time._picosec); }
 
       Time operator+(const Latency& lat) const
-            { return Time (_picosec + lat.toPicosec());};
+            { return Time (_picosec + lat.toPicosec()); }
 
       Time operator-(const Time& time) const
-            { return Time(_picosec - time._picosec);};
+            { return Time(_picosec - time._picosec); }
 
       bool operator>(const Time& time)
-            { return _picosec > time._picosec; };
+            { return _picosec > time._picosec; }
 
       bool operator<(const Time& time)
-            { return _picosec < time._picosec; };
+            { return _picosec < time._picosec; }
 
       bool operator<=(const Time& time)
-            { return _picosec <= time._picosec; };
+            { return _picosec <= time._picosec; }
 
       bool operator>=(const Time& time)
-            { return _picosec >= time._picosec; };
+            { return _picosec >= time._picosec; }
 
       bool operator==(const UInt64& picosec)
             { return _picosec == picosec; } 
 
       Time operator+=(const Time& time)
-            { _picosec += time._picosec; return *this; };
+            { _picosec += time._picosec; return *this; }
 
       Time operator=(const Time& time)
-            { _picosec = time._picosec; return *this; };
+            { _picosec = time._picosec; return *this; }
 
      // Time operator=(const UInt64& picosec)
       //      {_picosec = picosec; return *this; };
 
-      UInt64 getTime() const {return _picosec; };
+      UInt64 getTime() const {return _picosec; }
 
       UInt64 toCycles(Frequency frequency) const;
 
@@ -103,12 +101,20 @@ inline Latency Latency::operator+(const Latency& lat) const
    return Latency(_cycles + lat._cycles, _frequency);
 }
 
+inline Latency Latency::operator+=(const Latency& lat)
+{
+   LOG_ASSERT_ERROR(_frequency == lat._frequency,
+      "Attempting to add latencies from different frequencies");
+   _cycles += lat._cycles;
+   return *this;
+}
+
 inline UInt64 Time::toCycles(Frequency frequency) const
 {
    UInt64 cycles = (UInt64) ceil(((double) (_picosec) * ((double) frequency))/double(1000));
 
-   LOG_PRINT("Convert picoseconds(%llu) with frequency(%f) to cycles(%llu)",
-             _picosec, frequency, cycles);
+   //LOG_PRINT("Convert picoseconds(%llu) with frequency(%f) to cycles(%llu)",
+    //         _picosec, frequency, cycles);
 
    return cycles;
 }

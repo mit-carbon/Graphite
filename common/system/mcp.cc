@@ -136,7 +136,7 @@ void MCP::processPacket()
       Sim()->getThreadManager()->masterOnThreadExit(  *(tile_id_t*)((Byte*)recv_pkt.data+sizeof(msg_type)), 
                                                       *(UInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)), 
                                                       *(SInt32*)((Byte*)recv_pkt.data+sizeof(msg_type)+sizeof(tile_id_t)+sizeof(UInt32)), 
-                                                      recv_pkt.time);
+                                                      recv_pkt.time.getTime());
       break;
 
    case MCP_MESSAGE_THREAD_JOIN_REQUEST:

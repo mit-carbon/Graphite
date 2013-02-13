@@ -20,7 +20,7 @@ PerformanceCounterManager::togglePerformanceCounters(Byte* msg)
       {
          Simulator::enablePerformanceModelsInCurrentProcess();
          // Send ACK back to tile 0
-         NetPacket ack(0 /* time */, LCP_TOGGLE_PERFORMANCE_COUNTERS_ACK /* packet type */,
+         NetPacket ack(Time(0) /* time */, LCP_TOGGLE_PERFORMANCE_COUNTERS_ACK /* packet type */,
                        0 /* sender - doesn't matter */, 0 /* receiver */,
                        0 /* length */, NULL /* data */);
          Byte* buffer = ack.makeBuffer();
@@ -33,7 +33,7 @@ PerformanceCounterManager::togglePerformanceCounters(Byte* msg)
       {
          Simulator::disablePerformanceModelsInCurrentProcess();
          // Send ACK back to tile 0
-         NetPacket ack(0 /* time */, LCP_TOGGLE_PERFORMANCE_COUNTERS_ACK /* packet type */,
+         NetPacket ack(Time(0) /* time */, LCP_TOGGLE_PERFORMANCE_COUNTERS_ACK /* packet type */,
                        0 /* sender - doesn't matter */, 0 /* receiver */,
                        0 /* length */, NULL /* data */);
          Byte* buffer = ack.makeBuffer();

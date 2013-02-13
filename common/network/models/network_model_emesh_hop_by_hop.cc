@@ -153,7 +153,7 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, queue<Hop> &next_ho
       UInt64 contention_delay = 0;
       _injection_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
       
-      Hop hop(pkt, _tile_id, EMESH, 0, contention_delay);
+      Hop hop(pkt, _tile_id, EMESH, Latency(0,_frequency), Latency(contention_delay,_frequency));
       next_hops.push(hop);
    }
 
@@ -214,7 +214,7 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, queue<Hop> &next_ho
          // Populate the next_hops queue
          for (list<NextDest>::iterator it = next_dest_list.begin(); it != next_dest_list.end(); it++)
          {
-            Hop hop(pkt, (*it)._tile_id, (*it)._node_type, zero_load_delay, contention_delay);
+            Hop hop(pkt, (*it)._tile_id, (*it)._node_type, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
             next_hops.push(hop);
          }
       }
@@ -249,7 +249,7 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, queue<Hop> &next_ho
          _mesh_link_list[next_dest._output_port]->processPacket(pkt, zero_load_delay);
 
          assert(next_dest._tile_id != INVALID_TILE_ID);
-         Hop hop(pkt, next_dest._tile_id, next_dest._node_type, zero_load_delay, contention_delay);
+         Hop hop(pkt, next_dest._tile_id, next_dest._node_type, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
          next_hops.push(hop);
       
       } // (pkt_receiver == NetPacket::BROADCAST)

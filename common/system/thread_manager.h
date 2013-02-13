@@ -120,8 +120,8 @@ private:
    void slaveTerminateThreadSpawner ();
    void updateTerminateThreadSpawner ();
 
-   void masterJoinThread(ThreadJoinRequest *req, UInt64 time);
-   bool wakeUpWaiter(core_id_t core_id, thread_id_t thread_id, UInt64 time);
+   void masterJoinThread(ThreadJoinRequest *req, Time time);
+   bool wakeUpWaiter(core_id_t core_id, thread_id_t thread_id, Time time);
 
    void insertThreadSpawnRequest (ThreadSpawnRequest *req);
 

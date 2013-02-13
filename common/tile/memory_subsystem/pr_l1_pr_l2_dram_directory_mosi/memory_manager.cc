@@ -234,14 +234,14 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
    core_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
-   UInt64 msg_time = packet.time;
+   Time msg_time = packet.time;
 
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
    LOG_PRINT("Time(%llu), Got Shmem Msg: type(%s), address(%#lx), "
              "sender_mem_component(%s), receiver_mem_component(%s), sender(%i,%i), receiver(%i,%i)", 
-             msg_time, SPELL_SHMSG(shmem_msg->getType()), shmem_msg->getAddress(),
+             msg_time.toNanosec(), SPELL_SHMSG(shmem_msg->getType()), shmem_msg->getAddress(),
              SPELL_MEMCOMP(sender_mem_component), SPELL_MEMCOMP(receiver_mem_component),
              sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type);    
 
@@ -317,11 +317,11 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
    assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataLength() == 0));
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    LOG_PRINT("Time(%llu), Sending Msg: type(%s), address(%#lx), "
              "sender_mem_component(%s), receiver_mem_component(%s), requester(%i), sender(%i), receiver(%i)",
-             msg_time, SPELL_SHMSG(shmem_msg.getType()), shmem_msg.getAddress(),
+             msg_time.toNanosec(), SPELL_SHMSG(shmem_msg.getType()), shmem_msg.getAddress(),
              SPELL_MEMCOMP(shmem_msg.getSenderMemComponent()), SPELL_MEMCOMP(shmem_msg.getReceiverMemComponent()),
              shmem_msg.getRequester(), getTile()->getId(), receiver);
 
@@ -342,11 +342,11 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
    assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataLength() == 0));
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    LOG_PRINT("Time(%llu), Broadcasting Msg: type(%s), address(%#lx), "
              "sender_mem_component(%s), receiver_mem_component(%s), requester(%i), sender(%i)",
-             msg_time, SPELL_SHMSG(shmem_msg.getType()), shmem_msg.getAddress(),
+             msg_time.toNanosec(), SPELL_SHMSG(shmem_msg.getType()), shmem_msg.getAddress(),
              SPELL_MEMCOMP(shmem_msg.getSenderMemComponent()), SPELL_MEMCOMP(shmem_msg.getReceiverMemComponent()),
              shmem_msg.getRequester(), getTile()->getId());
 

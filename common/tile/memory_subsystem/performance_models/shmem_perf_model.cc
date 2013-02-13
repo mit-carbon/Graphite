@@ -39,7 +39,7 @@ void
 ShmemPerfModel::incrCurrTime(Latency lat)
 {
    if (_enabled)
-      _curr_time = _curr_time + lat;
+      _curr_time += lat;
 }
 
 

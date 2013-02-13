@@ -6,6 +6,7 @@
 #include "config.h"
 #include "config.h"
 #include "tile.h"
+#include "constants.h"
 
 NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 network_id)
    : NetworkModel(net, network_id)
@@ -148,11 +149,11 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt, queue<Hop> &next_
    computePosition(TILE_ID(pkt.receiver), dx, dy);
 
    UInt32 num_hops = computeDistance(sx, sy, dx, dy);
-   UInt64 latency = (isModelEnabled(pkt)) ? (num_hops * _hop_latency) : 0;
+   Latency latency = (isModelEnabled(pkt)) ? Latency(num_hops * _hop_latency,_frequency) : Latency(0,_frequency);
 
    updateDynamicEnergy(pkt, num_hops);
 
-   Hop hop(pkt, TILE_ID(pkt.receiver), RECEIVE_TILE, latency, 0);
+   Hop hop(pkt, TILE_ID(pkt.receiver), RECEIVE_TILE, latency, Latency(0,_frequency));
    next_hops.push(hop);
 }
 

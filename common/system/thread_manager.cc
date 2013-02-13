@@ -137,11 +137,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
    CoreModel *core_model = core->getModel();
    if (core_model)
    {
-      // Global Clock to Tile Clock
-      UInt64 start_cycle_count = convertCycleCount(req->time, 1.0, core->getTile()->getFrequency());
-
-      Latency lat(start_cycle_count, core->getTile()->getFrequency());
-      core_model->queueDynamicInstruction(new SpawnInstruction(Time(lat)));
+      core_model->queueDynamicInstruction(new SpawnInstruction(Time(req->time)));
    }
 }
 
@@ -213,7 +209,7 @@ void ThreadManager::masterOnThreadExit(tile_id_t tile_id, UInt32 core_type, SInt
    if (Sim()->getMCP()->getClockSkewMinimizationServer())
       Sim()->getMCP()->getClockSkewMinimizationServer()->signal();
 
-   __attribute__((__unused__)) bool woken_up = wakeUpWaiter(core_id, thread_idx, time);
+   __attribute__((__unused__)) bool woken_up = wakeUpWaiter(core_id, thread_idx, Time(time));
 
    m_thread_scheduler->masterOnThreadExit(core_id, thread_idx);
 
@@ -245,8 +241,7 @@ SInt32 ThreadManager::spawnThread(tile_id_t dest_tile_id, thread_func_t func, vo
    thread_id_t thread_index = m_tile_manager->getCurrentThreadIndex();
    Network *net = core->getTile()->getNetwork();
 
-   // Tile Clock to Global Clock
-   UInt64 curr_time = convertCycleCount(core->getModel()->getCycleCount(), core->getTile()->getFrequency(), 1.0);
+   Time curr_time = core->getModel()->getCurrTime();
    
    core->setState(Core::STALLED);
 
@@ -259,7 +254,7 @@ SInt32 ThreadManager::spawnThread(tile_id_t dest_tile_id, thread_func_t func, vo
                               func, arg,
                               core->getId(), thread_index,
                               dest_core_id, INVALID_THREAD_ID, INVALID_THREAD_ID,
-                              curr_time };
+                              curr_time.getTime() };
 
    core_id_t mcp_core_id = Config::getSingleton()->getMCPCoreId();
    net->netSend(mcp_core_id,
@@ -456,7 +451,7 @@ void ThreadManager::joinThread(thread_id_t join_thread_id)
    core->setState(Core::WAKING_UP);
 }
 
-void ThreadManager::masterJoinThread(ThreadJoinRequest *req, UInt64 time)
+void ThreadManager::masterJoinThread(ThreadJoinRequest *req, Time time)
 {
    LOG_ASSERT_ERROR(m_master, "masterJoinThread should only be called on master.");
    LOG_PRINT("masterJoinThread called on thread %i", req->receiver_tid);
@@ -492,7 +487,7 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req, UInt64 time)
    }
 }
 
-bool ThreadManager::wakeUpWaiter(core_id_t core_id, thread_id_t thread_index, UInt64 time)
+bool ThreadManager::wakeUpWaiter(core_id_t core_id, thread_id_t thread_index, Time time)
 {
    bool woken_up = false;
    LOG_ASSERT_ERROR(Tile::isMainCore(core_id), "Unrecognized core type to wake up");
@@ -502,7 +497,7 @@ bool ThreadManager::wakeUpWaiter(core_id_t core_id, thread_id_t thread_index, UI
    {
       thread_id_t waiter_thread_id = m_thread_state[core_id.tile_id][thread_index].waiter_tid;
       LOG_PRINT("Waking up thread ID(%i) on core ID (%d,%d) at time: %llu",
-                waiter_thread_id, waiter_core_id.tile_id, waiter_core_id.core_type, time);
+                waiter_thread_id, waiter_core_id.tile_id, waiter_core_id.core_type, time.toNanosec());
 
       // Resume the 'pthread_join' caller
       LOG_PRINT("wakeUpWaiter resuming thread ID(%i) on core ID (%d,%d)", waiter_thread_id, waiter_core_id.tile_id, waiter_core_id.core_type);

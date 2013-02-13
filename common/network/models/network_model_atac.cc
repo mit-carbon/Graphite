@@ -338,7 +338,7 @@ NetworkModelAtac::routePacket(const NetPacket& pkt, queue<Hop>& next_hops)
       UInt64 contention_delay = 0;
       _injection_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
       
-      Hop hop(pkt, _tile_id, EMESH, zero_load_delay, contention_delay);
+      Hop hop(pkt, _tile_id, EMESH, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
       next_hops.push(hop);
    }
 
@@ -389,7 +389,7 @@ NetworkModelAtac::routePacketOnENet(const NetPacket& pkt, tile_id_t pkt_sender, 
    _enet_router->processPacket(pkt, next_dest._output_port, zero_load_delay, contention_delay);
    _enet_link_list[next_dest._output_port]->processPacket(pkt, zero_load_delay);
 
-   Hop hop(pkt, next_dest._tile_id, next_dest._node_type, zero_load_delay, contention_delay);
+   Hop hop(pkt, next_dest._tile_id, next_dest._node_type, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
    next_hops.push(hop);
 }
 
@@ -407,7 +407,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
          _enet_router->processPacket(pkt, _num_enet_router_ports, zero_load_delay, contention_delay);
          _enet_link_list[_num_enet_router_ports]->processPacket(pkt, zero_load_delay);
 
-         Hop hop(pkt, getTileIDWithOpticalHub(getClusterID(_tile_id)), SEND_HUB, zero_load_delay, contention_delay);
+         Hop hop(pkt, getTileIDWithOpticalHub(getClusterID(_tile_id)), SEND_HUB, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
          next_hops.push(hop);
       }
       else // (!isAccessPoint(_tile_id))
@@ -431,7 +431,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
             
             for (SInt32 i = 0; i < _num_clusters; i++)
             {
-               Hop hop(pkt, getTileIDWithOpticalHub(i), RECEIVE_HUB, zero_load_delay, contention_delay);
+               Hop hop(pkt, getTileIDWithOpticalHub(i), RECEIVE_HUB, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
                next_hops.push(hop);
             }
          }
@@ -446,7 +446,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
                _optical_link->processPacket(pkt, 1 /* send to only 1 endpoint */, zero_load_delay);
               
                LOG_PRINT("Cluster: %i, Contention delay: %llu", i, contention_delay); 
-               Hop hop(pkt, getTileIDWithOpticalHub(i), RECEIVE_HUB, zero_load_delay, contention_delay);
+               Hop hop(pkt, getTileIDWithOpticalHub(i), RECEIVE_HUB, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
                next_hops.push(hop);
             }
          }
@@ -463,7 +463,7 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
          _send_hub_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
          _optical_link->processPacket(pkt, 1 /* send to only 1 endpoint */, zero_load_delay);
 
-         Hop hop(pkt, getTileIDWithOpticalHub(getClusterID(pkt_receiver)), RECEIVE_HUB, zero_load_delay, contention_delay);
+         Hop hop(pkt, getTileIDWithOpticalHub(getClusterID(pkt_receiver)), RECEIVE_HUB, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
          next_hops.push(hop);
       }
    }
@@ -518,13 +518,13 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
       {
          for (vector<tile_id_t>::iterator it = tile_id_list.begin(); it != tile_id_list.end(); it++)
          {
-            Hop hop(pkt, *it, RECEIVE_TILE, zero_load_delay, contention_delay);
+            Hop hop(pkt, *it, RECEIVE_TILE, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
             next_hops.push(hop);
          }
       }
       else // (pkt_receiver != NetPacket::BROADCAST)
       {
-         Hop hop(pkt, pkt_receiver, RECEIVE_TILE, zero_load_delay, contention_delay);
+         Hop hop(pkt, pkt_receiver, RECEIVE_TILE, Latency(zero_load_delay,_frequency), Latency(contention_delay,_frequency));
          next_hops.push(hop);
       }
    }

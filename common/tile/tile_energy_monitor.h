@@ -39,11 +39,19 @@ public:
 
 private:
    // Parts of Tile Energy Monitor
+   tile_id_t m_tile_id;
    Tile* m_tile;
    Core* m_core;
    CoreModel* m_core_model;
    Network* m_network;
    MemoryManager* m_memory_manager;
+
+   // Power Trace
+   void logCurrentTotalEnergyAndPower();
+
+   // Power Trace Variables
+   bool m_power_trace_enabled;
+   FILE *m_power_trace_file;
 
    // Sampling Period
    double m_delta_t; // (in ns)

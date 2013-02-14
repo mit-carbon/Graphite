@@ -14,6 +14,7 @@
 #include "clock_converter.h"
 #include "core_model.h"
 #include <cmath>
+#include <stdio.h>
 
 //---------------------------------------------------------------------------
 // Tile Energy Monitor Constructor
@@ -23,6 +24,7 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
    , m_memory_manager(NULL)
 {
    // Get Parts of Tile Energy Monitor
+   m_tile_id = tile->getId();
    m_core = m_tile->getCore();
    m_core_model = m_core->getModel();
    m_network = m_tile->getNetwork();
@@ -31,6 +33,22 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
 
    // Initialize Delta T Variable
    m_delta_t = Sim()->getCfg()->getInt("runtime_energy_modeling/interval");
+
+   // Initialize Power Trace
+   m_power_trace_enabled = Sim()->getCfg()->getBool("runtime_energy_modeling/power_trace/enabled");
+   if (m_power_trace_enabled)
+   {
+      if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
+      {
+         // Not Thread Spawner Tile / MCP
+         char m_filename[256];
+         sprintf(m_filename, "%s_%d.csv", "power_trace_tile", m_tile_id);
+         m_power_trace_file = fopen(Config::getSingleton()->formatOutputFileName(m_filename).c_str(),"w");
+         fprintf(m_power_trace_file,\
+            "Time %d, Core Energy %d, Core Power %d, Cache Energy %d, Cache Power %d, Network Energy %d, Network Power %d\n",\
+            m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id);
+      }
+   }
 
    // Initialize Next Time Variable
    m_next_time = m_delta_t;
@@ -53,7 +71,17 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
 //---------------------------------------------------------------------------
 // Tile Energy Monitor Destructor
 //---------------------------------------------------------------------------
-TileEnergyMonitor::~TileEnergyMonitor() {}
+TileEnergyMonitor::~TileEnergyMonitor() 
+{
+   if (m_power_trace_enabled)
+   {
+      if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
+      {
+         // Not Thread Spawner Tile / MCP
+         fclose(m_power_trace_file);
+      }
+   }
+}
 
 //---------------------------------------------------------------------------
 // Periodically Collect Energy
@@ -91,7 +119,33 @@ void TileEnergyMonitor::periodicallyCollectEnergy()
       m_previous_time = m_current_time;
       // Update the Next Time
       m_next_time = m_current_time + m_delta_t;
+
+      // Power Trace
+      if (m_power_trace_enabled)
+      {
+         if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
+         {
+            // Not Thread Spawner Tile / MCP// Log Current Total Energy and Power
+            logCurrentTotalEnergyAndPower();
+         }
+      }
    }
+}
+
+//---------------------------------------------------------------------------
+// Log Current Total Energy and Power
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::logCurrentTotalEnergyAndPower()
+{
+   fprintf(m_power_trace_file,\
+      "%g, %g, %g, %g, %g, %g, %g\n", \
+      (double) m_current_time,\
+      (double) m_core_current_total_energy,\
+      (double) m_core_current_total_power,\
+      (double) m_cache_current_total_energy,\
+      (double) m_cache_current_total_power,\
+      (double) m_network_current_total_energy[2],\
+      (double) m_network_current_total_power[2]);
 }
 
 //---------------------------------------------------------------------------
@@ -410,7 +464,7 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
    // Convert from Tile Clock to Global Clock
    m_last_time = convertCycleCount(m_cycle_count, m_tile->getFrequency(), 1.0);
 
-   if (m_tile->getId() < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
+   if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
       // Not Thread Spawner Tile / MCP
       periodicallyCollectEnergy();

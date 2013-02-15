@@ -1072,7 +1072,6 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    out << "    Shared Requests: " << _total_shreq << endl;
    out << "    Nullify Requests: " << _total_nullifyreq << endl;
 
-   float frequency = _memory_manager->getTile()->getFrequency();
    if (_total_exreq > 0)
    {
       out << "    Exclusive Request - MODIFIED State: " << _total_exreq_in_modified_state << endl;
@@ -1081,9 +1080,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - Upgrade Reply: " << _total_exreq_with_upgrade_replies << endl;
 
       out << "    Average Exclusive Request Serialization Time (in ns): "
-          << 1.0 * _total_exreq_serialization_time.getTime() / (frequency * _total_exreq) << endl;
+          << ((float) _total_exreq_serialization_time.toNanosec()) / ((float) _total_exreq) << endl;
       out << "    Average Exclusive Request Processing Time (in ns): "
-          << 1.0 * _total_exreq_processing_time.getTime() / (frequency * _total_exreq) << endl;
+          << ((float) _total_exreq_processing_time.toNanosec()) / ((float) _total_exreq) << endl;
    }
    else
    {
@@ -1103,9 +1102,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - UNCACHED State: " << _total_shreq_in_uncached_state << endl;
 
       out << "    Average Shared Request Serialization Time (in ns): "
-          << 1.0 * _total_shreq_serialization_time.getTime() / (frequency * _total_shreq) << endl;
+          <<  ((float) _total_shreq_serialization_time.toNanosec()) / ((float) _total_shreq) << endl;
       out << "    Average Shared Request Processing Time (in ns): "
-          << 1.0 * _total_shreq_processing_time.getTime() / (frequency * _total_shreq) << endl;
+          << ((float) _total_shreq_processing_time.toNanosec()) / ((float) _total_shreq) << endl;
    }
    else
    {
@@ -1124,9 +1123,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - UNCACHED State: " << _total_nullifyreq_in_uncached_state << endl;
 
       out << "    Average Nullify Request Serialization Time (in ns): "
-          << 1.0 * _total_nullifyreq_serialization_time.getTime() / (frequency * _total_nullifyreq) << endl;
+          <<  ((float)_total_nullifyreq_serialization_time.toNanosec()) / ((float) _total_nullifyreq) << endl;
       out << "    Average Nullify Request Processing Time (in ns): "
-          << 1.0 * _total_nullifyreq_processing_time.getTime() / (frequency * _total_nullifyreq) << endl;
+          <<  ((float)_total_nullifyreq_processing_time.toNanosec()) / ((float) _total_nullifyreq) << endl;
    }
    else
    {
@@ -1142,9 +1141,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    if (_total_invalidations_unicast_mode > 0)
    {
       out << "    Average Sharers Invalidated - Unicast Mode: "
-          << 1.0 * _total_sharers_invalidated_unicast_mode / _total_invalidations_unicast_mode << endl;
+          << ((float) _total_sharers_invalidated_unicast_mode) / ((float) _total_invalidations_unicast_mode) << endl;
       out << "    Average Invalidation Processing Time - Unicast Mode (in ns): "
-          << 1.0 * _total_invalidation_processing_time_unicast_mode.getTime() / (frequency * _total_invalidations_unicast_mode) << endl;
+          << ((float) _total_invalidation_processing_time_unicast_mode.toNanosec()) / ((float) _total_invalidations_unicast_mode) << endl;
    }
    else
    {
@@ -1156,9 +1155,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    if (_total_invalidations_broadcast_mode > 0)
    {
       out << "    Average Sharers Invalidated - Broadcast Mode: "
-         << 1.0 * _total_sharers_invalidated_broadcast_mode / _total_invalidations_broadcast_mode << endl;
+         << ((float) _total_sharers_invalidated_broadcast_mode) / ((float)_total_invalidations_broadcast_mode) << endl;
       out << "    Average Invalidation Processing Time - Broadcast Mode (in ns): "
-         << 1.0 * _total_invalidation_processing_time_broadcast_mode.getTime() / (frequency * _total_invalidations_broadcast_mode) << endl;
+         << ((float)_total_invalidation_processing_time_broadcast_mode.toNanosec()) / ((float) _total_invalidations_broadcast_mode) << endl;
    }
    else
    {

@@ -52,6 +52,7 @@ namespace PrL1PrL2DramDirectoryMSI
 
       void outputSummary(std::ostream &os);
 
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
       void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
    
    private:

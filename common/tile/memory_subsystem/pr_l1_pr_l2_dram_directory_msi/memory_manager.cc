@@ -363,21 +363,27 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
 }
 
 void
-MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
+MemoryManager::incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
 {
    switch (mem_component)
    {
    case MemComponent::L1_ICACHE:
-      getShmemPerfModel()->incrCycleCount(_l1_icache_perf_model->getLatency(access_type));
-      break;
+      {
+         getShmemPerfModel()->incrCurrTime(Latency(_l1_icache_perf_model->getLatency(access_type), getTile()->getFrequency()));
+         break;
+      }
 
    case MemComponent::L1_DCACHE:
-      getShmemPerfModel()->incrCycleCount(_l1_dcache_perf_model->getLatency(access_type));
-      break;
+      {
+         getShmemPerfModel()->incrCurrTime(Latency(_l1_dcache_perf_model->getLatency(access_type), getTile()->getFrequency()));
+         break;
+      }
 
    case MemComponent::L2_CACHE:
-      getShmemPerfModel()->incrCycleCount(_l2_cache_perf_model->getLatency(access_type));
-      break;
+      {
+         getShmemPerfModel()->incrCurrTime(Latency(_l2_cache_perf_model->getLatency(access_type), getTile()->getFrequency()));
+         break;
+      }
 
    case MemComponent::INVALID:
       break;
@@ -387,6 +393,13 @@ MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::
       break;
    }
 }
+
+void
+MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
+{
+   incrCurrTime(mem_component, access_type);
+}
+
 
 void
 MemoryManager::enableModels()

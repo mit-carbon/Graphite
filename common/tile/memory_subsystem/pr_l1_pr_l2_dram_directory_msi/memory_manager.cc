@@ -395,13 +395,6 @@ MemoryManager::incrCurrTime(MemComponent::Type mem_component, CachePerfModel::Ca
 }
 
 void
-MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
-{
-   incrCurrTime(mem_component, access_type);
-}
-
-
-void
 MemoryManager::enableModels()
 {
    _l1_cache_cntlr->getL1ICache()->enable();

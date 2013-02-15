@@ -5,7 +5,7 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-ShmemReq::ShmemReq(ShmemMsg* shmem_msg, UInt64 time)
+ShmemReq::ShmemReq(ShmemMsg* shmem_msg, Time time)
    : _time(time)
 {
    // Make a local copy of the shmem_msg
@@ -19,7 +19,7 @@ ShmemReq::~ShmemReq()
 }
 
 void
-ShmemReq::updateTime(UInt64 time)
+ShmemReq::updateTime(Time time)
 {
    if (_time < time)
       _time = time;
@@ -28,7 +28,7 @@ ShmemReq::updateTime(UInt64 time)
 void
 ShmemReq::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   _time = convertCycleCount(_time, old_frequency, new_frequency);
+   //_time = convertCycleCount(_time, old_frequency, new_frequency);
 }
 
 }

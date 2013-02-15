@@ -43,7 +43,7 @@ void
 DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    switch (shmem_msg_type)
    {
@@ -92,6 +92,7 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
+/*
    HashMapList<IntPtr,ShmemReq*>::iterator it1 = _dram_directory_req_queue.begin();
    for ( ; it1 != _dram_directory_req_queue.end(); it1++)
    {
@@ -103,6 +104,7 @@ DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency
          shmem_req->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
       }
    }
+*/
 }
 
 void
@@ -119,9 +121,9 @@ DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
       LOG_PRINT("A new shmem req for address(%#lx) found", address);
       ShmemReq* shmem_req = _dram_directory_req_queue.front(address);
 
-      // Update the Shared Mem Cycle Counts appropriately
-      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
-      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+      // Update the Shared Mem current time appropriately
+      shmem_req->updateTime(getShmemPerfModel()->getCurrTime());
+      getShmemPerfModel()->updateCurrTime(shmem_req->getTime());
 
       if (shmem_req->getShmemMsg()->getType() == ShmemMsg::EX_REQ)
          processExReqFromL2Cache(shmem_req);
@@ -138,7 +140,7 @@ DramDirectoryCntlr::processDirectoryEntryAllocationReq(ShmemReq* shmem_req)
 {
    IntPtr address = shmem_req->getShmemMsg()->getAddress();
    tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    std::vector<DirectoryEntry*> replacement_candidate_list;
    _dram_directory_cache->getReplacementCandidates(address, replacement_candidate_list);
@@ -439,8 +441,8 @@ DramDirectoryCntlr::processInvRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_m
       ShmemReq* shmem_req = _dram_directory_req_queue.front(address);
 
       // Update Times in the Shmem Perf Model and the Shmem Req
-      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
-      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+      shmem_req->updateTime(getShmemPerfModel()->getCurrTime());
+      getShmemPerfModel()->updateCurrTime(shmem_req->getTime());
 
       if (shmem_req->getShmemMsg()->getType() == ShmemMsg::EX_REQ)
       {
@@ -485,8 +487,8 @@ DramDirectoryCntlr::processFlushRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem
       ShmemReq* shmem_req = _dram_directory_req_queue.front(address);
 
       // Update times
-      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
-      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+      shmem_req->updateTime(getShmemPerfModel()->getCurrTime());
+      getShmemPerfModel()->updateCurrTime(shmem_req->getTime());
 
       // An involuntary/voluntary Flush
       if (shmem_req->getShmemMsg()->getType() == ShmemMsg::EX_REQ)
@@ -535,8 +537,8 @@ DramDirectoryCntlr::processWbRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_ms
       ShmemReq* shmem_req = _dram_directory_req_queue.front(address);
 
       // Update Time
-      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
-      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+      shmem_req->updateTime(getShmemPerfModel()->getCurrTime());
+      getShmemPerfModel()->updateCurrTime(shmem_req->getTime());
 
       // Write Data to Dram
       sendDataToDram(address, shmem_msg->getDataBuf(), shmem_msg->isModeled());

@@ -64,8 +64,6 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
       
-      void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
-
    private:
       L1CacheCntlr* _L1_cache_cntlr;
       L2CacheCntlr* _L2_cache_cntlr;

@@ -85,8 +85,6 @@ class SyscallMdl
       IntPtr marshallSchedSetAffinityCall(syscall_args_t &args);
       IntPtr marshallSchedGetAffinityCall(syscall_args_t &args);
 
-      IntPtr marshallExitGroupCall(syscall_args_t &args);
-
       // Helper functions
       UInt32 getStrLen (char *str);
 

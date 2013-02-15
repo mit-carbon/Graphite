@@ -11,18 +11,14 @@ using namespace std;
 namespace lite
 {
 
-bool _syscall_exit_group_called = false;
-
 void handleFutexSyscall(CONTEXT* ctx)
 {
    ADDRINT syscall_number = PIN_GetContextReg (ctx, REG_GAX);
-   if ((syscall_number != SYS_futex) && (syscall_number != SYS_exit_group))
+   if (syscall_number != SYS_futex)
       return;
 
-   if (syscall_number == SYS_exit_group)
-      _syscall_exit_group_called = true;
-
    SyscallMdl::syscall_args_t args;
+
    // FIXME: The LEVEL_BASE:: ugliness is required by the fact that REG_R8 etc 
    // are also defined in /usr/include/sys/ucontext.h
    args.arg0 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_GDI);
@@ -33,9 +29,11 @@ void handleFutexSyscall(CONTEXT* ctx)
    args.arg5 = PIN_GetContextReg (ctx, LEVEL_BASE::REG_R9);
 
    Core* core = Sim()->getTileManager()->getCurrentCore();
+   
    LOG_ASSERT_ERROR(core != NULL, "Core(NULL)");
 
-   LOG_PRINT("Enter Syscall(%i)", syscall_number);
+   LOG_PRINT("Enter Syscall (202)");
+   
    core->getSyscallMdl()->runEnter(syscall_number, args);
 }
 
@@ -45,18 +43,15 @@ void syscallEnterRunModel(THREADID threadIndex, CONTEXT* ctx, SYSCALL_STANDARD s
    LOG_ASSERT_ERROR(core, "Core(NULL)");
 
    IntPtr syscall_number = PIN_GetSyscallNumber(ctx, syscall_standard);
-  
-   if ((syscall_number != SYS_futex) && (syscall_number != SYS_exit_group))
+   
+   if (syscall_number != SYS_futex)
       LOG_PRINT("Enter Syscall(%i)", (int) syscall_number);
 
    // Save the syscall number
    core->getSyscallMdl()->saveSyscallNumber(syscall_number);
    if (syscall_number == SYS_futex)
    {
-      if (_syscall_exit_group_called)
-         PIN_SetSyscallNumber(ctx, syscall_standard, SYS_exit);
-      else
-         PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
+      PIN_SetSyscallNumber(ctx, syscall_standard, SYS_getpid);
    }
 }
 

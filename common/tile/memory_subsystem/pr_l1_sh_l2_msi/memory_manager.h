@@ -53,7 +53,7 @@ namespace PrL1ShL2MSI
 
       void outputSummary(std::ostream &os);
       
-      void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
 
    private:
       // L1/L2 cache cntlrs and DRAM_CNTLR cntlr

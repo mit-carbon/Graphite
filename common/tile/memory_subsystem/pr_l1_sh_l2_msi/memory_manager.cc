@@ -394,20 +394,20 @@ MemoryManager::getPacketType(MemComponent::Type sender_mem_component, MemCompone
 }
 
 void
-MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
+MemoryManager::incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
 {
    switch (mem_component)
    {
    case MemComponent::L1_ICACHE:
-      getShmemPerfModel()->incrCycleCount(_L1_icache_perf_model->getLatency(access_type));
+      getShmemPerfModel()->incrCurrTime(Latency(_L1_icache_perf_model->getLatency(access_type),getTile()->getFrequency()));
       break;
 
    case MemComponent::L1_DCACHE:
-      getShmemPerfModel()->incrCycleCount(_L1_dcache_perf_model->getLatency(access_type));
+      getShmemPerfModel()->incrCurrTime(Latency(_L1_dcache_perf_model->getLatency(access_type),getTile()->getFrequency()));
       break;
 
    case MemComponent::L2_CACHE:
-      getShmemPerfModel()->incrCycleCount(_L2_cache_perf_model->getLatency(access_type));
+      getShmemPerfModel()->incrCurrTime(Latency(_L2_cache_perf_model->getLatency(access_type),getTile()->getFrequency()));
       break;
 
    case MemComponent::INVALID:

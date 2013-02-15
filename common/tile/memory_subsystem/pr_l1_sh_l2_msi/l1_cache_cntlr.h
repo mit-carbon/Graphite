@@ -21,6 +21,7 @@ namespace PrL1ShL2MSI
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
+#include "time_types.h"
 
 namespace PrL1ShL2MSI
 {
@@ -69,7 +70,7 @@ namespace PrL1ShL2MSI
       AddressHomeLookup* _L2_cache_home_lookup;
 
       // Outstanding msg info
-      UInt64 _outstanding_shmem_msg_time;
+      Time _outstanding_shmem_msg_time;
       ShmemMsg _outstanding_shmem_msg;
 
       // Operations of L1-I/L1-D cache

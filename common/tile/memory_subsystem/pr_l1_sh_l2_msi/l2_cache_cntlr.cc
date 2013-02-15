@@ -155,7 +155,7 @@ L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line
       LOG_ASSERT_ERROR(evicted_directory_entry, "Cant find directory entry for address(%#lx)", evicted_address);
 
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
-      UInt64 eviction_time = getShmemPerfModel()->getCycleCount();
+      Time eviction_time = getShmemPerfModel()->getCurrTime();
       
       LOG_PRINT("Eviction: Address(%#lx), Cache State(%u), Directory State(%u), Num Sharers(%i)",
                 evicted_address, evicted_cache_line_info.getCState(),
@@ -186,11 +186,11 @@ L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line
 void
 L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
-   // Incr cycle count for every message that comes into the L2 cache
-   _memory_manager->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   // Incr current time for every message that comes into the L2 cache
+   _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
    IntPtr address = shmem_msg->getAddress();
    
    if ( (shmem_msg_type == ShmemMsg::EX_REQ) || (shmem_msg_type == ShmemMsg::SH_REQ) )
@@ -265,8 +265,8 @@ L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::handleMsgFromDram(tile_id_t sender, ShmemMsg* shmem_msg)
 {
-   // Incr cycle count for every message that comes into the L2 cache
-   _memory_manager->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   // Incr curr time for every message that comes into the L2 cache
+   _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
    IntPtr address = shmem_msg->getAddress();
 
@@ -295,6 +295,7 @@ L2CacheCntlr::handleMsgFromDram(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
+/*
    HashMapList<IntPtr,ShmemReq*>::iterator it1 = _L2_cache_req_queue.begin();
    for ( ; it1 != _L2_cache_req_queue.end(); it1++)
    {
@@ -306,6 +307,7 @@ L2CacheCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, floa
          shmem_req->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
       }
    }
+*/
 }
 
 void
@@ -314,7 +316,7 @@ L2CacheCntlr::processNextReqFromL1Cache(IntPtr address)
    LOG_PRINT("Start processNextReqFromL1Cache(%#lx)", address);
    
    // Add 1 cycle to denote that we are moving to the next request
-   getShmemPerfModel()->incrCycleCount(1);
+   getShmemPerfModel()->incrCurrTime(Latency(1,_memory_manager->getTile()->getFrequency()));
 
    assert(_L2_cache_req_queue.count(address) >= 1);
    
@@ -329,9 +331,9 @@ L2CacheCntlr::processNextReqFromL1Cache(IntPtr address)
       LOG_PRINT("A new shmem req for address(%#lx) found", address);
       ShmemReq* shmem_req = _L2_cache_req_queue.front(address);
 
-      // Update the Shared Mem Cycle Counts appropriately
-      shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
-      getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+      // Update the Shared Mem current time appropriately
+      shmem_req->updateTime(getShmemPerfModel()->getCurrTime());
+      getShmemPerfModel()->updateCurrTime(shmem_req->getTime());
 
       assert(TYPE(shmem_req) != ShmemMsg::NULLIFY_REQ);
       // Process the request
@@ -820,11 +822,11 @@ void
 L2CacheCntlr::restartShmemReq(ShmemReq* shmem_req, ShL2CacheLineInfo* L2_cache_line_info, Byte* data_buf)
 {
    // Add 1 cycle to denote that we are restarting the request
-   getShmemPerfModel()->incrCycleCount(1);
+   getShmemPerfModel()->incrCurrTime(Latency(1,_memory_manager->getTile()->getFrequency()));
 
    // Update ShmemReq & ShmemPerfModel internal time
-   shmem_req->updateTime(getShmemPerfModel()->getCycleCount());
-   getShmemPerfModel()->updateCycleCount(shmem_req->getTime());
+   shmem_req->updateTime(getShmemPerfModel()->getCurrTime());
+   getShmemPerfModel()->updateCurrTime(shmem_req->getTime());
 
    DirectoryEntry* directory_entry = L2_cache_line_info->getDirectoryEntry();
    DirectoryState::Type curr_dstate = directory_entry->getDirectoryBlockInfo()->getDState();

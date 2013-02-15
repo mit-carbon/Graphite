@@ -46,8 +46,6 @@ public:
 
    virtual void outputSummary(std::ostream &os) = 0;
 
-   virtual void insertNOP() = 0;
-
    virtual void computeEnergy() = 0;
 
    virtual double getDynamicEnergy() { return 0; }

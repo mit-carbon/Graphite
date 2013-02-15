@@ -91,17 +91,6 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 //   os << "    Total Inter Ins Execution Unit Stall Time (in ns): " << convertCycleCount(m_total_inter_ins_execution_unit_stall_cycles, frequency, 1.0) << endl;
 }
 
-void IOCOOMCoreModel::insertNOP()
-{
-   // Get NOP Cost
-   UInt64 nop_cost = Sim()->getCfg()->getInt("core/static_instruction_costs/generic");
-   // Update Cycle and Instruction Count
-   m_cycle_count += nop_cost;
-   m_instruction_count++;
-   // Update Energy Model Counters
-   m_mcpat_core_interface->insertNOP(m_cycle_count);
-}
-
 void IOCOOMCoreModel::computeEnergy()
 {
    m_mcpat_core_interface->computeMcPATCoreEnergy();

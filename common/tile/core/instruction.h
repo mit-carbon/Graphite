@@ -24,11 +24,12 @@ enum InstructionType
    INST_SPAWN,
    INST_STRING,
    INST_BRANCH,
+   INST_FAST_FORWARD,
    MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","generic","jmp","dynamic_misc","recv","sync","spawn","string","branch"};
+{"ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","generic","jmp","dynamic_misc","recv","sync","spawn","string","branch","fast_forward"};
 
 class Operand
 {
@@ -95,7 +96,7 @@ public:
 
    bool isSimpleMemoryLoad() const;
    bool isDynamic() const
-   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC)); }
+   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC) || (m_type == INST_FAST_FORWARD)); }
 
    void print() const;
 
@@ -151,6 +152,7 @@ private:
    UInt64 m_cost;
 };
 
+// RecvInstruction - called for netRecv
 class RecvInstruction : public DynamicInstruction
 {
 public:
@@ -159,10 +161,20 @@ public:
    {}
 };
 
+// SyncInstruction - called for SYNC instructions
 class SyncInstruction : public DynamicInstruction
 {
 public:
    SyncInstruction(UInt64 cost);
+};
+
+// Fast-forward instruction
+class FastForwardInstruction : public DynamicInstruction
+{
+public:
+   FastForwardInstruction(UInt64 cost)
+      : DynamicInstruction(cost, INST_FAST_FORWARD)
+   {}
 };
 
 // set clock to particular time

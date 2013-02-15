@@ -34,15 +34,6 @@ void SimpleCoreModel::outputSummary(std::ostream &os)
 //   os << "    Total L1-D Cache Write Stall Time (in ns): " << convertCycleCount(m_total_l1dcache_write_stall_cycles, frequency, 1.0) << endl;
 }
 
-void SimpleCoreModel::insertNOP()
-{
-   // Get NOP Cost
-   UInt64 nop_cost = Sim()->getCfg()->getInt("core/static_instruction_costs/generic");
-   // Update Cycle and Instruction Count
-   m_cycle_count += nop_cost;
-   m_instruction_count++;
-}
-
 void SimpleCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
    // Update Pipeline stall counters due to memory

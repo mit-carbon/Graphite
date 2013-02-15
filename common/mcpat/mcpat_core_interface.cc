@@ -311,19 +311,6 @@ void McPATCoreInterface::initializeOutputDataStructure()
 }
 
 //---------------------------------------------------------------------------
-// Insert NOP
-//---------------------------------------------------------------------------
-void McPATCoreInterface::insertNOP(UInt64 cycle_count)
-{
-   // Update Cycle Counters
-   updateCycleCounters(cycle_count);
-   // Update Other Counters
-   _total_instructions ++;
-   _committed_instructions ++;
-   _generic_instructions ++;
-}
-
-//---------------------------------------------------------------------------
 // Update Event Counters
 //---------------------------------------------------------------------------
 void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 total_branch_misprediction_count)

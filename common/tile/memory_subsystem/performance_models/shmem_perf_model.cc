@@ -36,10 +36,10 @@ ShmemPerfModel::updateCurrTime(Time time)
 }
 
 void
-ShmemPerfModel::incrCurrTime(Latency lat)
+ShmemPerfModel::incrCurrTime(Time time)
 {
    if (_enabled)
-      _curr_time += lat;
+      _curr_time += time;
 }
 
 
@@ -67,7 +67,8 @@ ShmemPerfModel::updateCycleCount(UInt64 cycle_count)
 void
 ShmemPerfModel::incrCycleCount(UInt64 count)
 {
-   incrCurrTime(Latency(count, Sim()->getTileManager()->getCurrentTile()->getFrequency()));
+   Latency lat(count, Sim()->getTileManager()->getCurrentTile()->getFrequency());
+   incrCurrTime(Time(lat));
 }
 
 

@@ -43,32 +43,3 @@ ShmemPerfModel::incrCurrTime(Time time)
 }
 
 
-void 
-ShmemPerfModel::setCycleCount(UInt64 count)
-{
-   LOG_PRINT("setCycleCount: count(%llu)", count);
-   Latency lat(count, Sim()->getTileManager()->getCurrentTile()->getFrequency());
-   setCurrTime(Time(lat.toPicosec()));
-}
-
-UInt64
-ShmemPerfModel::getCycleCount()
-{
-   return _curr_time.toCycles(Sim()->getTileManager()->getCurrentTile()->getFrequency());
-}
-
-void
-ShmemPerfModel::updateCycleCount(UInt64 cycle_count)
-{
-   Latency lat(cycle_count, Sim()->getTileManager()->getCurrentTile()->getFrequency());
-   updateCurrTime(Time(lat.toPicosec()));
-}
-
-void
-ShmemPerfModel::incrCycleCount(UInt64 count)
-{
-   Latency lat(count, Sim()->getTileManager()->getCurrentTile()->getFrequency());
-   incrCurrTime(Time(lat));
-}
-
-

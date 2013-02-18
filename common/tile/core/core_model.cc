@@ -141,18 +141,6 @@ void CoreModel::setCurrTime(Time time)
 
 
 // This function is called:
-// 1) On thread start
-void CoreModel::setCycleCount(UInt64 cycle_count)
-{
-   setCurrTime(Time(Latency(cycle_count, m_core->getTile()->getFrequency())));
-}
-
-UInt64 CoreModel::getCycleCount()
-{
-   return m_curr_time.toCycles(m_core->getTile()->getFrequency());
-}
-
-// This function is called:
 // 1) On thread exit
 // 2) Whenever frequency is changed
 void CoreModel::recomputeAverageFrequency(float frequency)

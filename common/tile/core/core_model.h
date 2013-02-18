@@ -32,8 +32,6 @@ public:
 
    Time getCurrTime(){return m_curr_time; };
    void setCurrTime(Time time);
-   UInt64 getCycleCount();
-   void setCycleCount(UInt64 cycle_count);
 
    void pushDynamicInstructionInfo(DynamicInstructionInfo &i);
    void popDynamicInstructionInfo();
@@ -79,7 +77,6 @@ protected:
 
    Time m_curr_time;
    UInt64 m_instruction_count;
-   UInt64 m_cycle_count;
    
    void updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time);
 

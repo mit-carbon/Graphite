@@ -54,17 +54,14 @@ public:
    int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    
-   virtual Time readInstructionMemoryUsingTime(IntPtr address, UInt32 instruction_size);
-   virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size);
+   virtual Time readInstructionMemory(IntPtr address, UInt32 instruction_size);
 
    virtual pair<UInt32, Time> initiateMemoryAccess(MemComponent::Type mem_component,
                                                      lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                                      Byte* data_buf, UInt32 data_size, bool push_info = false,
                                                      Time time = Time(0));
    
-   virtual pair<UInt32, Time> accessMemoryUsingTime(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
-                                             char* data_buffer, UInt32 data_size, bool push_info = false);
-   virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
+   virtual pair<UInt32, Time> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                              char* data_buffer, UInt32 data_size, bool push_info = false);
 
    core_id_t getId()                         { return _id; }

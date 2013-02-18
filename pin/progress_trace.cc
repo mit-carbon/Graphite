@@ -58,7 +58,7 @@ static VOID traceProgress()
 
    CoreModel *pm = Sim()->getTileManager()->getCurrentCore()->getModel();
 
-   UInt64 cycles = pm->getCycleCount();
+   UInt64 cycles = pm->getCurrCycleCount();
 
    LOG_ASSERT_ERROR(counter <= cycles, "counter(%llu) > cycles(%llu)", counter, cycles);
 

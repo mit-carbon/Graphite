@@ -110,5 +110,5 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
 
 Time SimpleCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)
 {
-   return m_core->readInstructionMemoryUsingTime(ins_address, ins_size);
+   return m_core->readInstructionMemory(ins_address, ins_size);
 }

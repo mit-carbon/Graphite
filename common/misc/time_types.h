@@ -54,7 +54,7 @@ class Time
       bool operator>(const Time& time)
             { return _picosec > time._picosec; }
 
-      bool operator<(const Time& time)
+      bool operator<(const Time& time) const
             { return _picosec < time._picosec; }
 
       bool operator<=(const Time& time)
@@ -71,9 +71,6 @@ class Time
 
       Time operator=(const Time& time)
             { _picosec = time._picosec; return *this; }
-
-     // Time operator=(const UInt64& picosec)
-      //      {_picosec = picosec; return *this; };
 
       UInt64 getTime() const {return _picosec; }
 
@@ -112,9 +109,6 @@ inline Latency Latency::operator+=(const Latency& lat)
 inline UInt64 Time::toCycles(Frequency frequency) const
 {
    UInt64 cycles = (UInt64) ceil(((double) (_picosec) * ((double) frequency))/double(1000));
-
-   //LOG_PRINT("Convert picoseconds(%llu) with frequency(%f) to cycles(%llu)",
-    //         _picosec, frequency, cycles);
 
    return cycles;
 }

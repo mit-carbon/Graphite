@@ -111,40 +111,18 @@ Core::coreRecvW(int sender, int receiver, char* buffer, int size, carbon_network
 
 
 pair<UInt32, Time>
-Core::accessMemoryUsingTime(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size, bool push_info)
+Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size, bool push_info)
 {
    return initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, address, (Byte*) data_buffer, data_size, push_info);
 }
 
 Time
-Core::readInstructionMemoryUsingTime(IntPtr address, UInt32 instruction_size)
-{
-   LOG_PRINT("Instruction: Address(%#lx), Size(%u), Start READ", address, instruction_size);
-
-   Byte buf[instruction_size];
-   return initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second;
-}
-
-// Original function definition currently being supported.
-// This should be removed once the conversion is complete.
-pair<UInt32, UInt64>
-Core::accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address, char* data_buffer, UInt32 data_size, bool push_info)
-{
-   pair<UInt32, Time> result = initiateMemoryAccess(MemComponent::L1_DCACHE, lock_signal, mem_op_type, address, (Byte*) data_buffer, data_size, push_info);
-
-   return make_pair(result.first,result.second.toCycles(_tile->getFrequency()));
-}
-
-
-// Original function definition currently being supported.
-// This should be removed once the conversion to time types is complete.
-UInt64
 Core::readInstructionMemory(IntPtr address, UInt32 instruction_size)
 {
    LOG_PRINT("Instruction: Address(%#lx), Size(%u), Start READ", address, instruction_size);
 
    Byte buf[instruction_size];
-   return initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second.toCycles(_tile->getFrequency());
+   return initiateMemoryAccess(MemComponent::L1_ICACHE, Core::NONE, Core::READ, address, buf, instruction_size).second;
 }
 
 pair<UInt32, Time>

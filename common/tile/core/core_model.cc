@@ -31,6 +31,7 @@ CoreModel* CoreModel::create(Core* core)
 CoreModel::CoreModel(Core *core)
    : m_core(core)
    , m_curr_time(0)
+   , m_cycle_count(0)
    , m_instruction_count(0)
    , m_average_frequency(0.0)
    , m_total_time(0)
@@ -139,18 +140,6 @@ void CoreModel::setCurrTime(Time time)
 }
 
 
-
-// This function is called:
-// 1) On thread start
-void CoreModel::setCycleCount(UInt64 cycle_count)
-{
-   setCurrTime(Time(Latency(cycle_count, m_core->getTile()->getFrequency())));
-}
-
-UInt64 CoreModel::getCycleCount()
-{
-   return m_curr_time.toCycles(m_core->getTile()->getFrequency());
-}
 
 // This function is called:
 // 1) On thread exit

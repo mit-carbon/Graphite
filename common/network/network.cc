@@ -415,11 +415,14 @@ NetPacket Network::netRecv(const NetMatch &match)
       // go to sleep until a packet arrives if none have been found
       if (!found)
       {
+         LOG_PRINT("netRecv: Packet match NOT found");
          LOG_PRINT("netRecv: Waiting on condition variable");
          _netQueueCond.wait(_netQueueLock);
-         LOG_PRINT("netRecv: Exit waiting");
+         LOG_PRINT("netRecv: Woken up");
       }
    }
+
+   LOG_PRINT("netRecv: Packet match found");
 
    assert(found == true && itr != _netQueue.end());
    assert(0 <= itr->sender.tile_id && itr->sender.tile_id < _numMod);

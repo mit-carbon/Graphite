@@ -6,6 +6,7 @@
 #include "main_core.h"
 #include "simulator.h"
 #include "log.h"
+#include <string.h>
 
 Tile::Tile(tile_id_t id)
    : _id(id)
@@ -19,14 +20,33 @@ Tile::Tile(tile_id_t id)
    
    if (Config::getSingleton()->isSimulatingSharedMemory())
       _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this);
+
+   // Register callback for clock frequency change
+   getNetwork()->registerCallback(USER_2, TileFreqScalingCallback, this);
 }
 
 Tile::~Tile()
 {
+   getNetwork()->unregisterCallback(USER_2);
+
    if (_memory_manager)
       delete _memory_manager;
    delete _core;
    delete _network;
+}
+
+void TileFreqScalingCallback(void* obj, NetPacket packet)
+{
+   Tile *tile = (Tile*) obj;
+   assert(tile != NULL);
+
+   core_id_t sender = packet.sender;
+   volatile float new_frequency;
+   memcpy((void*) &new_frequency, packet.data, sizeof(float));
+
+   float old_frequency = tile->getFrequency();
+   tile->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   tile->setFrequency(new_frequency);
 }
 
 void Tile::outputSummary(ostream &os)

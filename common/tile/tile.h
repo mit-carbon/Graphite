@@ -10,6 +10,9 @@ class Core;
 class MemoryManager;
 
 #include "fixed_types.h"
+#include "network.h"
+
+void TileFreqScalingCallback(void* obj, NetPacket packet);
 
 class Tile
 {

@@ -73,7 +73,6 @@ void CoreModel::initializeCoreStaticInstructionModel(volatile float frequency)
 void CoreModel::updateCoreStaticInstructionModel(volatile float frequency)
 {
    Instruction::StaticInstructionCosts instruction_costs = Instruction::getStaticInstructionCosts();
-   m_core_instruction_costs.resize(MAX_INSTRUCTION_COUNT);
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
    {
        m_core_instruction_costs[i] = Time(Latency(instruction_costs[i],frequency));
@@ -122,7 +121,6 @@ void CoreModel::disable()
 // 1) Whenever frequency is changed
 void CoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-
    recomputeAverageFrequency(old_frequency);
    updateCoreStaticInstructionModel(new_frequency);
 }
@@ -162,12 +160,12 @@ void CoreModel::updatePipelineStallCounters(Instruction* i, Time memory_stall_ti
    {
    case INST_RECV:
       m_total_recv_instructions ++;
-      m_total_recv_instruction_stall_time += i->getCost();
+      m_total_recv_instruction_stall_time += i->getCost(this);
       break;
 
    case INST_SYNC:
       m_total_sync_instructions ++;
-      m_total_sync_instruction_stall_time += i->getCost();
+      m_total_sync_instruction_stall_time += i->getCost(this);
       break;
 
    default:

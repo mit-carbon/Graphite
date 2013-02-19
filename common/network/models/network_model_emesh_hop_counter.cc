@@ -153,7 +153,7 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt, queue<Hop> &next_
 
    updateDynamicEnergy(pkt, num_hops);
 
-   Hop hop(pkt, TILE_ID(pkt.receiver), RECEIVE_TILE, latency, Latency(0,_frequency));
+   Hop hop(pkt, TILE_ID(pkt.receiver), RECEIVE_TILE, latency, Time(0));
    next_hops.push(hop);
 }
 

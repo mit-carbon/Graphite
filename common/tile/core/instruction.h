@@ -71,13 +71,12 @@ class Instruction
 public:
    Instruction(InstructionType type,
                UInt64 opcode,
-               OperandList &operands,
-               CoreModel* core_model);
+               OperandList &operands);
 
    Instruction(InstructionType type);
 
    virtual ~Instruction() { };
-   virtual Time getCost();
+   virtual Time getCost(CoreModel* perf);
 
    static void initializeStaticInstructionModel();
 
@@ -119,30 +118,29 @@ private:
 
 protected:
    OperandList m_operands;
-   CoreModel* m_core_model;
 };
 
 class GenericInstruction : public Instruction
 {
 public:
-   GenericInstruction(UInt64 opcode, OperandList &operands, CoreModel* core_model)
-      : Instruction(INST_GENERIC, opcode, operands, core_model)
+   GenericInstruction(UInt64 opcode, OperandList &operands)
+      : Instruction(INST_GENERIC, opcode, operands)
    {}
 };
 
 class ArithInstruction : public Instruction
 {
 public:
-   ArithInstruction(InstructionType type, UInt64 opcode, OperandList &operands, CoreModel* core_model)
-      : Instruction(type, opcode, operands, core_model)
+   ArithInstruction(InstructionType type, UInt64 opcode, OperandList &operands)
+      : Instruction(type, opcode, operands)
    {}
 };
 
 class JmpInstruction : public Instruction
 {
 public:
-   JmpInstruction(UInt64 opcode, OperandList &dest, CoreModel* core_model)
-      : Instruction(INST_JMP, opcode, dest, core_model)
+   JmpInstruction(UInt64 opcode, OperandList &dest)
+      : Instruction(INST_JMP, opcode, dest)
    {}
 };
 
@@ -154,7 +152,7 @@ public:
    DynamicInstruction(Time cost, InstructionType type = INST_DYNAMIC_MISC);
    ~DynamicInstruction();
 
-   Time getCost();
+   Time getCost(CoreModel* perf);
 
 private:
    Time m_cost;
@@ -179,7 +177,7 @@ class SpawnInstruction : public Instruction
 {
 public:
    SpawnInstruction(Time time);
-   Time getCost();
+   Time getCost(CoreModel* perf);
 
 private:
    Time m_time;
@@ -189,9 +187,9 @@ private:
 class BranchInstruction : public Instruction
 {
 public:
-   BranchInstruction(UInt64 opcode, OperandList &l, CoreModel* core_model);
+   BranchInstruction(UInt64 opcode, OperandList &l );
 
-   Time getCost();
+   Time getCost(CoreModel* perf);
 };
 
 #endif

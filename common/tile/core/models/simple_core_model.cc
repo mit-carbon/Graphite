@@ -34,11 +34,6 @@ void SimpleCoreModel::outputSummary(std::ostream &os)
 
 void SimpleCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   // Update Pipeline stall counters due to memory
-   //m_total_l1icache_stall_cycles = convertCycleCount(m_total_l1icache_stall_cycles, old_frequency, new_frequency);
-   //m_total_l1dcache_read_stall_cycles = convertCycleCount(m_total_l1dcache_read_stall_cycles, old_frequency, new_frequency);
-   //m_total_l1dcache_write_stall_cycles = convertCycleCount(m_total_l1dcache_write_stall_cycles, old_frequency, new_frequency);
-
    CoreModel::updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }
 
@@ -46,7 +41,7 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
 {
    // Execute this first so that instructions have the opportunity to
    // abort further processing (via AbortInstructionException)
-   Time cost = instruction->getCost();
+   Time cost = instruction->getCost(this);
 
    Time memory_stall_time(0);
    Time execution_unit_stall_time(0);

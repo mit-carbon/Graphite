@@ -96,7 +96,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
 {
    // Execute this first so that instructions have the opportunity to
    // abort further processing (via AbortInstructionException)
-   Time cost = instruction->getCost();
+   Time cost = instruction->getCost(this);
 
    Time one_cycle = Latency(1,m_core->getTile()->getFrequency());
 

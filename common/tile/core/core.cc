@@ -286,10 +286,8 @@ Core::disableModels()
 void
 Core::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   //if (_core_model)
-    //  _core_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-
-   //_total_memory_access_latency = convertCycleCount(_total_memory_access_latency, old_frequency, new_frequency);
+   if (_core_model)
+      _core_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }
 
 void

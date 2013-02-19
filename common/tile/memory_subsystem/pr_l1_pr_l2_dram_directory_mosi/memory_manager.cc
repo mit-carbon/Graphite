@@ -302,13 +302,13 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 }
 
 // Update internal variables when frequency is changed
-// Variables that need to be updated include all variables that are expressed in terms of cycles
-//  e.g., total memory access latency, packet arrival time, etc.
 void
 MemoryManager::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   _L2_cache_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   _dram_directory_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   // update cache performance models
+   _L1_icache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   _L1_dcache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   _L2_cache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }      
 
 void

@@ -35,6 +35,8 @@ CoreModel::CoreModel(Core *core)
    , m_average_frequency(0.0)
    , m_total_time(0)
    , m_checkpointed_curr_time(0)
+   , m_last_frequency_change_time(0)
+   , m_total_cycles_elapsed(0)
    , m_enabled(false)
    , m_current_ins_index(0)
    , m_bp(0)
@@ -120,37 +122,28 @@ void CoreModel::disable()
 // 1) Whenever frequency is changed
 void CoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   //recomputeAverageFrequency(old_frequency);
-   
-   //m_cycle_count = convertCycleCount(m_cycle_count, old_frequency, new_frequency);
-   //m_checkpointed_cycle_count = m_cycle_count;
 
-   // Update Pipeline Stall Counters
-   //m_total_memory_stall_cycles = convertCycleCount(m_total_memory_stall_cycles, old_frequency, new_frequency);
-   //m_total_execution_unit_stall_cycles = convertCycleCount(m_total_execution_unit_stall_cycles, old_frequency, new_frequency);
-   //m_total_recv_instruction_stall_cycles = convertCycleCount(m_total_recv_instruction_stall_cycles, old_frequency, new_frequency);
-   //m_total_sync_instruction_stall_cycles = convertCycleCount(m_total_sync_instruction_stall_cycles, old_frequency, new_frequency);
+   recomputeAverageFrequency(old_frequency);
+   updateCoreStaticInstructionModel(new_frequency);
 }
 
 void CoreModel::setCurrTime(Time time)
 {
    m_curr_time = time;
    m_checkpointed_curr_time = m_curr_time;
+   recomputeAverageFrequency(m_core->getTile()->getFrequency());
 }
-
-
 
 // This function is called:
 // 1) On thread exit
 // 2) Whenever frequency is changed
-void CoreModel::recomputeAverageFrequency(float frequency)
+void CoreModel::recomputeAverageFrequency(float old_frequency)
 {
-   //double cycles_elapsed = (double) (m_cycle_count - m_checkpointed_cycle_count);
-   //double total_cycles_executed = (m_average_frequency * m_total_time) + cycles_elapsed;
-   //double total_time_taken = m_total_time + (cycles_elapsed / frequency);
+   UInt64 cycles_elapsed = (m_curr_time - m_last_frequency_change_time).toCycles(old_frequency);
+   m_total_cycles_elapsed += cycles_elapsed;
+   m_average_frequency = ((double) m_total_cycles_elapsed)/((double) m_curr_time.toNanosec());
 
-   //m_average_frequency = total_cycles_executed / total_time_taken;
-   //m_total_time = (UInt64) total_time_taken;
+   m_last_frequency_change_time = m_curr_time;
 }
 
 void CoreModel::initializePipelineStallCounters()

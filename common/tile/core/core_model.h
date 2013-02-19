@@ -94,6 +94,8 @@ private:
    volatile float m_average_frequency;
    Time m_total_time;
    Time m_checkpointed_curr_time;
+   Time m_last_frequency_change_time;
+   UInt64 m_total_cycles_elapsed;
 
    bool m_enabled;
 

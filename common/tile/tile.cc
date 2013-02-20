@@ -22,12 +22,12 @@ Tile::Tile(tile_id_t id)
       _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this);
 
    // Register callback for clock frequency change
-   getNetwork()->registerCallback(USER_2, TileFreqScalingCallback, this);
+   getNetwork()->registerCallback(FREQ_CONTROL, TileFreqScalingCallback, this);
 }
 
 Tile::~Tile()
 {
-   getNetwork()->unregisterCallback(USER_2);
+   getNetwork()->unregisterCallback(FREQ_CONTROL);
 
    if (_memory_manager)
       delete _memory_manager;

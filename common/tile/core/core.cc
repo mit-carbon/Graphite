@@ -242,6 +242,9 @@ Core::getPacketTypeFromUserNetType(carbon_network_t net_type)
    case CARBON_NET_USER_2:
       return USER_2;
 
+   case CARBON_FREQ_CONTROL:
+      return FREQ_CONTROL;
+
    default:
       LOG_PRINT_ERROR("Unrecognized User Network(%u)", net_type);
       return (PacketType) -1;

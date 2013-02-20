@@ -10,7 +10,8 @@ extern "C" {
 
 typedef enum {
    CARBON_NET_USER_1 = 0,
-   CARBON_NET_USER_2
+   CARBON_NET_USER_2,
+   CARBON_FREQ_CONTROL
 } carbon_network_t;
 
 typedef int CAPI_return_t;

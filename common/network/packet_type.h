@@ -10,6 +10,7 @@ enum PacketType
    USER_2,
    SHARED_MEM_1,
    SHARED_MEM_2,
+   FREQ_CONTROL,
    SIM_THREAD_TERMINATE_THREADS,
    MCP_REQUEST_TYPE,
    MCP_RESPONSE_TYPE,
@@ -38,6 +39,7 @@ enum EStaticNetwork
    STATIC_NETWORK_MEMORY_1,
    STATIC_NETWORK_MEMORY_2,
    STATIC_NETWORK_SYSTEM,
+   STATIC_NETWORK_FREQ_CONTROL,
    NUM_STATIC_NETWORKS
 };
 
@@ -48,7 +50,8 @@ static std::string g_static_network_name_list[] __attribute__((unused)) =
    "user_2",
    "memory_1",
    "memory_2",
-   "system"
+   "system",
+   "freq_control"
 };
 
 // Packets are routed to a static network based on their type. This
@@ -60,6 +63,7 @@ static EStaticNetwork g_type_to_static_network_map[] __attribute__((unused)) =
    STATIC_NETWORK_USER_2,        // USER_2
    STATIC_NETWORK_MEMORY_1,      // SM_1
    STATIC_NETWORK_MEMORY_2,      // SM_2
+   STATIC_NETWORK_FREQ_CONTROL,  // FREQ_CONTROL
    STATIC_NETWORK_SYSTEM,        // ST_TERMINATE_THREADS
    STATIC_NETWORK_USER_1,        // MCP_REQ
    STATIC_NETWORK_USER_1,        // MCP_RESP

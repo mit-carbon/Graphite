@@ -490,6 +490,7 @@ void Config::parseNetworkParameters()
       network_parameters_list[STATIC_NETWORK_MEMORY_1] = cfg->getString("network/memory_model_1");
       network_parameters_list[STATIC_NETWORK_MEMORY_2] = cfg->getString("network/memory_model_2");
       network_parameters_list[STATIC_NETWORK_SYSTEM] = cfg->getString("network/system_model");
+      network_parameters_list[STATIC_NETWORK_FREQ_CONTROL] = cfg->getString("network/freq_control_model");
    }
    catch (...)
    {

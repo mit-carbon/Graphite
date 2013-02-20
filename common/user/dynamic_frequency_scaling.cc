@@ -38,5 +38,5 @@ void CarbonSetRemoteTileFrequency(tile_id_t tile_id, volatile float* frequency)
    FloatingPointHandler floating_point_handler;
 
    Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
-   core->coreSendW(core->getId().tile_id, tile_id, (char*) frequency, sizeof(float), (carbon_network_t) CARBON_NET_USER_2);
+   core->coreSendW(core->getId().tile_id, tile_id, (char*) frequency, sizeof(float), (carbon_network_t) CARBON_FREQ_CONTROL);
 }

@@ -28,7 +28,7 @@ def get_pin_home(graphite_home):
 
 # spawn_job:
 #  start up a command on one machine
-#  can be called by spawn_master.py or spawn.py
+#  can be called by spawn_master.py or spawn_slave.py
 
 def spawn_job(proc_num, command, graphite_home):
     # Set LD_LIBRARY_PATH using PIN_HOME from Makefile.config

@@ -29,7 +29,7 @@ def spawn_job(machine_list, command, working_dir, graphite_home):
             procs[i] = spawn.spawn_job(i, exec_command, graphite_home)
         else:
             command = command.replace("\"", "\\\"")
-            spawn_slave_command = "%s/tools/spawn_slave.py %s %d \\\"%s\\\"" % (graphite_home, working_dir, i, command)
+            spawn_slave_command = "python -u %s/tools/spawn_slave.py %s %d \\\"%s\\\"" % (graphite_home, working_dir, i, command)
             exec_command = "ssh -x %s \"%s\"" % (machine_list[i], spawn_slave_command)
    
             print "%s Starting process: %d: %s" % (pmaster(), i, exec_command)

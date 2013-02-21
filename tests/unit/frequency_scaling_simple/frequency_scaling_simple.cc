@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 {
    if (argc != 5)
    {
-      fprintf(stderr, "[Usage] ./frequency_scaling_random <Number of Threads> <Number of Frequency Changes Per Thread> <Min Frequency (in GHz)> <Max Frequency (in GHz)>\n");
+      fprintf(stderr, "[Usage] ./frequency_scaling_simple <Number of Threads> <Number of Frequency Changes Per Thread> <Min Frequency (in GHz)> <Max Frequency (in GHz)>\n");
       exit(EXIT_FAILURE);
    }
 

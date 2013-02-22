@@ -24,12 +24,10 @@ void CarbonSetTileFrequency(volatile float* frequency)
    // 1) Core Model
    // 2) Memory Subsystem Model
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   tile->acquireLock();
    float old_frequency = tile->getFrequency();
    float new_frequency = *frequency;
    tile->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
    tile->setFrequency(new_frequency);
-   tile->releaseLock();
 }
 
 void CarbonSetRemoteTileFrequency(tile_id_t tile_id, volatile float* frequency)

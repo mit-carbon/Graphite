@@ -14,9 +14,6 @@ void *do_work(void*)
 {
    SInt32 tile_id = CarbonGetTileId();
 
-   // Wait for all threads to be spawned
-   pthread_barrier_wait(&global_barrier);
-
    // Initialize the random number generator
    struct drand48_data rand_buf;
    srand48_r(tile_id, &rand_buf);   
@@ -25,6 +22,7 @@ void *do_work(void*)
    double res;
    drand48_r(&rand_buf, &res);
    float frequency = min_frequency + (max_frequency - min_frequency) * res;
+
       
    int a = (int) floor(frequency);
    int b = (int) floor( (frequency - floor(frequency)) * 100 );
@@ -33,8 +31,10 @@ void *do_work(void*)
    if (tile_id != 0)
       CarbonSetTileFrequency(&frequency);
 
-   float r = 0;
+   // Wait for all threads to be spawned
+   pthread_barrier_wait(&global_barrier);
 
+   float r = 0;
 	for (int i=0; i<num_iterations; i++)
    {
       // Do some work

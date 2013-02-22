@@ -34,9 +34,8 @@ CoreModel::CoreModel(Core *core)
    , m_instruction_count(0)
    , m_average_frequency(0.0)
    , m_total_time(0)
-   , m_checkpointed_curr_time(0)
-   , m_last_frequency_change_time(0)
-   , m_total_cycles_elapsed(0)
+   , m_checkpointed_time(0)
+   , m_total_cycles(0)
    , m_enabled(false)
    , m_current_ins_index(0)
    , m_bp(0)
@@ -128,8 +127,7 @@ void CoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, fl
 void CoreModel::setCurrTime(Time time)
 {
    m_curr_time = time;
-   m_checkpointed_curr_time = m_curr_time;
-   recomputeAverageFrequency(m_core->getTile()->getFrequency());
+   m_checkpointed_time = time;
 }
 
 // This function is called:
@@ -137,11 +135,11 @@ void CoreModel::setCurrTime(Time time)
 // 2) Whenever frequency is changed
 void CoreModel::recomputeAverageFrequency(float old_frequency)
 {
-   UInt64 cycles_elapsed = (m_curr_time - m_last_frequency_change_time).toCycles(old_frequency);
-   m_total_cycles_elapsed += cycles_elapsed;
-   m_average_frequency = ((double) m_total_cycles_elapsed)/((double) m_curr_time.toNanosec());
+   m_total_cycles += (m_curr_time - m_checkpointed_time).toCycles(old_frequency);
+   m_total_time += m_curr_time - m_checkpointed_time;
+   m_average_frequency = ((double) m_total_cycles)/((double) m_total_time.toNanosec());
 
-   m_last_frequency_change_time = m_curr_time;
+   m_checkpointed_time = m_curr_time;
 }
 
 void CoreModel::initializePipelineStallCounters()

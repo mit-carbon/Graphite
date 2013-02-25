@@ -53,7 +53,7 @@ endif
 SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM),$(OUTPUT_DIR_ABS_PATH))
 
 EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
-launch_fn = $(SIM_ROOT)/tools/spawn_master.py $(1) $(2) # 1 - NUM_PROCS # 2 - CONFIG_FILE
+launch_fn = python -u $(SIM_ROOT)/tools/spawn_master.py $(1) $(2) # 1 - NUM_PROCS # 2 - CONFIG_FILE
 
 # Use: $(call run_fn, $(1-MODE), $(2-EXEC), $(3-PROCS), $(4-FLAGS), $(5-CONFIG_FILE_ABS_PATH))
 run_fn = $(if $(findstring build,$(BUILD_MODE)), ,$(if $(findstring pin,$(1)),$(call launch_fn,$(3),$(5)) $(PIN_RUN) $(4) -- $(2),$(call launch_fn,$(3),$(5)) $(VALGRIND) $(2) $(4)))

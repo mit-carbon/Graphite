@@ -46,7 +46,7 @@ summary_file.write("_" * 100)
 summary_file.write("\n\n")
 for num_machines in num_machines_list:
    for benchmark in benchmark_list:
-      cmd = "\n./tools/parse_output.py --input-file %s/%s-%i/sim.out --stats-file %s/%s-%i/stats.out --num-cores 64" \
+      cmd = "python -u ./tools/parse_output.py --input-file %s/%s-%i/sim.out --stats-file %s/%s-%i/stats.out --num-cores 64" \
             % (results_dir, benchmark, num_machines, results_dir, benchmark, num_machines)
       print cmd
       ret = os.system(cmd)

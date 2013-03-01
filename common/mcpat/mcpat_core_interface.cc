@@ -21,12 +21,12 @@ McPATCoreInterface::McPATCoreInterface(UInt32 technology_node, UInt32 core_frequ
    // Initialize Event Counters
    initializeEventCounters();
 
+   // Initialize Output Data Structure
+   initializeOutputDataStructure();
+
    _enable_area_and_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
    if (_enable_area_and_power_modeling)
    {
-      // Initialize Output Data Structure
-      initializeOutputDataStructure();
-      
       // Make a ParseXML Object and Initialize it
       _xml = new McPAT::ParseXML();
 
@@ -39,6 +39,9 @@ McPATCoreInterface::McPATCoreInterface(UInt32 technology_node, UInt32 core_frequ
 
       // Make a Processor Object from the ParseXML
       _core_wrapper = new McPAT::CoreWrapper(_xml);
+
+      // Initialize Static Power
+      computeMcPATCoreEnergy();
    }
 }
 
@@ -110,7 +113,6 @@ void McPATCoreInterface::initializeArchitecturalParameters(UInt32 technology_nod
 void McPATCoreInterface::initializeEventCounters()
 {
    // Event Counters
-   _execution_time = 0;
    // |-- Used Event Counters
    // |---- Instruction Counters
    _total_instructions = 0;
@@ -471,33 +473,30 @@ void McPATCoreInterface::computeMcPATCoreEnergy()
    // Compute Energy from Processor
    _core_wrapper->computeEnergy();
 
-   // Execution Time
-   _execution_time = (_core_wrapper->core->executionTime);
-
    // Store Energy into Data Structure
    // Core
    _mcpat_core_out.core.area                   = _core_wrapper->core->area.get_area()*1e-6;                     
-   _mcpat_core_out.core.leakage                = _core_wrapper->core->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.core.longer_channel_leakage = _core_wrapper->core->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.core.gate_leakage           = _core_wrapper->core->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.core.leakage                = _core_wrapper->core->power.readOp.leakage;                  
+   _mcpat_core_out.core.longer_channel_leakage = _core_wrapper->core->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.core.gate_leakage           = _core_wrapper->core->power.readOp.gate_leakage;             
    _mcpat_core_out.core.dynamic                = _core_wrapper->core->rt_power.readOp.dynamic;
    //    Instruction Fetch Unit
    _mcpat_core_out.ifu.ifu.area                   = _core_wrapper->core->ifu->area.get_area()*1e-6;                     
-   _mcpat_core_out.ifu.ifu.leakage                = _core_wrapper->core->ifu->power.readOp.leakage *_execution_time;                  
-   _mcpat_core_out.ifu.ifu.longer_channel_leakage = _core_wrapper->core->ifu->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.ifu.ifu.gate_leakage           = _core_wrapper->core->ifu->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.ifu.ifu.leakage                = _core_wrapper->core->ifu->power.readOp.leakage;                  
+   _mcpat_core_out.ifu.ifu.longer_channel_leakage = _core_wrapper->core->ifu->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.ifu.ifu.gate_leakage           = _core_wrapper->core->ifu->power.readOp.gate_leakage;             
    _mcpat_core_out.ifu.ifu.dynamic                = _core_wrapper->core->ifu->rt_power.readOp.dynamic;
    //       Instruction Cache
    _mcpat_core_out.ifu.icache.area                   = _core_wrapper->core->ifu->icache.area.get_area()*1e-6;                     
-   _mcpat_core_out.ifu.icache.leakage                = _core_wrapper->core->ifu->icache.power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.ifu.icache.longer_channel_leakage = _core_wrapper->core->ifu->icache.power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.ifu.icache.gate_leakage           = _core_wrapper->core->ifu->icache.power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.ifu.icache.leakage                = _core_wrapper->core->ifu->icache.power.readOp.leakage;                  
+   _mcpat_core_out.ifu.icache.longer_channel_leakage = _core_wrapper->core->ifu->icache.power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.ifu.icache.gate_leakage           = _core_wrapper->core->ifu->icache.power.readOp.gate_leakage;             
    _mcpat_core_out.ifu.icache.dynamic                = _core_wrapper->core->ifu->icache.rt_power.readOp.dynamic;
    //       Instruction Buffer
    _mcpat_core_out.ifu.IB.area                       = _core_wrapper->core->ifu->IB->area.get_area()*1e-6;                     
-   _mcpat_core_out.ifu.IB.leakage                    = _core_wrapper->core->ifu->IB->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.ifu.IB.longer_channel_leakage     = _core_wrapper->core->ifu->IB->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.ifu.IB.gate_leakage               = _core_wrapper->core->ifu->IB->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.ifu.IB.leakage                    = _core_wrapper->core->ifu->IB->power.readOp.leakage;                  
+   _mcpat_core_out.ifu.IB.longer_channel_leakage     = _core_wrapper->core->ifu->IB->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.ifu.IB.gate_leakage               = _core_wrapper->core->ifu->IB->power.readOp.gate_leakage;             
    _mcpat_core_out.ifu.IB.dynamic                    = _core_wrapper->core->ifu->IB->rt_power.readOp.dynamic;
    //       Instruction Decoder
    _mcpat_core_out.ifu.ID.area                       = (_core_wrapper->core->ifu->ID_inst->area.get_area() +
@@ -506,137 +505,137 @@ void McPATCoreInterface::computeMcPATCoreEnergy()
                                                         _core_wrapper->core->ifu->coredynp.decodeW * 1e-6;                     
    _mcpat_core_out.ifu.ID.leakage                    = (_core_wrapper->core->ifu->ID_inst->power.readOp.leakage +
                                                         _core_wrapper->core->ifu->ID_operand->power.readOp.leakage +
-                                                        _core_wrapper->core->ifu->ID_misc->power.readOp.leakage) * _execution_time;                
+                                                        _core_wrapper->core->ifu->ID_misc->power.readOp.leakage);                
    _mcpat_core_out.ifu.ID.longer_channel_leakage     = (_core_wrapper->core->ifu->ID_inst->power.readOp.longer_channel_leakage +
                                                         _core_wrapper->core->ifu->ID_operand->power.readOp.longer_channel_leakage +
-                                                        _core_wrapper->core->ifu->ID_misc->power.readOp.longer_channel_leakage) * _execution_time;   
+                                                        _core_wrapper->core->ifu->ID_misc->power.readOp.longer_channel_leakage);   
    _mcpat_core_out.ifu.ID.gate_leakage               = (_core_wrapper->core->ifu->ID_inst->power.readOp.gate_leakage +
                                                         _core_wrapper->core->ifu->ID_operand->power.readOp.gate_leakage +
-                                                        _core_wrapper->core->ifu->ID_misc->power.readOp.gate_leakage) * _execution_time;          
+                                                        _core_wrapper->core->ifu->ID_misc->power.readOp.gate_leakage);          
    _mcpat_core_out.ifu.ID.dynamic                    = (_core_wrapper->core->ifu->ID_inst->rt_power.readOp.dynamic +
                                                         _core_wrapper->core->ifu->ID_operand->rt_power.readOp.dynamic +
                                                         _core_wrapper->core->ifu->ID_misc->rt_power.readOp.dynamic);
    //       Branch Predictor
    assert(_core_wrapper->core->ifu->coredynp.predictionW > 0);
    _mcpat_core_out.ifu.BPT.area                      = _core_wrapper->core->ifu->BPT->area.get_area() * 1e-6;
-   _mcpat_core_out.ifu.BPT.leakage                   = _core_wrapper->core->ifu->BPT->power.readOp.leakage * _execution_time;
-   _mcpat_core_out.ifu.BPT.longer_channel_leakage    = _core_wrapper->core->ifu->BPT->power.readOp.longer_channel_leakage * _execution_time;
-   _mcpat_core_out.ifu.BPT.gate_leakage              = _core_wrapper->core->ifu->BPT->power.readOp.gate_leakage * _execution_time;
+   _mcpat_core_out.ifu.BPT.leakage                   = _core_wrapper->core->ifu->BPT->power.readOp.leakage;
+   _mcpat_core_out.ifu.BPT.longer_channel_leakage    = _core_wrapper->core->ifu->BPT->power.readOp.longer_channel_leakage;
+   _mcpat_core_out.ifu.BPT.gate_leakage              = _core_wrapper->core->ifu->BPT->power.readOp.gate_leakage;
    _mcpat_core_out.ifu.BPT.dynamic                   = _core_wrapper->core->ifu->BPT->rt_power.readOp.dynamic;
    //       Branch Target Buffer
    _mcpat_core_out.ifu.BTB.area                      = _core_wrapper->core->ifu->BTB->area.get_area() * 1e-6;
-   _mcpat_core_out.ifu.BTB.leakage                   = _core_wrapper->core->ifu->BTB->power.readOp.leakage * _execution_time;
-   _mcpat_core_out.ifu.BTB.longer_channel_leakage    = _core_wrapper->core->ifu->BTB->power.readOp.longer_channel_leakage * _execution_time;
-   _mcpat_core_out.ifu.BTB.gate_leakage              = _core_wrapper->core->ifu->BTB->power.readOp.gate_leakage * _execution_time;
+   _mcpat_core_out.ifu.BTB.leakage                   = _core_wrapper->core->ifu->BTB->power.readOp.leakage;
+   _mcpat_core_out.ifu.BTB.longer_channel_leakage    = _core_wrapper->core->ifu->BTB->power.readOp.longer_channel_leakage;
+   _mcpat_core_out.ifu.BTB.gate_leakage              = _core_wrapper->core->ifu->BTB->power.readOp.gate_leakage;
    _mcpat_core_out.ifu.BTB.dynamic                   = _core_wrapper->core->ifu->BTB->rt_power.readOp.dynamic;
    
    //    Load Store Unit
    _mcpat_core_out.lsu.lsu.area                   = _core_wrapper->core->lsu->area.get_area()*1e-6;                     
-   _mcpat_core_out.lsu.lsu.leakage                = _core_wrapper->core->lsu->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.lsu.lsu.longer_channel_leakage = _core_wrapper->core->lsu->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.lsu.lsu.gate_leakage           = _core_wrapper->core->lsu->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.lsu.lsu.leakage                = _core_wrapper->core->lsu->power.readOp.leakage;                  
+   _mcpat_core_out.lsu.lsu.longer_channel_leakage = _core_wrapper->core->lsu->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.lsu.lsu.gate_leakage           = _core_wrapper->core->lsu->power.readOp.gate_leakage;             
    _mcpat_core_out.lsu.lsu.dynamic                = _core_wrapper->core->lsu->rt_power.readOp.dynamic;
    //       Data Cache
    _mcpat_core_out.lsu.dcache.area                   = _core_wrapper->core->lsu->dcache.area.get_area()*1e-6;                     
-   _mcpat_core_out.lsu.dcache.leakage                = _core_wrapper->core->lsu->dcache.power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.lsu.dcache.longer_channel_leakage = _core_wrapper->core->lsu->dcache.power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.lsu.dcache.gate_leakage           = _core_wrapper->core->lsu->dcache.power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.lsu.dcache.leakage                = _core_wrapper->core->lsu->dcache.power.readOp.leakage;                  
+   _mcpat_core_out.lsu.dcache.longer_channel_leakage = _core_wrapper->core->lsu->dcache.power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.lsu.dcache.gate_leakage           = _core_wrapper->core->lsu->dcache.power.readOp.gate_leakage;             
    _mcpat_core_out.lsu.dcache.dynamic                = _core_wrapper->core->lsu->dcache.rt_power.readOp.dynamic;
    //       Load/Store Queue
    _mcpat_core_out.lsu.LSQ.area                      = _core_wrapper->core->lsu->LSQ->area.get_area()*1e-6;                     
-   _mcpat_core_out.lsu.LSQ.leakage                   = _core_wrapper->core->lsu->LSQ->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.lsu.LSQ.longer_channel_leakage    = _core_wrapper->core->lsu->LSQ->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.lsu.LSQ.gate_leakage              = _core_wrapper->core->lsu->LSQ->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.lsu.LSQ.leakage                   = _core_wrapper->core->lsu->LSQ->power.readOp.leakage;                  
+   _mcpat_core_out.lsu.LSQ.longer_channel_leakage    = _core_wrapper->core->lsu->LSQ->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.lsu.LSQ.gate_leakage              = _core_wrapper->core->lsu->LSQ->power.readOp.gate_leakage;             
    _mcpat_core_out.lsu.LSQ.dynamic                   = _core_wrapper->core->lsu->LSQ->rt_power.readOp.dynamic;
    //    Memory Management Unit
    _mcpat_core_out.mmu.mmu.area                   = _core_wrapper->core->mmu->area.get_area()*1e-6;                     
-   _mcpat_core_out.mmu.mmu.leakage                = _core_wrapper->core->mmu->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.mmu.mmu.longer_channel_leakage = _core_wrapper->core->mmu->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.mmu.mmu.gate_leakage           = _core_wrapper->core->mmu->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.mmu.mmu.leakage                = _core_wrapper->core->mmu->power.readOp.leakage;                  
+   _mcpat_core_out.mmu.mmu.longer_channel_leakage = _core_wrapper->core->mmu->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.mmu.mmu.gate_leakage           = _core_wrapper->core->mmu->power.readOp.gate_leakage;             
    _mcpat_core_out.mmu.mmu.dynamic                = _core_wrapper->core->mmu->rt_power.readOp.dynamic;
    //       Itlb
    _mcpat_core_out.mmu.itlb.area                     = _core_wrapper->core->mmu->itlb->area.get_area()*1e-6;                     
-   _mcpat_core_out.mmu.itlb.leakage                  = _core_wrapper->core->mmu->itlb->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.mmu.itlb.longer_channel_leakage   = _core_wrapper->core->mmu->itlb->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.mmu.itlb.gate_leakage             = _core_wrapper->core->mmu->itlb->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.mmu.itlb.leakage                  = _core_wrapper->core->mmu->itlb->power.readOp.leakage;                  
+   _mcpat_core_out.mmu.itlb.longer_channel_leakage   = _core_wrapper->core->mmu->itlb->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.mmu.itlb.gate_leakage             = _core_wrapper->core->mmu->itlb->power.readOp.gate_leakage;             
    _mcpat_core_out.mmu.itlb.dynamic                  = _core_wrapper->core->mmu->itlb->rt_power.readOp.dynamic;
    //       Dtlb
    _mcpat_core_out.mmu.dtlb.area                     = _core_wrapper->core->mmu->dtlb->area.get_area()*1e-6;                     
-   _mcpat_core_out.mmu.dtlb.leakage                  = _core_wrapper->core->mmu->dtlb->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.mmu.dtlb.longer_channel_leakage   = _core_wrapper->core->mmu->dtlb->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.mmu.dtlb.gate_leakage             = _core_wrapper->core->mmu->dtlb->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.mmu.dtlb.leakage                  = _core_wrapper->core->mmu->dtlb->power.readOp.leakage;                  
+   _mcpat_core_out.mmu.dtlb.longer_channel_leakage   = _core_wrapper->core->mmu->dtlb->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.mmu.dtlb.gate_leakage             = _core_wrapper->core->mmu->dtlb->power.readOp.gate_leakage;             
    _mcpat_core_out.mmu.dtlb.dynamic                  = _core_wrapper->core->mmu->dtlb->rt_power.readOp.dynamic;
    //    Execution Unit
    _mcpat_core_out.exu.exu.area                   = _core_wrapper->core->exu->area.get_area()*1e-6;                     
-   _mcpat_core_out.exu.exu.leakage                = _core_wrapper->core->exu->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.exu.exu.longer_channel_leakage = _core_wrapper->core->exu->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.exu.exu.gate_leakage           = _core_wrapper->core->exu->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.exu.exu.leakage                = _core_wrapper->core->exu->power.readOp.leakage;                  
+   _mcpat_core_out.exu.exu.longer_channel_leakage = _core_wrapper->core->exu->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.exu.exu.gate_leakage           = _core_wrapper->core->exu->power.readOp.gate_leakage;             
    _mcpat_core_out.exu.exu.dynamic                = _core_wrapper->core->exu->rt_power.readOp.dynamic;
    //       Register Files
    _mcpat_core_out.exu.rfu.rfu.area                        = _core_wrapper->core->exu->rfu->area.get_area()*1e-6;                     
-   _mcpat_core_out.exu.rfu.rfu.leakage                     = _core_wrapper->core->exu->rfu->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.exu.rfu.rfu.longer_channel_leakage      = _core_wrapper->core->exu->rfu->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.exu.rfu.rfu.gate_leakage                = _core_wrapper->core->exu->rfu->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.exu.rfu.rfu.leakage                     = _core_wrapper->core->exu->rfu->power.readOp.leakage;                  
+   _mcpat_core_out.exu.rfu.rfu.longer_channel_leakage      = _core_wrapper->core->exu->rfu->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.exu.rfu.rfu.gate_leakage                = _core_wrapper->core->exu->rfu->power.readOp.gate_leakage;             
    _mcpat_core_out.exu.rfu.rfu.dynamic                     = _core_wrapper->core->exu->rfu->rt_power.readOp.dynamic;
    //          Integer RF
    _mcpat_core_out.exu.rfu.IRF.area                           = _core_wrapper->core->exu->rfu->IRF->area.get_area()*1e-6;                     
-   _mcpat_core_out.exu.rfu.IRF.leakage                        = _core_wrapper->core->exu->rfu->IRF->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.exu.rfu.IRF.longer_channel_leakage         = _core_wrapper->core->exu->rfu->IRF->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.exu.rfu.IRF.gate_leakage                   = _core_wrapper->core->exu->rfu->IRF->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.exu.rfu.IRF.leakage                        = _core_wrapper->core->exu->rfu->IRF->power.readOp.leakage;                  
+   _mcpat_core_out.exu.rfu.IRF.longer_channel_leakage         = _core_wrapper->core->exu->rfu->IRF->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.exu.rfu.IRF.gate_leakage                   = _core_wrapper->core->exu->rfu->IRF->power.readOp.gate_leakage;             
    _mcpat_core_out.exu.rfu.IRF.dynamic                        = _core_wrapper->core->exu->rfu->IRF->rt_power.readOp.dynamic;
    //          Floating Point RF
    _mcpat_core_out.exu.rfu.FRF.area                           = _core_wrapper->core->exu->rfu->FRF->area.get_area()*1e-6;                     
-   _mcpat_core_out.exu.rfu.FRF.leakage                        = _core_wrapper->core->exu->rfu->FRF->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.exu.rfu.FRF.longer_channel_leakage         = _core_wrapper->core->exu->rfu->FRF->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.exu.rfu.FRF.gate_leakage                   = _core_wrapper->core->exu->rfu->FRF->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.exu.rfu.FRF.leakage                        = _core_wrapper->core->exu->rfu->FRF->power.readOp.leakage;                  
+   _mcpat_core_out.exu.rfu.FRF.longer_channel_leakage         = _core_wrapper->core->exu->rfu->FRF->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.exu.rfu.FRF.gate_leakage                   = _core_wrapper->core->exu->rfu->FRF->power.readOp.gate_leakage;             
    _mcpat_core_out.exu.rfu.FRF.dynamic                        = _core_wrapper->core->exu->rfu->FRF->rt_power.readOp.dynamic;
    //          Register Windows
    if (_core_wrapper->core->exu->rfu->RFWIN)
    {
       _mcpat_core_out.exu.rfu.RFWIN.area                         = _core_wrapper->core->exu->rfu->RFWIN->area.get_area()*1e-6;                     
-      _mcpat_core_out.exu.rfu.RFWIN.leakage                      = _core_wrapper->core->exu->rfu->RFWIN->power.readOp.leakage * _execution_time;                  
-      _mcpat_core_out.exu.rfu.RFWIN.longer_channel_leakage       = _core_wrapper->core->exu->rfu->RFWIN->power.readOp.longer_channel_leakage * _execution_time;   
-      _mcpat_core_out.exu.rfu.RFWIN.gate_leakage                 = _core_wrapper->core->exu->rfu->RFWIN->power.readOp.gate_leakage * _execution_time;             
+      _mcpat_core_out.exu.rfu.RFWIN.leakage                      = _core_wrapper->core->exu->rfu->RFWIN->power.readOp.leakage;                  
+      _mcpat_core_out.exu.rfu.RFWIN.longer_channel_leakage       = _core_wrapper->core->exu->rfu->RFWIN->power.readOp.longer_channel_leakage;   
+      _mcpat_core_out.exu.rfu.RFWIN.gate_leakage                 = _core_wrapper->core->exu->rfu->RFWIN->power.readOp.gate_leakage;             
       _mcpat_core_out.exu.rfu.RFWIN.dynamic                      = _core_wrapper->core->exu->rfu->RFWIN->rt_power.readOp.dynamic;
    }
    //       Instruction Scheduler
    _mcpat_core_out.exu.scheu.scheu.area                    = _core_wrapper->core->exu->scheu->area.get_area()*1e-6;                     
-   _mcpat_core_out.exu.scheu.scheu.leakage                 = _core_wrapper->core->exu->scheu->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.exu.scheu.scheu.longer_channel_leakage  = _core_wrapper->core->exu->scheu->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.exu.scheu.scheu.gate_leakage            = _core_wrapper->core->exu->scheu->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.exu.scheu.scheu.leakage                 = _core_wrapper->core->exu->scheu->power.readOp.leakage;                  
+   _mcpat_core_out.exu.scheu.scheu.longer_channel_leakage  = _core_wrapper->core->exu->scheu->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.exu.scheu.scheu.gate_leakage            = _core_wrapper->core->exu->scheu->power.readOp.gate_leakage;             
    _mcpat_core_out.exu.scheu.scheu.dynamic                 = _core_wrapper->core->exu->scheu->rt_power.readOp.dynamic;
    //          Instruction Window
    if (_core_wrapper->core->exu->scheu->int_inst_window)
    {
       _mcpat_core_out.exu.scheu.int_inst_window.area                    = _core_wrapper->core->exu->scheu->int_inst_window->area.get_area()*1e-6;                     
-      _mcpat_core_out.exu.scheu.int_inst_window.leakage                 = _core_wrapper->core->exu->scheu->int_inst_window->power.readOp.leakage * _execution_time;                  
-      _mcpat_core_out.exu.scheu.int_inst_window.longer_channel_leakage  = _core_wrapper->core->exu->scheu->int_inst_window->power.readOp.longer_channel_leakage * _execution_time;   
-      _mcpat_core_out.exu.scheu.int_inst_window.gate_leakage            = _core_wrapper->core->exu->scheu->int_inst_window->power.readOp.gate_leakage * _execution_time;             
+      _mcpat_core_out.exu.scheu.int_inst_window.leakage                 = _core_wrapper->core->exu->scheu->int_inst_window->power.readOp.leakage;                  
+      _mcpat_core_out.exu.scheu.int_inst_window.longer_channel_leakage  = _core_wrapper->core->exu->scheu->int_inst_window->power.readOp.longer_channel_leakage;   
+      _mcpat_core_out.exu.scheu.int_inst_window.gate_leakage            = _core_wrapper->core->exu->scheu->int_inst_window->power.readOp.gate_leakage;             
       _mcpat_core_out.exu.scheu.int_inst_window.dynamic                 = _core_wrapper->core->exu->scheu->int_inst_window->rt_power.readOp.dynamic;
    }
    //       Integer ALUs
    _mcpat_core_out.exu.exeu.area                     = _core_wrapper->core->exu->exeu->area.get_area()*1e-6;                     
-   _mcpat_core_out.exu.exeu.leakage                  = _core_wrapper->core->exu->exeu->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.exu.exeu.longer_channel_leakage   = _core_wrapper->core->exu->exeu->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.exu.exeu.gate_leakage             = _core_wrapper->core->exu->exeu->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.exu.exeu.leakage                  = _core_wrapper->core->exu->exeu->power.readOp.leakage;                  
+   _mcpat_core_out.exu.exeu.longer_channel_leakage   = _core_wrapper->core->exu->exeu->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.exu.exeu.gate_leakage             = _core_wrapper->core->exu->exeu->power.readOp.gate_leakage;             
    _mcpat_core_out.exu.exeu.dynamic                  = _core_wrapper->core->exu->exeu->rt_power.readOp.dynamic;
    //       Floating Point Units (FPUs)
    _mcpat_core_out.exu.fp_u.area                     = _core_wrapper->core->exu->fp_u->area.get_area()*1e-6;                     
-   _mcpat_core_out.exu.fp_u.leakage                  = _core_wrapper->core->exu->fp_u->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.exu.fp_u.longer_channel_leakage   = _core_wrapper->core->exu->fp_u->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.exu.fp_u.gate_leakage             = _core_wrapper->core->exu->fp_u->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.exu.fp_u.leakage                  = _core_wrapper->core->exu->fp_u->power.readOp.leakage;                  
+   _mcpat_core_out.exu.fp_u.longer_channel_leakage   = _core_wrapper->core->exu->fp_u->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.exu.fp_u.gate_leakage             = _core_wrapper->core->exu->fp_u->power.readOp.gate_leakage;             
    _mcpat_core_out.exu.fp_u.dynamic                  = _core_wrapper->core->exu->fp_u->rt_power.readOp.dynamic;
    //       Complex ALUs (Mul/Div)
    _mcpat_core_out.exu.mul.area                      = _core_wrapper->core->exu->mul->area.get_area()*1e-6;                     
-   _mcpat_core_out.exu.mul.leakage                   = _core_wrapper->core->exu->mul->power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.exu.mul.longer_channel_leakage    = _core_wrapper->core->exu->mul->power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.exu.mul.gate_leakage              = _core_wrapper->core->exu->mul->power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.exu.mul.leakage                   = _core_wrapper->core->exu->mul->power.readOp.leakage;                  
+   _mcpat_core_out.exu.mul.longer_channel_leakage    = _core_wrapper->core->exu->mul->power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.exu.mul.gate_leakage              = _core_wrapper->core->exu->mul->power.readOp.gate_leakage;             
    _mcpat_core_out.exu.mul.dynamic                   = _core_wrapper->core->exu->mul->rt_power.readOp.dynamic;
    //       Results Broadcast Bus
    _mcpat_core_out.exu.bypass.area                   = _core_wrapper->core->exu->bypass.area.get_area()*1e-6;                     
-   _mcpat_core_out.exu.bypass.leakage                = _core_wrapper->core->exu->bypass.power.readOp.leakage * _execution_time;                  
-   _mcpat_core_out.exu.bypass.longer_channel_leakage = _core_wrapper->core->exu->bypass.power.readOp.longer_channel_leakage * _execution_time;   
-   _mcpat_core_out.exu.bypass.gate_leakage           = _core_wrapper->core->exu->bypass.power.readOp.gate_leakage * _execution_time;             
+   _mcpat_core_out.exu.bypass.leakage                = _core_wrapper->core->exu->bypass.power.readOp.leakage;                  
+   _mcpat_core_out.exu.bypass.longer_channel_leakage = _core_wrapper->core->exu->bypass.power.readOp.longer_channel_leakage;   
+   _mcpat_core_out.exu.bypass.gate_leakage           = _core_wrapper->core->exu->bypass.power.readOp.gate_leakage;             
    _mcpat_core_out.exu.bypass.dynamic                = _core_wrapper->core->exu->bypass.rt_power.readOp.dynamic;
 
    // Subtract Instruction Cache Area, Energy, and Power
@@ -689,7 +688,8 @@ double McPATCoreInterface::getStaticPower()
    // Get Longer Channel Leakage Boolean
    bool long_channel = _xml->sys.longer_channel_device;
 
-   double static_power = (_mcpat_core_out.core.gate_leakage + (long_channel? _mcpat_core_out.core.longer_channel_leakage:_mcpat_core_out.core.leakage)) / _execution_time;
+   double static_power = _mcpat_core_out.core.gate_leakage + 
+                        (long_channel? _mcpat_core_out.core.longer_channel_leakage:_mcpat_core_out.core.leakage);
 
    return static_power;
 }
@@ -714,104 +714,104 @@ void McPATCoreInterface::displayMcPATCoreEnergy(std::ostream &os)
    // Core
    os << indent2 << "Core:" << std::endl;
    os << indent4 << "Area (in mm^2): "              << _mcpat_core_out.core.area << std::endl;               
-   os << indent4 << "Static Power (in W): "      << (_mcpat_core_out.core.gate_leakage + (long_channel? _mcpat_core_out.core.longer_channel_leakage:_mcpat_core_out.core.leakage)) / _execution_time << std::endl; 
+   os << indent4 << "Static Power (in W): "      << (_mcpat_core_out.core.gate_leakage + (long_channel? _mcpat_core_out.core.longer_channel_leakage:_mcpat_core_out.core.leakage)) << std::endl; 
    os << indent4 << "Dynamic Energy (in J): "    << _mcpat_core_out.core.dynamic << std::endl;
    //    Instruction Fetch Unit
    os << indent4 << "Instruction Fetch Unit:" << std::endl;
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.ifu.ifu.area << std::endl;               
-   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.ifu.ifu.gate_leakage + (long_channel? _mcpat_core_out.ifu.ifu.longer_channel_leakage:_mcpat_core_out.ifu.ifu.leakage)) / _execution_time << std::endl;           
+   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.ifu.ifu.gate_leakage + (long_channel? _mcpat_core_out.ifu.ifu.longer_channel_leakage:_mcpat_core_out.ifu.ifu.leakage)) << std::endl;           
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.ifu.dynamic << std::endl;
    
    //       Instruction Buffer
    os << indent8 << "Instruction Buffer:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.IB.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.IB.gate_leakage + (long_channel? _mcpat_core_out.ifu.IB.longer_channel_leakage:_mcpat_core_out.ifu.IB.leakage)) / _execution_time << std::endl; 
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.IB.gate_leakage + (long_channel? _mcpat_core_out.ifu.IB.longer_channel_leakage:_mcpat_core_out.ifu.IB.leakage)) << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.IB.dynamic << std::endl;
    //       Instruction Decoder
    os << indent8 << "Instruction Decoder:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.ID.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.ID.gate_leakage + (long_channel? _mcpat_core_out.ifu.ID.longer_channel_leakage:_mcpat_core_out.ifu.ID.leakage)) / _execution_time << std::endl; 
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.ID.gate_leakage + (long_channel? _mcpat_core_out.ifu.ID.longer_channel_leakage:_mcpat_core_out.ifu.ID.leakage)) << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.ID.dynamic << std::endl;
    //       Branch Predictor Table
    os << indent8 << "Branch Predictor Table:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.BPT.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.BPT.gate_leakage + (long_channel? _mcpat_core_out.ifu.BPT.longer_channel_leakage:_mcpat_core_out.ifu.BPT.leakage)) / _execution_time << std::endl; 
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.BPT.gate_leakage + (long_channel? _mcpat_core_out.ifu.BPT.longer_channel_leakage:_mcpat_core_out.ifu.BPT.leakage)) << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.BPT.dynamic << std::endl;
    //       Branch Target Buffer
    os << indent8 << "Branch Target Buffer:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.ifu.BTB.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.BTB.gate_leakage + (long_channel? _mcpat_core_out.ifu.BTB.longer_channel_leakage:_mcpat_core_out.ifu.BTB.leakage)) / _execution_time << std::endl; 
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.ifu.BTB.gate_leakage + (long_channel? _mcpat_core_out.ifu.BTB.longer_channel_leakage:_mcpat_core_out.ifu.BTB.leakage)) << std::endl; 
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.ifu.BTB.dynamic << std::endl;
 
    //    Load Store Unit
    os << indent4 << "Load Store Unit:" << std::endl;
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.lsu.lsu.area << std::endl;               
-   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.lsu.lsu.gate_leakage + (long_channel? _mcpat_core_out.lsu.lsu.longer_channel_leakage:_mcpat_core_out.lsu.lsu.leakage)) / _execution_time << std::endl;             
+   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.lsu.lsu.gate_leakage + (long_channel? _mcpat_core_out.lsu.lsu.longer_channel_leakage:_mcpat_core_out.lsu.lsu.leakage)) << std::endl;             
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.lsu.lsu.dynamic << std::endl;
    //       Load/Store Queue
    os << indent8 << "Load/Store Queue:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.lsu.LSQ.area << std::endl;               
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.lsu.LSQ.gate_leakage + (long_channel? _mcpat_core_out.lsu.LSQ.longer_channel_leakage:_mcpat_core_out.lsu.LSQ.leakage)) / _execution_time << std::endl;            
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.lsu.LSQ.gate_leakage + (long_channel? _mcpat_core_out.lsu.LSQ.longer_channel_leakage:_mcpat_core_out.lsu.LSQ.leakage)) << std::endl;            
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.lsu.LSQ.dynamic << std::endl;
 
    /*   
    //    Memory Management Unit
    os << indent4 << "Memory Management Unit:" << std::endl;
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.mmu.mmu.area << std::endl;               
-   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.mmu.mmu.gate_leakage + (long_channel? _mcpat_core_out.mmu.mmu.longer_channel_leakage:_mcpat_core_out.mmu.mmu.leakage)) / _execution_time << std::endl;            
+   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.mmu.mmu.gate_leakage + (long_channel? _mcpat_core_out.mmu.mmu.longer_channel_leakage:_mcpat_core_out.mmu.mmu.leakage)) << std::endl;            
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.mmu.mmu.dynamic << std::endl;
    //       Itlb
    os << indent8 << "Itlb:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.mmu.itlb.area << std::endl;                          
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.mmu.itlb.gate_leakage + (long_channel? _mcpat_core_out.mmu.itlb.longer_channel_leakage:_mcpat_core_out.mmu.itlb.leakage)) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.mmu.itlb.gate_leakage + (long_channel? _mcpat_core_out.mmu.itlb.longer_channel_leakage:_mcpat_core_out.mmu.itlb.leakage)) << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.mmu.itlb.dynamic << std::endl;
    //       Dtlb
    os << indent8 << "Dtlb:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.mmu.dtlb.area << std::endl;                            
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.mmu.dtlb.gate_leakage + (long_channel? _mcpat_core_out.mmu.dtlb.longer_channel_leakage:_mcpat_core_out.mmu.dtlb.leakage)) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.mmu.dtlb.gate_leakage + (long_channel? _mcpat_core_out.mmu.dtlb.longer_channel_leakage:_mcpat_core_out.mmu.dtlb.leakage)) << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.mmu.dtlb.dynamic << std::endl;
    */
    
    //    Execution Unit
    os << indent4 << "Execution Unit:" << std::endl;
    os << indent6 << "Area (in mm^2): "              << _mcpat_core_out.exu.exu.area << std::endl;                         
-   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.exu.exu.gate_leakage + (long_channel? _mcpat_core_out.exu.exu.longer_channel_leakage:_mcpat_core_out.exu.exu.leakage)) / _execution_time << std::endl;
+   os << indent6 << "Static Power (in W): "      << (_mcpat_core_out.exu.exu.gate_leakage + (long_channel? _mcpat_core_out.exu.exu.longer_channel_leakage:_mcpat_core_out.exu.exu.leakage)) << std::endl;
    os << indent6 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.exu.dynamic << std::endl;
    //       Register Files
    os << indent8 << "Register Files:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.rfu.rfu.area << std::endl;                          
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.rfu.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.rfu.longer_channel_leakage:_mcpat_core_out.exu.rfu.rfu.leakage)) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.rfu.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.rfu.longer_channel_leakage:_mcpat_core_out.exu.rfu.rfu.leakage)) << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.rfu.rfu.dynamic << std::endl;
    //          Integer RF
    os << indent12 << "Integer RF:" << std::endl;
    os << indent14 << "Area (in mm^2): "              << _mcpat_core_out.exu.rfu.IRF.area << std::endl;                            
-   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.IRF.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.IRF.longer_channel_leakage:_mcpat_core_out.exu.rfu.IRF.leakage)) / _execution_time << std::endl;
+   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.IRF.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.IRF.longer_channel_leakage:_mcpat_core_out.exu.rfu.IRF.leakage)) << std::endl;
    os << indent14 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.rfu.IRF.dynamic << std::endl;
    //          Floating Point RF
    os << indent12 << "Floating Point RF:" << std::endl;
    os << indent14 << "Area (in mm^2): "              << _mcpat_core_out.exu.rfu.FRF.area << std::endl;                          
-   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.FRF.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.FRF.longer_channel_leakage:_mcpat_core_out.exu.rfu.FRF.leakage)) / _execution_time << std::endl;
+   os << indent14 << "Static Power (in W): "      << (_mcpat_core_out.exu.rfu.FRF.gate_leakage + (long_channel? _mcpat_core_out.exu.rfu.FRF.longer_channel_leakage:_mcpat_core_out.exu.rfu.FRF.leakage)) << std::endl;
    os << indent14 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.rfu.FRF.dynamic << std::endl;
    
    //       Integer ALUs
    os << indent8 << "Integer ALUs:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.exeu.area << std::endl;                       
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.exeu.gate_leakage + (long_channel? _mcpat_core_out.exu.exeu.longer_channel_leakage:_mcpat_core_out.exu.exeu.leakage)) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.exeu.gate_leakage + (long_channel? _mcpat_core_out.exu.exeu.longer_channel_leakage:_mcpat_core_out.exu.exeu.leakage)) << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.exeu.dynamic << std::endl;
    //       Floating Point Units (FPUs)
    os << indent8 << "Floating Point Units (FPUs):" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.fp_u.area << std::endl;                          
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.fp_u.gate_leakage + (long_channel? _mcpat_core_out.exu.fp_u.longer_channel_leakage:_mcpat_core_out.exu.fp_u.leakage)) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.fp_u.gate_leakage + (long_channel? _mcpat_core_out.exu.fp_u.longer_channel_leakage:_mcpat_core_out.exu.fp_u.leakage)) << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.fp_u.dynamic << std::endl;
    //       Complex ALUs (Mul/Div)
    os << indent8 << "Complex ALUs (Mul/Div):" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.mul.area << std::endl;                          
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.mul.gate_leakage + (long_channel? _mcpat_core_out.exu.mul.longer_channel_leakage:_mcpat_core_out.exu.mul.leakage)) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.mul.gate_leakage + (long_channel? _mcpat_core_out.exu.mul.longer_channel_leakage:_mcpat_core_out.exu.mul.leakage)) << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.mul.dynamic << std::endl;
    //       Results Broadcast Bus
    os << indent8 << "Results Broadcast Bus:" << std::endl;
    os << indent10 << "Area (in mm^2): "              << _mcpat_core_out.exu.bypass.area << std::endl;                       
-   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.bypass.gate_leakage + (long_channel? _mcpat_core_out.exu.bypass.longer_channel_leakage:_mcpat_core_out.exu.bypass.leakage)) / _execution_time << std::endl;
+   os << indent10 << "Static Power (in W): "      << (_mcpat_core_out.exu.bypass.gate_leakage + (long_channel? _mcpat_core_out.exu.bypass.longer_channel_leakage:_mcpat_core_out.exu.bypass.leakage)) << std::endl;
    os << indent10 << "Dynamic Energy (in J): "    << _mcpat_core_out.exu.bypass.dynamic << std::endl;
 }
 
@@ -938,52 +938,48 @@ void McPATCoreInterface::fillCoreParamsIntoXML()
    _xml->sys.mc.number_mcs = 0;
    _xml->sys.homogeneous_cores = 1;
    _xml->sys.core_tech_node =_core_tech_node;
-   int i;
-   for (i = 0; i <= 63; i++)
-   {
-      _xml->sys.core[i].clock_rate = _clock_rate;
-      _xml->sys.core[i].instruction_length = _instruction_length;
-      _xml->sys.core[i].opcode_width = _opcode_width;
-      _xml->sys.core[i].machine_type = _machine_type;
-      _xml->sys.core[i].number_hardware_threads = _num_hardware_threads;
-      _xml->sys.core[i].fetch_width = _fetch_width;
-      _xml->sys.core[i].number_instruction_fetch_ports = _num_instruction_fetch_ports;
-      _xml->sys.core[i].decode_width = _decode_width;
-      _xml->sys.core[i].issue_width = _issue_width;
-      _xml->sys.core[i].commit_width = _commit_width;
-      _xml->sys.core[i].fp_issue_width = _fp_issue_width;
-      _xml->sys.core[i].prediction_width = _prediction_width;
-      _xml->sys.core[i].pipeline_depth[0] = _integer_pipeline_depth;
-      _xml->sys.core[i].pipeline_depth[1] = _fp_pipeline_depth;
-      _xml->sys.core[i].ALU_per_core = _ALU_per_core;
-      _xml->sys.core[i].MUL_per_core = _MUL_per_core;
-      _xml->sys.core[i].FPU_per_core = _FPU_per_core;
-      _xml->sys.core[i].instruction_buffer_size = _instruction_buffer_size;
-      _xml->sys.core[i].decoded_stream_buffer_size = _decoded_stream_buffer_size;
-      // |---- Register File
-      //cout << "|---- Register File" << endl;
-      _xml->sys.core[i].archi_Regs_IRF_size = _arch_regs_IRF_size;
-      _xml->sys.core[i].archi_Regs_FRF_size = _arch_regs_FRF_size;
-      _xml->sys.core[i].phy_Regs_IRF_size = _phy_regs_IRF_size;
-      _xml->sys.core[i].phy_Regs_FRF_size = _phy_regs_FRF_size;
-      // |---- Load-Store Unit
-      //cout << "|---- Load-Store Unit" << endl;
-      strcpy(_xml->sys.core[i].LSU_order, _LSU_order.c_str());
-      _xml->sys.core[i].store_buffer_size = _store_buffer_size;
-      _xml->sys.core[i].load_buffer_size = _load_buffer_size;
-      _xml->sys.core[i].memory_ports = _num_memory_ports;
-      _xml->sys.core[i].RAS_size = _RAS_size;      
-      // |---- OoO Core
-      //cout << "|---- OoO Core" << endl;
-      _xml->sys.core[i].instruction_window_scheme = _instruction_window_scheme;
-      _xml->sys.core[i].instruction_window_size = _instruction_window_size;
-      _xml->sys.core[i].fp_instruction_window_size = _fp_instruction_window_size;
-      _xml->sys.core[i].ROB_size = _ROB_size;
-      _xml->sys.core[i].rename_scheme = _rename_scheme;
-      // |---- Register Windows (specific to Sun processors)
-      //cout << "|---- Register Windows" << endl;
-      _xml->sys.core[i].register_windows_size = _register_windows_size;
-   }
+   _xml->sys.core[0].clock_rate = _clock_rate;
+   _xml->sys.core[0].instruction_length = _instruction_length;
+   _xml->sys.core[0].opcode_width = _opcode_width;
+   _xml->sys.core[0].machine_type = _machine_type;
+   _xml->sys.core[0].number_hardware_threads = _num_hardware_threads;
+   _xml->sys.core[0].fetch_width = _fetch_width;
+   _xml->sys.core[0].number_instruction_fetch_ports = _num_instruction_fetch_ports;
+   _xml->sys.core[0].decode_width = _decode_width;
+   _xml->sys.core[0].issue_width = _issue_width;
+   _xml->sys.core[0].commit_width = _commit_width;
+   _xml->sys.core[0].fp_issue_width = _fp_issue_width;
+   _xml->sys.core[0].prediction_width = _prediction_width;
+   _xml->sys.core[0].pipeline_depth[0] = _integer_pipeline_depth;
+   _xml->sys.core[0].pipeline_depth[1] = _fp_pipeline_depth;
+   _xml->sys.core[0].ALU_per_core = _ALU_per_core;
+   _xml->sys.core[0].MUL_per_core = _MUL_per_core;
+   _xml->sys.core[0].FPU_per_core = _FPU_per_core;
+   _xml->sys.core[0].instruction_buffer_size = _instruction_buffer_size;
+   _xml->sys.core[0].decoded_stream_buffer_size = _decoded_stream_buffer_size;
+   // |---- Register File
+   //cout << "|---- Register File" << endl;
+   _xml->sys.core[0].archi_Regs_IRF_size = _arch_regs_IRF_size;
+   _xml->sys.core[0].archi_Regs_FRF_size = _arch_regs_FRF_size;
+   _xml->sys.core[0].phy_Regs_IRF_size = _phy_regs_IRF_size;
+   _xml->sys.core[0].phy_Regs_FRF_size = _phy_regs_FRF_size;
+   // |---- Load-Store Unit
+   //cout << "|---- Load-Store Unit" << endl;
+   strcpy(_xml->sys.core[0].LSU_order, _LSU_order.c_str());
+   _xml->sys.core[0].store_buffer_size = _store_buffer_size;
+   _xml->sys.core[0].load_buffer_size = _load_buffer_size;
+   _xml->sys.core[0].memory_ports = _num_memory_ports;
+   _xml->sys.core[0].RAS_size = _RAS_size;      
+   // |---- OoO Core
+   //cout << "|---- OoO Core" << endl;
+   _xml->sys.core[0].instruction_window_scheme = _instruction_window_scheme;
+   _xml->sys.core[0].instruction_window_size = _instruction_window_size;
+   _xml->sys.core[0].fp_instruction_window_size = _fp_instruction_window_size;
+   _xml->sys.core[0].ROB_size = _ROB_size;
+   _xml->sys.core[0].rename_scheme = _rename_scheme;
+   // |---- Register Windows (specific to Sun processors)
+   //cout << "|---- Register Windows" << endl;
+   _xml->sys.core[0].register_windows_size = _register_windows_size;
 }
 
 //---------------------------------------------------------------------------
@@ -993,60 +989,56 @@ void McPATCoreInterface::fillCoreStatsIntoXML()
 {
    // SYSTEM STATS
    _xml->sys.total_cycles = _total_cycles;
-   int i;
-   for (i=0; i<=63; i++)
-   {  
-      // SYSTEM.CORE STATS
-      // |-- Used Event Counters
-      // |---- Instruction Counters
-      //cout << "|---- Instruction Counters" << endl;
-      _xml->sys.core[i].total_instructions = _total_instructions;
-      _xml->sys.core[i].int_instructions = _int_instructions;
-      _xml->sys.core[i].fp_instructions = _fp_instructions;
-      _xml->sys.core[i].branch_instructions = _branch_instructions;
-      _xml->sys.core[i].branch_mispredictions = _branch_mispredictions;
-      _xml->sys.core[i].load_instructions = _load_instructions;
-      _xml->sys.core[i].store_instructions = _store_instructions;
-      _xml->sys.core[i].committed_instructions = _committed_instructions;
-      _xml->sys.core[i].committed_instructions = _committed_int_instructions;
-      _xml->sys.core[i].committed_instructions = _committed_fp_instructions;
-      // |---- Cycle Counters
-      //cout << "|---- Cycle Counters" << endl;
-      _xml->sys.core[i].total_cycles = _total_cycles;
-      _xml->sys.core[i].idle_cycles = _idle_cycles;
-      _xml->sys.core[i].busy_cycles = _busy_cycles;
-      // |---- Reg File Access Counters
-      //cout << "|---- Reg File Access Counters" << endl;
-      _xml->sys.core[i].int_regfile_reads = _int_regfile_reads;
-      _xml->sys.core[i].int_regfile_writes = _int_regfile_writes;
-      _xml->sys.core[i].float_regfile_reads = _fp_regfile_reads;
-      _xml->sys.core[i].float_regfile_writes = _fp_regfile_writes;
-      // |---- Execution Unit Access Counters
-      //cout << "|---- Execution Unit Access Counters" << endl;
-      _xml->sys.core[i].ialu_accesses = _ialu_accesses;
-      _xml->sys.core[i].mul_accesses = _mul_accesses;
-      _xml->sys.core[i].fpu_accesses = _fpu_accesses;
-      _xml->sys.core[i].cdb_alu_accesses = _cdb_alu_accesses;
-      _xml->sys.core[i].cdb_mul_accesses = _cdb_mul_accesses;
-      _xml->sys.core[i].cdb_fpu_accesses = _cdb_fpu_accesses;
-      // |-- Unused Event Counters
-      // |---- OoO Core Event Counters
-      //cout << "|---- OoO Core Event Counters" << endl;
-      _xml->sys.core[i].inst_window_reads = _inst_window_reads;
-      _xml->sys.core[i].inst_window_writes = _inst_window_writes;
-      _xml->sys.core[i].inst_window_wakeup_accesses = _inst_window_wakeup_accesses;
-      _xml->sys.core[i].fp_inst_window_reads = _fp_inst_window_reads;
-      _xml->sys.core[i].fp_inst_window_writes = _fp_inst_window_writes;
-      _xml->sys.core[i].fp_inst_window_wakeup_accesses = _fp_inst_window_wakeup_accesses;
-      _xml->sys.core[i].ROB_reads = _ROB_reads;
-      _xml->sys.core[i].ROB_writes = _ROB_writes;
-      _xml->sys.core[i].rename_accesses = _rename_accesses;
-      _xml->sys.core[i].fp_rename_accesses = _fp_rename_accesses;
-      // |---- Function Calls and Context Switches
-      //cout << "|---- Function Calls and Context Switches" << endl;
-      _xml->sys.core[i].function_calls = _function_calls;
-      _xml->sys.core[i].context_switches = _context_switches;
-   }
+   // SYSTEM.CORE STATS
+   // |-- Used Event Counters
+   // |---- Instruction Counters
+   //cout << "|---- Instruction Counters" << endl;
+   _xml->sys.core[0].total_instructions = _total_instructions;
+   _xml->sys.core[0].int_instructions = _int_instructions;
+   _xml->sys.core[0].fp_instructions = _fp_instructions;
+   _xml->sys.core[0].branch_instructions = _branch_instructions;
+   _xml->sys.core[0].branch_mispredictions = _branch_mispredictions;
+   _xml->sys.core[0].load_instructions = _load_instructions;
+   _xml->sys.core[0].store_instructions = _store_instructions;
+   _xml->sys.core[0].committed_instructions = _committed_instructions;
+   _xml->sys.core[0].committed_instructions = _committed_int_instructions;
+   _xml->sys.core[0].committed_instructions = _committed_fp_instructions;
+   // |---- Cycle Counters
+   //cout << "|---- Cycle Counters" << endl;
+   _xml->sys.core[0].total_cycles = _total_cycles;
+   _xml->sys.core[0].idle_cycles = _idle_cycles;
+   _xml->sys.core[0].busy_cycles = _busy_cycles;
+   // |---- Reg File Access Counters
+   //cout << "|---- Reg File Access Counters" << endl;
+   _xml->sys.core[0].int_regfile_reads = _int_regfile_reads;
+   _xml->sys.core[0].int_regfile_writes = _int_regfile_writes;
+   _xml->sys.core[0].float_regfile_reads = _fp_regfile_reads;
+   _xml->sys.core[0].float_regfile_writes = _fp_regfile_writes;
+   // |---- Execution Unit Access Counters
+   //cout << "|---- Execution Unit Access Counters" << endl;
+   _xml->sys.core[0].ialu_accesses = _ialu_accesses;
+   _xml->sys.core[0].mul_accesses = _mul_accesses;
+   _xml->sys.core[0].fpu_accesses = _fpu_accesses;
+   _xml->sys.core[0].cdb_alu_accesses = _cdb_alu_accesses;
+   _xml->sys.core[0].cdb_mul_accesses = _cdb_mul_accesses;
+   _xml->sys.core[0].cdb_fpu_accesses = _cdb_fpu_accesses;
+   // |-- Unused Event Counters
+   // |---- OoO Core Event Counters
+   //cout << "|---- OoO Core Event Counters" << endl;
+   _xml->sys.core[0].inst_window_reads = _inst_window_reads;
+   _xml->sys.core[0].inst_window_writes = _inst_window_writes;
+   _xml->sys.core[0].inst_window_wakeup_accesses = _inst_window_wakeup_accesses;
+   _xml->sys.core[0].fp_inst_window_reads = _fp_inst_window_reads;
+   _xml->sys.core[0].fp_inst_window_writes = _fp_inst_window_writes;
+   _xml->sys.core[0].fp_inst_window_wakeup_accesses = _fp_inst_window_wakeup_accesses;
+   _xml->sys.core[0].ROB_reads = _ROB_reads;
+   _xml->sys.core[0].ROB_writes = _ROB_writes;
+   _xml->sys.core[0].rename_accesses = _rename_accesses;
+   _xml->sys.core[0].fp_rename_accesses = _fp_rename_accesses;
+   // |---- Function Calls and Context Switches
+   //cout << "|---- Function Calls and Context Switches" << endl;
+   _xml->sys.core[0].function_calls = _function_calls;
+   _xml->sys.core[0].context_switches = _context_switches;
 }
 
 //---------------------------------------------------------------------------

@@ -130,8 +130,6 @@ private:
    mcpat_core_output _mcpat_core_out;
 
    // System Parameters
-   // Execution Time
-   double _execution_time;
    // |---- General Parameters
    int _clock_rate;
    double _core_tech_node;

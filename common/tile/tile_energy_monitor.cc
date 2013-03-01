@@ -34,6 +34,40 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
    // Initialize Delta T Variable
    m_delta_t = Sim()->getCfg()->getInt("runtime_energy_modeling/interval");
 
+   // Initialize Time Counters
+   initializeTimeCounters();
+
+   // Initialize Next Time Variable
+   m_next_time = m_delta_t;
+
+   // Initialize Energy Counters
+   initializeCoreEnergyCounters();
+   initializeCacheEnergyCounters();
+   initializeNetworkEnergyCounters();
+
+   // Initialize Static Power
+   if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
+   {
+      // Not Thread Spawner Tile / MCP
+      // Initialize Static Power
+      getCoreStaticPower();
+      getCacheStaticPower();
+      getNetworkStaticPower();
+      // Initialize Total Power
+      m_core_current_total_power = m_core_static_power;
+      m_cache_current_total_power = m_cache_static_power;
+      for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+      {
+         m_network_current_total_power[i] = m_network_static_power[i];
+      }
+   }
+
+   // Initialize First Time Variable
+   // Check Core Cycle Count
+   UInt64 m_cycle_count = m_core_model->getCycleCount();
+   // Convert from Tile Clock to Global Clock
+   m_first_time = convertCycleCount(m_cycle_count, m_tile->getFrequency(), 1.0);
+
    // Initialize Power Trace
    m_power_trace_enabled = Sim()->getCfg()->getBool("runtime_energy_modeling/power_trace/enabled");
    if (m_power_trace_enabled)
@@ -47,25 +81,10 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
          fprintf(m_power_trace_file,\
             "Time %d, Core Energy %d, Core Power %d, Cache Energy %d, Cache Power %d, Network Energy %d, Network Power %d\n",\
             m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id);
+         // Log Initial Energy and Power
+         logCurrentTotalEnergyAndPower();
       }
    }
-
-   // Initialize Next Time Variable
-   m_next_time = m_delta_t;
-
-   // Initialize Time Counters
-   initializeTimeCounters();
-
-   // Initialize Energy Counters
-   initializeCoreEnergyCounters();
-   initializeCacheEnergyCounters();
-   initializeNetworkEnergyCounters();
-
-   // Set First Time Variable
-   // Check Core Cycle Count
-   UInt64 m_cycle_count = m_core_model->getCycleCount();
-   // Convert from Tile Clock to Global Clock
-   m_first_time = convertCycleCount(m_cycle_count, m_tile->getFrequency(), 1.0);
 }
 
 //---------------------------------------------------------------------------
@@ -125,7 +144,8 @@ void TileEnergyMonitor::periodicallyCollectEnergy()
       {
          if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
          {
-            // Not Thread Spawner Tile / MCP// Log Current Total Energy and Power
+            // Not Thread Spawner Tile / MCP
+            // Log Current Total Energy and Power
             logCurrentTotalEnergyAndPower();
          }
       }

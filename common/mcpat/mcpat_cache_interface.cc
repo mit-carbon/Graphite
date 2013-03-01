@@ -20,6 +20,9 @@ McPATCacheInterface::McPATCacheInterface(Cache* cache, UInt32 technology_node)
 
    // Make a Processor Object from the ParseXML
    _cache_wrapper = new McPAT::CacheWrapper(_xml);
+
+   // Initialize Static Power
+   computeEnergy(cache);
 }
 
 //---------------------------------------------------------------------------

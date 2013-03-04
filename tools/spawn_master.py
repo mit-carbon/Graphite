@@ -94,26 +94,97 @@ def kill_job(procs):
     print "%s %s\n" % (pmaster(), pReturnCode(returnCode))
     return returnCode
 
-# helper functions
+# Helper functions
 
-# read process list from a config file
-def load_process_list_from_file(config_filename):
+# Read output_dir from the command string
+def get_output_dir(command):
+    output_dir_match = re.match(r'.*--general/output_dir\s*=\s*([^\s]+)', command)
+    if output_dir_match:
+        return output_dir_match.group(1)
+    
+    print "*ERROR* Could not read output dir"
+    sys.exit(-1)
+
+# Read config filename from the command string
+def get_config_filename(command):
+    config_filename_match = re.match(r'.*\s+-c\s+([^\s]+)\s+', command)
+    if config_filename_match:
+        return config_filename_match.group(1)
+    
+    print "*ERROR* Could not read config filename"
+    sys.exit(-1)
+
+# Read number of processes (from command string. If not found, from the config file)
+def get_num_processes(command):
+    proc_match = re.match(r'.*--general/num_processes\s*=\s*([0-9]+)', command)
+    if proc_match:
+        return int(proc_match.group(1))
+    
+    config_filename = get_config_filename(command)
+    config = open(config_filename, 'r').readlines()
+    
+    found_general = False
+    for line in config:
+        if found_general == True:
+            proc_match = re.match(r'\s*num_processes\s*=\s*([0-9]+)', line)
+            if proc_match:
+                return int(proc_match.group(1))
+        else: 
+            if re.match(r'\s*\[general\]', line):
+                found_general = True
+
+    print "*ERROR* Could not read number of processes to start the simulation"
+    sys.exit(-1)
+
+# Read process list (from command string. If not found, from the config file)
+def get_process_list(command, num_processes):
     process_list = []
-    config = open(config_filename,"r").readlines()
+
+    curr_process_num = 0
+    while True:
+        hostname_match = re.match(r'.*--process_map/process%d\s*=\s*([A-Za-z0-9.]+)' % (curr_process_num), command)
+        if hostname_match:
+            process_list.append(hostname_match.group(1))
+            curr_process_num = curr_process_num + 1
+            if (curr_process_num == num_processes):
+                return process_list
+        else:
+            break
+
+    if (curr_process_num > 0):
+        print "*ERROR* Found location of at least one process but not all processes from the command string"
+        sys.exit(-1)
+
+    
+    config_filename = get_config_filename(command)
+    config = open(config_filename).readlines()
+    
     found_process_map = False
     for line in config:
-        if found_process_map:
-            if line == "\n":
-                break;
-            # extract the process from the line
-            hostname = re.search("\"(.*)\"", line).group(1)
-            process_list.append(hostname)
+        if found_process_map == True:
+            hostname_match = re.match(r'\s*process%d\s*=\s*\"([A-Za-z0-9.]+)\"' % (curr_process_num), line)
+            if hostname_match:
+                process_list.append(hostname_match.group(1))
+                curr_process_num = curr_process_num + 1
+                if curr_process_num == num_processes:
+                    return process_list
+        else: 
+            if re.match(r'\s*\[process_map\]', line):
+                found_process_map = True
 
-        if line == "[process_map]\n":
-            found_process_map = True
+    print "*ERROR* Could not read process list from config file"
+    sys.exit(-1)
 
-    return process_list
-
+# Create output dir
+def create_output_dir(command, graphite_home):
+    output_dir = get_output_dir(command)
+    config_filename = get_config_filename(command)
+    os.system("mkdir -p %s" % (output_dir))
+    os.system("echo \"%s\" > %s/command" % (command, output_dir))
+    os.system("cp %s %s/carbon_sim.cfg" % (config_filename, output_dir))
+    os.system("rm -f %s/results/latest" % (graphite_home))
+    os.system("ln -s %s %s/results/latest" % (output_dir, graphite_home))
+    
 # pmaster:
 #  print spawn_master.py preamble
 def pmaster():
@@ -122,17 +193,22 @@ def pmaster():
 # main -- if this is used as standalone script
 if __name__=="__main__":
    
-    num_procs = int(sys.argv[1])
-    config_filename = sys.argv[2]
-    command = " ".join(sys.argv[3:])
+    command = " ".join(sys.argv[1:])
+    num_processes = get_num_processes(command)
+    process_list = get_process_list(command, num_processes)
     working_dir = os.getcwd()
 
-    process_list = load_process_list_from_file(config_filename)
+    # Get graphite home
+    graphite_home = spawn.get_graphite_home()
+    
+    # Create output dir
+    create_output_dir(command, graphite_home)
 
-    procs = spawn_job(process_list[0:num_procs],
+    # Spawn job
+    procs = spawn_job(process_list,
                       command,
                       working_dir,
-                      spawn.get_graphite_home())
+                      graphite_home)
 
     try:
         sys.exit(wait_job(procs))

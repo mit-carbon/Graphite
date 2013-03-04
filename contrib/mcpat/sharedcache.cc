@@ -819,8 +819,8 @@ void SharedCache::computeEnergy(bool is_tdp)
 		unicache.rt_power = unicache.power_t + (unicache.caches->local_result.power)*pppm_lkg;
 		if (!((cachep.dir_ty==ST&& cacheL==L1Directory)||(cachep.dir_ty==ST&& cacheL==L2Directory)))
 		{
-			(unicache.rt_power = unicache.rt_power +
-					unicache.missb->local_result.power +
+			unicache.rt_power = unicache.rt_power +
+					(unicache.missb->local_result.power +
 					unicache.ifb->local_result.power +
 					unicache.prefetchb->local_result.power +
 					unicache.wbb->local_result.power)*pppm_lkg;

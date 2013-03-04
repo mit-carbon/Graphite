@@ -120,7 +120,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
   interface_ip.line_sz             = (int)line;
   interface_ip.assoc               = (int)assoc;
   interface_ip.nbanks              = (int)banks;
-  interface_ip.out_w               = interface_ip.line_sz*8/2;
+  interface_ip.out_w               = interface_ip.line_sz*8;
   interface_ip.access_mode         = 1;
   interface_ip.throughput          = cachep.throughput;
   interface_ip.latency             = cachep.latency;
@@ -160,7 +160,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
 	  interface_ip.pure_ram			   = false;
 	  interface_ip.pure_cam            = false;
 	  interface_ip.nbanks              = 1;
-	  interface_ip.out_w               = interface_ip.line_sz*8/2;
+	  interface_ip.out_w               = interface_ip.line_sz*8;
 	  interface_ip.access_mode         = 0;
 	  interface_ip.throughput          = cachep.throughput;//means cycle time
 	  interface_ip.latency             = cachep.latency;//means access time
@@ -185,7 +185,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
 	  interface_ip.cache_sz            = data*cachep.fu_size ;
 	  interface_ip.assoc               = 0;
 	  interface_ip.nbanks              = 1;
-	  interface_ip.out_w               = interface_ip.line_sz*8/2;
+	  interface_ip.out_w               = interface_ip.line_sz*8;
 	  interface_ip.access_mode         = 0;
 	  interface_ip.throughput          =  cachep.throughput;
 	  interface_ip.latency             =  cachep.latency;
@@ -209,7 +209,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
 	  interface_ip.cache_sz            = cachep.prefetchb_size*interface_ip.line_sz;
 	  interface_ip.assoc               = 0;
 	  interface_ip.nbanks              = 1;
-	  interface_ip.out_w               = interface_ip.line_sz*8/2;
+	  interface_ip.out_w               = interface_ip.line_sz*8;
 	  interface_ip.access_mode         = 0;
 	  interface_ip.throughput          = cachep.throughput;
 	  interface_ip.latency             = cachep.latency;
@@ -233,7 +233,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
 	  interface_ip.cache_sz            = cachep.wbb_size*interface_ip.line_sz;
 	  interface_ip.assoc               = 0;
 	  interface_ip.nbanks              = 1;
-	  interface_ip.out_w               = interface_ip.line_sz*8/2;
+	  interface_ip.out_w               = interface_ip.line_sz*8;
 	  interface_ip.access_mode         = 0;
 	  interface_ip.throughput          = cachep.throughput;
 	  interface_ip.latency             = cachep.latency;

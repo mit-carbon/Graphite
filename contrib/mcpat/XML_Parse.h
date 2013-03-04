@@ -306,6 +306,10 @@ typedef struct{
 	double write_accesses;
 	double read_misses;
 	double write_misses;
+   double tag_array_reads;
+   double tag_array_writes;
+   double data_array_reads;
+   double data_array_writes;
 	double conflicts;
 	double duty_cycle;
 } system_L1Directory;
@@ -325,6 +329,10 @@ typedef struct{
 	double write_accesses;
 	double read_misses;
 	double write_misses;
+   double tag_array_reads;
+   double tag_array_writes;
+   double data_array_reads;
+   double data_array_writes;
 	double conflicts;
 	double duty_cycle;
 } system_L2Directory;
@@ -357,6 +365,10 @@ typedef struct{
 	double prefetch_buffer_hits;
 	double wbb_writes;
 	double wbb_reads;
+   double tag_array_reads;
+   double tag_array_writes;
+   double data_array_reads;
+   double data_array_writes;
 	double conflicts;
 	double duty_cycle;
 
@@ -398,6 +410,10 @@ typedef struct{
 	double prefetch_buffer_hits;
 	double wbb_writes;
 	double wbb_reads;
+   double tag_array_reads;
+   double tag_array_writes;
+   double data_array_reads;
+   double data_array_writes;
 	double conflicts;
 	double duty_cycle;
 

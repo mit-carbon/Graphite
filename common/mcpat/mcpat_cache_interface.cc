@@ -135,8 +135,12 @@ void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology
 
 void McPATCacheInterface::fillCacheStatsIntoXML(Cache* cache)
 {
-   _xml->sys.L2[0].read_accesses = cache->_total_read_accesses;
-   _xml->sys.L2[0].write_accesses = cache->_total_write_accesses;
-   _xml->sys.L2[0].read_misses = cache->_total_read_misses;
-   _xml->sys.L2[0].write_misses = cache->_total_write_misses;
+   _xml->sys.L2[0].read_accesses       = cache->_total_read_accesses;
+   _xml->sys.L2[0].write_accesses      = cache->_total_write_accesses;
+   _xml->sys.L2[0].read_misses         = cache->_total_read_misses;
+   _xml->sys.L2[0].write_misses        = cache->_total_write_misses;
+   _xml->sys.L2[0].tag_array_reads     = cache->_event_counters[Cache::TAG_ARRAY_READ];
+   _xml->sys.L2[0].tag_array_writes    = cache->_event_counters[Cache::TAG_ARRAY_WRITE];
+   _xml->sys.L2[0].data_array_reads    = cache->_event_counters[Cache::DATA_ARRAY_READ];
+   _xml->sys.L2[0].data_array_writes   = cache->_event_counters[Cache::DATA_ARRAY_WRITE];
 }

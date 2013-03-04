@@ -666,7 +666,15 @@ void SharedCache::computeEnergy(bool is_tdp)
 			unicache.caches->stats_t.writeAc.access = XML->sys.L2[ithCache].write_accesses;
 			unicache.caches->stats_t.writeAc.miss   = XML->sys.L2[ithCache].write_misses;
 			unicache.caches->stats_t.writeAc.hit    = unicache.caches->stats_t.writeAc.access -	unicache.caches->stats_t.writeAc.miss;
-			unicache.caches->rtp_stats = unicache.caches->stats_t;
+			
+         unicache.caches->tag_array_reads     = XML->sys.L2[ithCache].tag_array_reads;
+         unicache.caches->tag_array_writes    = XML->sys.L2[ithCache].tag_array_writes;
+         unicache.caches->data_array_reads    = XML->sys.L2[ithCache].data_array_reads;
+         unicache.caches->data_array_writes   = XML->sys.L2[ithCache].data_array_writes;
+         
+         unicache.caches->rtp_stats = unicache.caches->stats_t;
+
+         assert(cachep.dir_ty != SBT);
 
 			if (cachep.dir_ty==SBT)
 			{
@@ -686,6 +694,12 @@ void SharedCache::computeEnergy(bool is_tdp)
 			unicache.caches->stats_t.writeAc.access = XML->sys.L3[ithCache].write_accesses;
 			unicache.caches->stats_t.writeAc.miss   = XML->sys.L3[ithCache].write_misses;
 			unicache.caches->stats_t.writeAc.hit    = unicache.caches->stats_t.writeAc.access -	unicache.caches->stats_t.writeAc.miss;
+         
+         unicache.caches->tag_array_reads     = XML->sys.L3[ithCache].tag_array_reads;
+         unicache.caches->tag_array_writes    = XML->sys.L3[ithCache].tag_array_writes;
+         unicache.caches->data_array_reads    = XML->sys.L3[ithCache].data_array_reads;
+         unicache.caches->data_array_writes   = XML->sys.L3[ithCache].data_array_writes;
+         
 			unicache.caches->rtp_stats = unicache.caches->stats_t;
 
 			if (cachep.dir_ty==SBT)
@@ -706,6 +720,12 @@ void SharedCache::computeEnergy(bool is_tdp)
 			unicache.caches->stats_t.writeAc.access = XML->sys.L1Directory[ithCache].write_accesses;
 			unicache.caches->stats_t.writeAc.miss   = XML->sys.L1Directory[ithCache].write_misses;
 			unicache.caches->stats_t.writeAc.hit    = unicache.caches->stats_t.writeAc.access -	unicache.caches->stats_t.writeAc.miss;
+         
+         unicache.caches->tag_array_reads     = XML->sys.L1Directory[ithCache].tag_array_reads;
+         unicache.caches->tag_array_writes    = XML->sys.L1Directory[ithCache].tag_array_writes;
+         unicache.caches->data_array_reads    = XML->sys.L1Directory[ithCache].data_array_reads;
+         unicache.caches->data_array_writes   = XML->sys.L1Directory[ithCache].data_array_writes;
+         
 			unicache.caches->rtp_stats = unicache.caches->stats_t;
 		}
 		else if (cacheL==L2Directory)
@@ -716,25 +736,33 @@ void SharedCache::computeEnergy(bool is_tdp)
 			unicache.caches->stats_t.writeAc.access = XML->sys.L2Directory[ithCache].write_accesses;
 			unicache.caches->stats_t.writeAc.miss   = XML->sys.L2Directory[ithCache].write_misses;
 			unicache.caches->stats_t.writeAc.hit    = unicache.caches->stats_t.writeAc.access -	unicache.caches->stats_t.writeAc.miss;
+         
+         unicache.caches->tag_array_reads     = XML->sys.L2Directory[ithCache].tag_array_reads;
+         unicache.caches->tag_array_writes    = XML->sys.L2Directory[ithCache].tag_array_writes;
+         unicache.caches->data_array_reads    = XML->sys.L2Directory[ithCache].data_array_reads;
+         unicache.caches->data_array_writes   = XML->sys.L2Directory[ithCache].data_array_writes;
+         
 			unicache.caches->rtp_stats = unicache.caches->stats_t;
 		}
 		if (!((cachep.dir_ty==ST&& cacheL==L1Directory)||(cachep.dir_ty==ST&& cacheL==L2Directory)))
 		{   //Assuming write back and write-allocate cache
 
-			unicache.missb->stats_t.readAc.access  = unicache.caches->stats_t.writeAc.miss ;
-			unicache.missb->stats_t.writeAc.access = unicache.caches->stats_t.writeAc.miss;
+			unicache.missb->stats_t.readAc.access  = (unicache.caches->stats_t.readAc.miss + unicache.caches->stats_t.writeAc.miss);
+			unicache.missb->stats_t.writeAc.access = (unicache.caches->stats_t.readAc.miss + unicache.caches->stats_t.writeAc.miss);
 			unicache.missb->rtp_stats = unicache.missb->stats_t;
 
-			unicache.ifb->stats_t.readAc.access  = unicache.caches->stats_t.writeAc.miss;
-			unicache.ifb->stats_t.writeAc.access = unicache.caches->stats_t.writeAc.miss;
+			unicache.ifb->stats_t.readAc.access  = (unicache.caches->stats_t.readAc.miss + unicache.caches->stats_t.writeAc.miss);
+			unicache.ifb->stats_t.writeAc.access = (unicache.caches->stats_t.readAc.miss + unicache.caches->stats_t.writeAc.miss);
 			unicache.ifb->rtp_stats = unicache.ifb->stats_t;
 
-			unicache.prefetchb->stats_t.readAc.access  = unicache.caches->stats_t.writeAc.miss;
-			unicache.prefetchb->stats_t.writeAc.access = unicache.caches->stats_t.writeAc.miss;
+         // Assume something like an adjacent cache-line prefetch
+			unicache.prefetchb->stats_t.readAc.access  = (unicache.caches->stats_t.readAc.miss + unicache.caches->stats_t.writeAc.miss);
+			unicache.prefetchb->stats_t.writeAc.access = (unicache.caches->stats_t.readAc.miss + unicache.caches->stats_t.writeAc.miss);
 			unicache.prefetchb->rtp_stats = unicache.prefetchb->stats_t;
 
-			unicache.wbb->stats_t.readAc.access  = unicache.caches->stats_t.writeAc.miss;
-			unicache.wbb->stats_t.writeAc.access = unicache.caches->stats_t.writeAc.miss;
+         // TODO: Use writeback buffer only on a dirty eviction
+			unicache.wbb->stats_t.readAc.access  = (unicache.caches->stats_t.readAc.miss + unicache.caches->stats_t.writeAc.miss);
+			unicache.wbb->stats_t.writeAc.access = (unicache.caches->stats_t.readAc.miss + unicache.caches->stats_t.writeAc.miss);
 			if (cachep.dir_ty==SBT)
 			{
 				unicache.missb->stats_t.readAc.access  += homenode_rtp_stats.writeAc.miss;
@@ -765,37 +793,37 @@ void SharedCache::computeEnergy(bool is_tdp)
 	unicache.power_t.reset();
 	if (!((cachep.dir_ty==ST&& cacheL==L1Directory)||(cachep.dir_ty==ST&& cacheL==L2Directory)))
 	{
-		unicache.power_t.readOp.dynamic	+= (unicache.caches->stats_t.readAc.hit*unicache.caches->local_result.power.readOp.dynamic+
-            unicache.caches->stats_t.readAc.miss*unicache.caches->local_result.tag_array2.power.readOp.dynamic+
-            unicache.caches->stats_t.writeAc.miss*unicache.caches->local_result.tag_array2.power.writeOp.dynamic+
-				unicache.caches->stats_t.writeAc.access*unicache.caches->local_result.power.writeOp.dynamic);//write miss will also generate a write later
-
+		unicache.power_t.readOp.dynamic	+= (unicache.caches->tag_array_reads   * unicache.caches->local_result.tag_array2.power.readOp.dynamic +
+                                           unicache.caches->tag_array_writes  * unicache.caches->local_result.tag_array2.power.writeOp.dynamic +
+                                           unicache.caches->data_array_reads  * unicache.caches->local_result.data_array2.power.readOp.dynamic +
+				                               unicache.caches->data_array_writes * unicache.caches->local_result.data_array2.power.writeOp.dynamic);
+      
 		if (cachep.dir_ty==SBT)
 		{
-         unicache.power_t.readOp.dynamic  += homenode_stats_t.readAc.hit * (unicache.caches->local_result.data_array2.power.readOp.dynamic*dir_overhead +
-                  unicache.caches->local_result.tag_array2.power.readOp.dynamic) +
-               homenode_stats_t.readAc.miss*unicache.caches->local_result.tag_array2.power.readOp.dynamic +
-               homenode_stats_t.writeAc.miss*unicache.caches->local_result.tag_array2.power.readOp.dynamic +
-                 homenode_stats_t.writeAc.hit*(unicache.caches->local_result.data_array2.power.writeOp.dynamic*dir_overhead +
-                     unicache.caches->local_result.tag_array2.power.readOp.dynamic+
-					homenode_stats_t.writeAc.miss*unicache.caches->local_result.power.writeOp.dynamic);//write miss on dynamic home node will generate a replacement write on whole cache block
-
-
+         unicache.power_t.readOp.dynamic  += homenode_stats_t.readAc.hit * (unicache.caches->local_result.data_array2.power.readOp.dynamic * dir_overhead +
+                                                                            unicache.caches->local_result.tag_array2.power.readOp.dynamic) +
+                                             homenode_stats_t.readAc.miss * unicache.caches->local_result.tag_array2.power.readOp.dynamic +
+                                             homenode_stats_t.writeAc.miss * unicache.caches->local_result.tag_array2.power.readOp.dynamic +
+                                             homenode_stats_t.writeAc.hit * (unicache.caches->local_result.data_array2.power.writeOp.dynamic * dir_overhead +
+                                                                             unicache.caches->local_result.tag_array2.power.readOp.dynamic +
+					                              homenode_stats_t.writeAc.miss*unicache.caches->local_result.power.writeOp.dynamic);
+         //write miss on dynamic home node will generate a replacement write on whole cache block
 		}
 
-		unicache.power_t.readOp.dynamic	+=  unicache.missb->stats_t.readAc.access*unicache.missb->local_result.power.searchOp.dynamic +
-		unicache.missb->stats_t.writeAc.access*unicache.missb->local_result.power.writeOp.dynamic;//each access to missb involves a CAM and a write
-		unicache.power_t.readOp.dynamic	+=  unicache.ifb->stats_t.readAc.access*unicache.ifb->local_result.power.searchOp.dynamic +
-		unicache.ifb->stats_t.writeAc.access*unicache.ifb->local_result.power.writeOp.dynamic;
-		unicache.power_t.readOp.dynamic	+=  unicache.prefetchb->stats_t.readAc.access*unicache.prefetchb->local_result.power.searchOp.dynamic +
-		unicache.prefetchb->stats_t.writeAc.access*unicache.prefetchb->local_result.power.writeOp.dynamic;
-		unicache.power_t.readOp.dynamic	+=  unicache.wbb->stats_t.readAc.access*unicache.wbb->local_result.power.searchOp.dynamic +
-		unicache.wbb->stats_t.writeAc.access*unicache.wbb->local_result.power.writeOp.dynamic;
+      //each access to missb involves a CAM and a write
+		unicache.power_t.readOp.dynamic	+=  (unicache.missb->stats_t.readAc.access * unicache.missb->local_result.power.searchOp.dynamic +
+		                                      unicache.missb->stats_t.writeAc.access * unicache.missb->local_result.power.writeOp.dynamic);
+		unicache.power_t.readOp.dynamic	+=  (unicache.ifb->stats_t.readAc.access * unicache.ifb->local_result.power.searchOp.dynamic +
+		                                      unicache.ifb->stats_t.writeAc.access * unicache.ifb->local_result.power.writeOp.dynamic);
+		unicache.power_t.readOp.dynamic	+=  (unicache.prefetchb->stats_t.readAc.access * unicache.prefetchb->local_result.power.searchOp.dynamic +
+		                                      unicache.prefetchb->stats_t.writeAc.access * unicache.prefetchb->local_result.power.writeOp.dynamic);
+		unicache.power_t.readOp.dynamic	+=  (unicache.wbb->stats_t.readAc.access * unicache.wbb->local_result.power.searchOp.dynamic +
+		                                      unicache.wbb->stats_t.writeAc.access * unicache.wbb->local_result.power.writeOp.dynamic);
 	}
 	else
 	{
-		unicache.power_t.readOp.dynamic	+= (unicache.caches->stats_t.readAc.access*unicache.caches->local_result.power.searchOp.dynamic+
-				unicache.caches->stats_t.writeAc.access*unicache.caches->local_result.power.writeOp.dynamic);
+		unicache.power_t.readOp.dynamic	+= (unicache.caches->stats_t.readAc.access * unicache.caches->local_result.power.searchOp.dynamic+
+				                               unicache.caches->stats_t.writeAc.access * unicache.caches->local_result.power.writeOp.dynamic);
 	}
 
 	if (is_tdp)

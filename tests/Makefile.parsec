@@ -27,19 +27,19 @@ streamcluster_flags ?= 10 20 32 4096 4096 1000 none output.txt 64
 include tests/Makefile.tests
 
 DIRECTORY ?= $(if $(findstring $(patsubst %_parsec,%,$@),$(APPS)),apps,kernels)
-COMMAND ?= export GRAPHITE_HOME=$(SIM_ROOT); mkdir -p $(PARSEC_LOCAL)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; cd $(PARSEC_LOCAL)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_LOCAL)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(PROCS),$(SIM_FLAGS),$(CONFIG_FILE_ABS_PATH))
+COMMAND ?= export GRAPHITE_HOME=$(SIM_ROOT); mkdir -p $(PARSEC_LOCAL)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; cd $(PARSEC_LOCAL)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/run; $(call run_fn,$(MODE),$(PARSEC_LOCAL)/pkgs/$(DIRECTORY)/$(patsubst %_parsec,%,$@)/inst/amd64-linux.graphite/bin/$(patsubst %_parsec,%,$@) $($(patsubst %_parsec,%,$@)_flags),$(SIM_FLAGS))
 
-freqmine_parsec: create_output_dir
+freqmine_parsec:
 	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_LOCAL)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
 	export OMP_NUM_THREADS=64
 	$(COMMAND)
 
-vips_parsec: create_output_dir
+vips_parsec:
 	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_LOCAL)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
 	export IM_CONCURRENCY=64
 	$(COMMAND)
 
-%_parsec: create_output_dir
+%_parsec:
 	export GRAPHITE_HOME=$(SIM_ROOT);$(PARSEC_LOCAL)/bin/parsecmgmt -a build -p $(patsubst %_parsec,%,$@) -c graphite
 	$(COMMAND)
 

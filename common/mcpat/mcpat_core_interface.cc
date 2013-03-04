@@ -928,16 +928,32 @@ void McPATCoreInterface::displayStats(std::ostream &os)
 //---------------------------------------------------------------------------
 void McPATCoreInterface::fillCoreParamsIntoXML()
 {
-   // SYSTEM PARAM
+   // System parameters
    _xml->sys.number_of_cores = 1;
    _xml->sys.number_of_L1Directories = 0;
    _xml->sys.number_of_L2Directories = 0;
    _xml->sys.number_of_L2s = 0;
    _xml->sys.number_of_L3s = 0;
    _xml->sys.number_of_NoCs = 0;
-   _xml->sys.mc.number_mcs = 0;
    _xml->sys.homogeneous_cores = 1;
-   _xml->sys.core_tech_node =_core_tech_node;
+   _xml->sys.homogeneous_L2s = 1;
+   _xml->sys.homogeneous_L1Directories = 1;
+   _xml->sys.homogeneous_L2Directories = 1;
+   _xml->sys.homogeneous_L3s = 1;
+   _xml->sys.homogeneous_ccs = 1;
+   _xml->sys.homogeneous_NoCs = 1;
+   _xml->sys.core_tech_node = _core_tech_node;
+   _xml->sys.target_core_clockrate = _clock_rate;
+   _xml->sys.temperature = 340;  // In Kelvin (K)
+   _xml->sys.number_cache_levels = 2;
+   _xml->sys.interconnect_projection_type = 0;
+   _xml->sys.device_type = 0;    // 0 - HP (High Performance), 1 - LSTP (Low Standby Power)
+   _xml->sys.longer_channel_device = 1;
+   _xml->sys.machine_bits = 64; 
+   _xml->sys.virtual_address_width = 64;
+   _xml->sys.physical_address_width = 52;
+   _xml->sys.virtual_memory_page_size = 4096;
+   
    _xml->sys.core[0].clock_rate = _clock_rate;
    _xml->sys.core[0].instruction_length = _instruction_length;
    _xml->sys.core[0].opcode_width = _opcode_width;

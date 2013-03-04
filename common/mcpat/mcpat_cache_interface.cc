@@ -76,7 +76,7 @@ void McPATCacheInterface::outputSummary(ostream& os)
 {
    string indent4(4, ' ');
    os << indent4 << "Area (in mm^2): "         << _mcpat_cache_out.area << endl;
-   os << indent4 << "Leakage Power (in W): "   << _mcpat_cache_out.leakage_power << endl;
+   os << indent4 << "Static Power (in W): "   << _mcpat_cache_out.leakage_power << endl;
    os << indent4 << "Dynamic Energy (in J): "  << _mcpat_cache_out.dynamic_energy << endl;
 }
 

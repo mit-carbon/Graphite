@@ -42,7 +42,8 @@ parsec_list = [
       "bodytrack",
       ]
 
-benchmark_list = splash2_list + parsec_list
+#benchmark_list = splash2_list + parsec_list
+benchmark_list = splash2_list
 
 lite_mode_list = [
       "freqmine",

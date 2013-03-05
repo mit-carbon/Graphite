@@ -528,7 +528,7 @@ double NetworkModelEMeshHopByHop::getDynamicEnergy()
    {
       dynamic_energy += _mesh_link_list[i]->getPowerModel()->getDynamicEnergy();
    }
-   return 0;
+   return dynamic_energy;
 }
 
 double NetworkModelEMeshHopByHop::getStaticPower()
@@ -538,5 +538,5 @@ double NetworkModelEMeshHopByHop::getStaticPower()
    {
       static_power += _mesh_link_list[i]->getPowerModel()->getStaticPower();
    }
-   return 0;
+   return static_power;
 }

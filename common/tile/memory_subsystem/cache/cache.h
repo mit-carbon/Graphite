@@ -73,6 +73,7 @@ public:
          UInt32 cache_size, 
          UInt32 associativity,
          UInt32 line_size,
+         UInt32 num_banks,
          CacheReplacementPolicy* replacement_policy,
          CacheHashFn* hash_fn,
          UInt32 access_delay,
@@ -133,6 +134,7 @@ private:
    UInt32 _associativity;
    UInt32 _line_size;
    UInt32 _num_sets;
+   UInt32 _num_banks;
    UInt32 _log_line_size;
    volatile float _frequency;
    UInt32 _access_delay;

@@ -20,6 +20,7 @@ MemoryManager::MemoryManager(Tile* tile)
    UInt32 L1_icache_line_size = 0;
    UInt32 L1_icache_size = 0;
    UInt32 L1_icache_associativity = 0;
+   UInt32 L1_icache_num_banks = 0;
    std::string L1_icache_replacement_policy;
    UInt32 L1_icache_data_access_time = 0;
    UInt32 L1_icache_tags_access_time = 0;
@@ -30,6 +31,7 @@ MemoryManager::MemoryManager(Tile* tile)
    UInt32 L1_dcache_line_size = 0;
    UInt32 L1_dcache_size = 0;
    UInt32 L1_dcache_associativity = 0;
+   UInt32 L1_dcache_num_banks = 0;
    std::string L1_dcache_replacement_policy;
    UInt32 L1_dcache_data_access_time = 0;
    UInt32 L1_dcache_tags_access_time = 0;
@@ -40,6 +42,7 @@ MemoryManager::MemoryManager(Tile* tile)
    UInt32 L2_cache_line_size = 0;
    UInt32 L2_cache_size = 0;
    UInt32 L2_cache_associativity = 0;
+   UInt32 L2_cache_num_banks = 0;
    std::string L2_cache_replacement_policy;
    UInt32 L2_cache_data_access_time = 0;
    UInt32 L2_cache_tags_access_time = 0;
@@ -64,6 +67,7 @@ MemoryManager::MemoryManager(Tile* tile)
       L1_icache_line_size = Sim()->getCfg()->getInt(L1_icache_type + "/cache_line_size");
       L1_icache_size = Sim()->getCfg()->getInt(L1_icache_type + "/cache_size");
       L1_icache_associativity = Sim()->getCfg()->getInt(L1_icache_type + "/associativity");
+      L1_icache_num_banks = Sim()->getCfg()->getInt(L1_icache_type + "/num_banks");
       L1_icache_replacement_policy = Sim()->getCfg()->getString(L1_icache_type + "/replacement_policy");
       L1_icache_data_access_time = Sim()->getCfg()->getInt(L1_icache_type + "/data_access_time");
       L1_icache_tags_access_time = Sim()->getCfg()->getInt(L1_icache_type + "/tags_access_time");
@@ -75,6 +79,7 @@ MemoryManager::MemoryManager(Tile* tile)
       L1_dcache_line_size = Sim()->getCfg()->getInt(L1_dcache_type + "/cache_line_size");
       L1_dcache_size = Sim()->getCfg()->getInt(L1_dcache_type + "/cache_size");
       L1_dcache_associativity = Sim()->getCfg()->getInt(L1_dcache_type + "/associativity");
+      L1_dcache_num_banks = Sim()->getCfg()->getInt(L1_dcache_type + "/num_banks");
       L1_dcache_replacement_policy = Sim()->getCfg()->getString(L1_dcache_type + "/replacement_policy");
       L1_dcache_data_access_time = Sim()->getCfg()->getInt(L1_dcache_type + "/data_access_time");
       L1_dcache_tags_access_time = Sim()->getCfg()->getInt(L1_dcache_type + "/tags_access_time");
@@ -86,6 +91,7 @@ MemoryManager::MemoryManager(Tile* tile)
       L2_cache_line_size = Sim()->getCfg()->getInt(L2_cache_type + "/cache_line_size");
       L2_cache_size = Sim()->getCfg()->getInt(L2_cache_type + "/cache_size");
       L2_cache_associativity = Sim()->getCfg()->getInt(L2_cache_type + "/associativity");
+      L2_cache_num_banks = Sim()->getCfg()->getInt(L2_cache_type + "/num_banks");
       L2_cache_replacement_policy = Sim()->getCfg()->getString(L2_cache_type + "/replacement_policy");
       L2_cache_data_access_time = Sim()->getCfg()->getInt(L2_cache_type + "/data_access_time");
       L2_cache_tags_access_time = Sim()->getCfg()->getInt(L2_cache_type + "/tags_access_time");
@@ -158,11 +164,13 @@ MemoryManager::MemoryManager(Tile* tile)
          getCacheLineSize(),
          L1_icache_size,
          L1_icache_associativity,
+         L1_icache_num_banks,
          L1_icache_replacement_policy,
          L1_icache_data_access_time,
          L1_icache_track_miss_types,
          L1_dcache_size,
          L1_dcache_associativity,
+         L1_dcache_num_banks,
          L1_dcache_replacement_policy,
          L1_dcache_data_access_time,
          L1_dcache_track_miss_types,
@@ -174,6 +182,7 @@ MemoryManager::MemoryManager(Tile* tile)
          getCacheLineSize(),
          L2_cache_size,
          L2_cache_associativity,
+         L2_cache_num_banks,
          L2_cache_replacement_policy,
          L2_cache_data_access_time,
          L2_cache_track_miss_types,

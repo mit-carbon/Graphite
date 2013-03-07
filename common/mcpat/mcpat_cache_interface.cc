@@ -98,10 +98,10 @@ void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology
    _xml->sys.homogeneous_NoCs = 1;
    _xml->sys.core_tech_node = technology_node;
    _xml->sys.target_core_clockrate = cache->_frequency * 1000;
-   _xml->sys.temperature = 340;  // In Kelvin (K)
+   _xml->sys.temperature = 340;                                // In Kelvin (K)
    _xml->sys.number_cache_levels = 2;
    _xml->sys.interconnect_projection_type = 0;
-   _xml->sys.device_type = 0;    // 0 - HP (High Performance), 1 - LSTP (Low Standby Power)
+   _xml->sys.device_type = 0;                                  // 0 - HP (High Performance), 1 - LSTP (Low Standby Power)
    _xml->sys.longer_channel_device = 1;
    _xml->sys.machine_bits = 64; 
    _xml->sys.virtual_address_width = 64;
@@ -118,7 +118,7 @@ void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology
    _xml->sys.L2[0].L2_config[0] = cache->_cache_size;          // Cache size (in bytes)
    _xml->sys.L2[0].L2_config[1] = cache->_line_size;           // Cache line size (in bytes)
    _xml->sys.L2[0].L2_config[2] = cache->_associativity;       // Cache associativity
-   _xml->sys.L2[0].L2_config[3] = 1;                           // Number of banks = 1
+   _xml->sys.L2[0].L2_config[3] = cache->_num_banks;           // Number of banks
    _xml->sys.L2[0].L2_config[4] = 1;                           // Throughput = 1 access per cycle
    _xml->sys.L2[0].L2_config[5] = cache->_access_delay;        // Cache access latency
    _xml->sys.L2[0].L2_config[6] = cache->_line_size;           // Output width

@@ -18,6 +18,7 @@ Cache::Cache(string name,
              UInt32 cache_size,
              UInt32 associativity,
              UInt32 line_size,
+             UInt32 num_banks,
              CacheReplacementPolicy* replacement_policy,
              CacheHashFn* hash_fn,
              UInt32 access_delay,
@@ -30,6 +31,7 @@ Cache::Cache(string name,
    , _cache_size(k_KILO * cache_size)
    , _associativity(associativity)
    , _line_size(line_size)
+   , _num_banks(num_banks)
    , _frequency(frequency)
    , _access_delay(access_delay)
    , _replacement_policy(replacement_policy)

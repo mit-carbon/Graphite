@@ -8,18 +8,25 @@ sys.path.append("./tools/")
 from schedule import *
 from config import *
 
-jobs = []
+# Compile all benchmarks first
+for benchmark in benchmark_list:
+   if benchmark in splash2_list:
+      os.system("make %s_bench_test BUILD_MODE=build" % (benchmark))
+   else: # In PARSEC list
+      if (not os.path.exists("tests/parsec/parsec-3.0")):
+         print "[regress] Creating PARSEC applications directory."
+         os.system("make setup_parsec")
+      os.system("make %s_parsec BUILD_MODE=build" % (benchmark))
 
 # Generate jobs
+jobs = []
+
 for benchmark in benchmark_list:
 
    # Generate command
    if benchmark in splash2_list:
       command = "make %s_bench_test" % (benchmark)
    else: # In parsec_list
-      if (not os.path.exists("tests/parsec/parsec-3.0")):
-         print "[regress] Creating PARSEC applications directory."
-         os.system("make setup_parsec")
       command = "make %s_parsec" % (benchmark)
 
    # Get APP_FLAGS

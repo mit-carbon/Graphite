@@ -51,7 +51,7 @@ static std::string g_static_network_name_list[] __attribute__((unused)) =
    "memory_1",
    "memory_2",
    "system",
-   "freq_control"
+   "frequency_control"
 };
 
 // Packets are routed to a static network based on their type. This

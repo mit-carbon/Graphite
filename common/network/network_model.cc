@@ -164,7 +164,7 @@ NetworkModel::initializeEventCounters()
 bool
 NetworkModel::isModelEnabled(const NetPacket& pkt)
 {
-   SInt32 network_id = getNetworkId();
+   SInt32 network_id = getNetworkID();
    if ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2))
    {
       return ( _enabled && (getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) );

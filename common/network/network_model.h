@@ -60,6 +60,8 @@ public:
       Time _contention_delay;
    };
 
+   string getNetworkName() { return _network_name; }
+   
    volatile float getFrequency() { return _frequency; }
    bool hasBroadcastCapability() { return _has_broadcast_capability; }
 
@@ -119,9 +121,9 @@ protected:
    // Tile Width
    volatile double _tile_width;
 
-   Network *getNetwork() { return _network; }
-   SInt32 getNetworkId() { return _network_id; }
-
+   Network *getNetwork()   { return _network; }
+   SInt32 getNetworkID()   { return _network_id; }
+   
    // Is Application Tile?
    bool isApplicationTile(tile_id_t tile_id);
    // Is System Tile - Thread Spawner or MCP

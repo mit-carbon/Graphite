@@ -34,10 +34,11 @@ def geomean(num_list):
 
 # Print a summary of the regression tests
 summary_file = open("./tools/regress/summary.log", 'w')
-host_time_list_1 = []
-KIPS_list_1 = []
-host_time_list_2 = []
-KIPS_list_2 = []
+host_time_list = {}
+KIPS_list = {}
+for num_machines in num_machines_list:
+   host_time_list[num_machines] = []
+   KIPS_list[num_machines] = []
 
 summary_file.write("_" * 100)
 summary_file.write("\n\n")
@@ -66,18 +67,15 @@ for benchmark in benchmark_list:
          KIPS = total_target_instructions * 1000 / host_working_time
          formatted_KIPS = "%.2f" % (KIPS)
          summary_file.write("%s | %s | %s |  %s |  %s |\n" % (benchmark.ljust(23), str(num_machines).center(12), 'PASS'.center(8), formatTime(host_time).ljust(16), formatted_KIPS.ljust(25)))
-         
-         if (num_machines == 1):
-            host_time_list_1.append(host_time)
-            KIPS_list_1.append(KIPS)
-         else: # num_machines == 2
-            host_time_list_2.append(host_time)
-            KIPS_list_2.append(KIPS)
+        
+         host_time_list[num_machines].append(host_time)
+         KIPS_list[num_machines].append(KIPS)
       else:
          summary_file.write("%s | %s | %s |  %s |  %s |\n" % (benchmark.ljust(23), str(num_machines).center(12), 'FAIL'.center(8), ''.ljust(16), ''.ljust(25)))
 summary_file.write("_" * 100)
 summary_file.write("\n\n")
 
-summary_file.write("1 Machine  : Simulation Time - %s (total), Performance - %.2f KIPS (geomean)\n" % (formatTime(sum(host_time_list_1)), geomean(KIPS_list_1)))
-summary_file.write("2 Machines : Simulation Time - %s (total), Performance - %.2f KIPS (geomean)\n" % (formatTime(sum(host_time_list_2)), geomean(KIPS_list_2)))
+for num_machines in num_machines_list:
+   summary_file.write("%s Machines  : Simulation Time - %s (total), Performance - %.2f KIPS (geomean)\n" % \
+         (num_machines, formatTime(sum(host_time_list[num_machines])), geomean(KIPS_list[num_machines])))
 summary_file.close()

@@ -83,6 +83,8 @@ void Network::outputSummary(std::ostream &out) const
    out << "Network Summary: " << endl;
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
+      if (i > STATIC_NETWORK_SYSTEM)
+         break;         
       out << "  Network - " <<  _models[i]->getNetworkName() << ": " << endl;
       _models[i]->outputSummary(out);
    }

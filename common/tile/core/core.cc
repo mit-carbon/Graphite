@@ -220,7 +220,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
 
    // Calculate the round-trip time
    Time memory_access_time = final_time - initial_time;
-   incrTotalMemoryAccessLatency(memory_access_time);
+   incrTotalMemoryAccessLatency(mem_component, memory_access_time);
 
    if (push_info)
    {
@@ -257,13 +257,25 @@ Core::outputSummary(ostream& os)
    if (_core_model)
       _core_model->outputSummary(os);
    
-   UInt64 total_memory_access_latency_in_ns = _total_memory_access_latency.toNanosec();
+   UInt64 total_instruction_memory_access_latency_in_ns = _total_instruction_memory_access_latency.toNanosec();
+   UInt64 total_data_memory_access_latency_in_ns = _total_data_memory_access_latency.toNanosec();
    
    os << "Shared Memory Model summary: " << endl;
-   os << "    Total Memory Accesses: " << _num_memory_accesses << endl;
-   os << "    Average Memory Access Latency (in ns): " << 
-      (1.0 * total_memory_access_latency_in_ns / _num_memory_accesses) << endl;
+   os << "    Total Memory Accesses: " << _num_instruction_memory_accesses + _num_data_memory_accesses << endl;
+   os << "    Average Memory Access Latency (in ns): "
+      << (1.0 * (total_instruction_memory_access_latency_in_ns + total_data_memory_access_latency_in_ns) /
+                (_num_instruction_memory_accesses + _num_data_memory_accesses))
+      << endl;
    
+   os << "    Total Instruction Memory Accesses: " << _num_instruction_memory_accesses << endl;
+   os << "    Average Instruction Memory Access Latency (in ns): "
+      << 1.0 * total_instruction_memory_access_latency_in_ns / _num_instruction_memory_accesses
+      << endl;
+   
+   os << "    Total Data Memory Accesses: " << _num_data_memory_accesses << endl;
+   os << "    Average Data Memory Access Latency (in ns): "
+      << 1.0 * total_data_memory_access_latency_in_ns / _num_data_memory_accesses
+      << endl;
 }
 
 void
@@ -296,16 +308,30 @@ Core::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_fr
 void
 Core::initializeMemoryAccessLatencyCounters()
 {
-   _num_memory_accesses = 0;
-   _total_memory_access_latency = Time(0);
+   _num_instruction_memory_accesses = 0;
+   _total_instruction_memory_access_latency = Time(0);
+   _num_data_memory_accesses = 0;
+   _total_data_memory_access_latency = Time(0);
 }
 
 void
-Core::incrTotalMemoryAccessLatency(Time memory_access_latency)
+Core::incrTotalMemoryAccessLatency(MemComponent::Type mem_component, Time memory_access_latency)
 {
-   if (_enabled)
+   if (!_enabled)
+      return;
+
+   if (mem_component == MemComponent::L1_ICACHE)
    {
-      _num_memory_accesses ++;
-      _total_memory_access_latency += memory_access_latency;
+      _num_instruction_memory_accesses ++;
+      _total_instruction_memory_access_latency += memory_access_latency;
+   }
+   else if (mem_component == MemComponent::L1_DCACHE)
+   {
+      _num_data_memory_accesses ++;
+      _total_data_memory_access_latency += memory_access_latency;
+   }
+   else
+   {
+      LOG_PRINT_ERROR("Unrecognized mem component(%s)", SPELL_MEMCOMP(mem_component));
    }
 }

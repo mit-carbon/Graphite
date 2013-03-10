@@ -72,42 +72,6 @@ void Instruction::initializeStaticInstructionModel()
    }
 }
 
-// DynamicInstruction
-
-DynamicInstruction::DynamicInstruction(Time cost, InstructionType type)
-   : Instruction(type)
-   , m_cost(cost)
-{
-}
-
-DynamicInstruction::~DynamicInstruction()
-{
-}
-
-Time DynamicInstruction::getCost(CoreModel* perf)
-{
-   return m_cost;
-}
-
-// SyncInstruction
-
-SyncInstruction::SyncInstruction(Time cost)
-   : DynamicInstruction(cost, INST_SYNC)
-{ }
-
-// SpawnInstruction
-
-SpawnInstruction::SpawnInstruction(Time time)
-   : Instruction(INST_SPAWN)
-   , m_time(time)
-{ }
-
-Time SpawnInstruction::getCost(CoreModel* perf)
-{
-   perf->setCurrTime(m_time);
-   throw CoreModel::AbortInstructionException(); // exit out of handleInstruction
-}
-
 // BranchInstruction
 
 BranchInstruction::BranchInstruction(UInt64 opcode, OperandList &l)
@@ -138,6 +102,18 @@ Time BranchInstruction::getCost(CoreModel* perf)
       
    perf->popDynamicInstructionInfo();
    return Time(cost);
+}
+
+// SpawnInstruction
+
+SpawnInstruction::SpawnInstruction(Time cost)
+   : DynamicInstruction(cost, INST_SPAWN)
+{}
+
+Time SpawnInstruction::getCost(CoreModel* perf)
+{
+   perf->setCurrTime(m_cost);
+   throw CoreModel::AbortInstructionException(); // exit out of handleInstruction
 }
 
 // Instruction

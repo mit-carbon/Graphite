@@ -75,7 +75,7 @@ public:
 
    Instruction(InstructionType type);
 
-   virtual ~Instruction() { };
+   virtual ~Instruction() {}
    virtual Time getCost(CoreModel* perf);
 
    static void initializeStaticInstructionModel();
@@ -144,20 +144,34 @@ public:
    {}
 };
 
+// conditional branches
+class BranchInstruction : public Instruction
+{
+public:
+   BranchInstruction(UInt64 opcode, OperandList &l);
+
+   Time getCost(CoreModel* perf);
+};
+
 // for operations not associated with the binary -- such as processing
 // a packet
 class DynamicInstruction : public Instruction
 {
 public:
-   DynamicInstruction(Time cost, InstructionType type = INST_DYNAMIC_MISC);
-   ~DynamicInstruction();
+   DynamicInstruction(Time cost, InstructionType type = INST_DYNAMIC_MISC)
+      : Instruction(type)
+      , m_cost(cost)
+   {}
+   ~DynamicInstruction() {}
 
-   Time getCost(CoreModel* perf);
+   Time getCost(CoreModel* perf)
+   { return m_cost; }
 
-private:
+protected:
    Time m_cost;
 };
 
+// RecvInstruction
 class RecvInstruction : public DynamicInstruction
 {
 public:
@@ -166,29 +180,21 @@ public:
    {}
 };
 
+// SyncInstruction
 class SyncInstruction : public DynamicInstruction
 {
 public:
-   SyncInstruction(Time cost);
+   SyncInstruction(Time cost)
+      : DynamicInstruction(cost, INST_SYNC)
+   {}
 };
 
-// set clock to particular time
-class SpawnInstruction : public Instruction
+// SpawnInstruction - set clock to particular time
+class SpawnInstruction : public DynamicInstruction
 {
 public:
    SpawnInstruction(Time time);
-   Time getCost(CoreModel* perf);
-
-private:
-   Time m_time;
-};
-
-// conditional branches
-class BranchInstruction : public Instruction
-{
-public:
-   BranchInstruction(UInt64 opcode, OperandList &l );
-
+   
    Time getCost(CoreModel* perf);
 };
 

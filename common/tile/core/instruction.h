@@ -21,17 +21,16 @@ enum InstructionType
    INST_FMUL,
    INST_FDIV,
    INST_JMP,
+   INST_BRANCH,
    INST_DYNAMIC_MISC,
    INST_RECV,
    INST_SYNC,
    INST_SPAWN,
-   INST_STRING,
-   INST_BRANCH,
    MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","dynamic_misc","recv","sync","spawn","string","branch"};
+{"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","branch","dynamic_misc","recv","sync","spawn"};
 
 class Operand
 {

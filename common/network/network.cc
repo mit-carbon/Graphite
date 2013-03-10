@@ -85,7 +85,7 @@ void Network::outputSummary(std::ostream &out) const
    {
       if (i > STATIC_NETWORK_SYSTEM)
          break;         
-      out << "  Network - " <<  _models[i]->getNetworkName() << ": " << endl;
+      out << "  Network (" <<  _models[i]->getNetworkName() << "): " << endl;
       _models[i]->outputSummary(out);
    }
 }

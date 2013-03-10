@@ -46,12 +46,12 @@ enum EStaticNetwork
 // This gives the list of names for the static networks
 static std::string g_static_network_name_list[] __attribute__((unused)) =
 {
-   "user_1",
-   "user_2",
-   "memory_1",
-   "memory_2",
-   "system",
-   "frequency_control"
+   "User-1",
+   "User-2",
+   "Memory-1",
+   "Memory-2",
+   "System",
+   "Frequency-Control"
 };
 
 // Packets are routed to a static network based on their type. This

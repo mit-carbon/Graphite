@@ -445,7 +445,7 @@ NetPacket Network::netRecv(const NetMatch &match)
       {  
          LOG_PRINT("netRecv: Queueing RecvInstruction(%llu)", packet.time.toNanosec() - start_time.toNanosec());
          Instruction *i = new RecvInstruction(packet.time - start_time);
-         core_model->queueDynamicInstruction(i);
+         core_model->processDynamicInstruction(i);
       }
    }
 

@@ -174,18 +174,26 @@ void CoreModel::updatePipelineStallCounters(Instruction* i, Time memory_stall_ti
    m_total_execution_unit_stall_time += execution_unit_stall_time;
 }
 
-void CoreModel::queueDynamicInstruction(Instruction *i)
+void CoreModel::processDynamicInstruction(Instruction* i)
+{
+   bool queued = queueDynamicInstruction(i);
+   if (queued)
+      iterate();
+}
+
+bool CoreModel::queueDynamicInstruction(Instruction *i)
 {
    if (!m_enabled)
    {
       delete i;
-      return;
+      return false;
    }
 
    BasicBlock *bb = new BasicBlock(true);
    bb->push_back(i);
    ScopedLock sl(m_basic_block_queue_lock);
    m_basic_block_queue.push(bb);
+   return true;
 }
 
 void CoreModel::queueBasicBlock(BasicBlock *basic_block)

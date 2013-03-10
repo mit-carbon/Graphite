@@ -88,7 +88,7 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
       if (m_core->getModel())
       {
          Time time_elapsed = Time(time - start_time);
-         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(time_elapsed));
+         m_core->getModel()->processDynamicInstruction(new SyncInstruction(time_elapsed));
       }
    }
 
@@ -192,7 +192,7 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
       if (m_core->getModel())
       {
          Time time_elapsed = Time(time  - start_time);
-         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(time_elapsed));
+         m_core->getModel()->processDynamicInstruction(new SyncInstruction(time_elapsed));
       }
    }
 
@@ -336,7 +336,7 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
       if (m_core->getModel())
       {
          Time time_elapsed = Time(time - start_time);
-         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(time_elapsed));
+         m_core->getModel()->processDynamicInstruction(new SyncInstruction(time_elapsed));
       }
    }
 

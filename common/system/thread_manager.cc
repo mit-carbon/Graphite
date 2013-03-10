@@ -137,7 +137,7 @@ void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
    CoreModel *core_model = core->getModel();
    if (core_model)
    {
-      core_model->queueDynamicInstruction(new SpawnInstruction(Time(req->time)));
+      core_model->processDynamicInstruction(new SpawnInstruction(Time(req->time)));
    }
 }
 

@@ -1061,7 +1061,7 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
          if (core->getModel())
          {
             Time time_elapsed = Time(end_time - start_time);
-            core->getModel()->queueDynamicInstruction(new SyncInstruction(time_elapsed));
+            core->getModel()->processDynamicInstruction(new SyncInstruction(time_elapsed));
          }
       }
 

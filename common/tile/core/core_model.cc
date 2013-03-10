@@ -136,7 +136,7 @@ void CoreModel::setCurrTime(Time time)
 void CoreModel::recomputeAverageFrequency(float old_frequency)
 {
    m_total_cycles += (m_curr_time - m_checkpointed_time).toCycles(old_frequency);
-   m_total_time += m_curr_time - m_checkpointed_time;
+   m_total_time += (m_curr_time - m_checkpointed_time);
    m_average_frequency = ((double) m_total_cycles)/((double) m_total_time.toNanosec());
 
    m_checkpointed_time = m_curr_time;

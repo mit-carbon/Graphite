@@ -178,14 +178,16 @@ VOID instructionCallback(INS ins, void *v)
    {
       // Core Performance Modeling
       addInstructionModeling(ins);
-   }
 
-   // Progress Trace
-   addProgressTrace(ins);
-   // Clock Skew Minimization
-   addPeriodicSync(ins);
-   // Scheduling
-   addYield(ins);
+      // Progress Trace
+      addProgressTrace(ins);
+      
+      // Clock Skew Minimization
+      addPeriodicSync(ins);
+      
+      // Scheduling
+      addYield(ins);
+   }
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
@@ -407,11 +409,7 @@ int main(int argc, char *argv[])
    // Instrumentation
    LOG_PRINT("Start of instrumentation.");
    
-   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
-      RTN_AddInstrumentFunction(routineCallback, 0);
-   else // Sim()->getConfig()->getSimulationMode() == Config::LITE
-      RTN_AddInstrumentFunction(lite::routineCallback, 0);
-
+   // Added thread start/fini callback
    PIN_AddThreadStartFunction(threadStartCallback, 0);
    PIN_AddThreadFiniFunction(threadFiniCallback, 0);
    
@@ -431,10 +429,18 @@ int main(int argc, char *argv[])
       }
    }
 
+   // Add RTN instrumentation
+   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
+      RTN_AddInstrumentFunction(routineCallback, 0);
+   else // Sim()->getConfig()->getSimulationMode() == Config::LITE
+      RTN_AddInstrumentFunction(lite::routineCallback, 0);
+
+   // Add INS instrumentation
    INS_AddInstrumentFunction(instructionCallback, 0);
 
    initProgressTrace();
 
+   // Add Application Fini function
    PIN_AddFiniFunction(ApplicationExit, 0);
 
    // Never returns

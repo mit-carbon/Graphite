@@ -54,12 +54,12 @@ void Tile::outputSummary(ostream &os)
    LOG_PRINT("Core Summary");
    _core->outputSummary(os);
 
-   LOG_PRINT("Network Summary");
-   _network->outputSummary(os);
-
    LOG_PRINT("Memory Subsystem Summary");
    if (_memory_manager)
       _memory_manager->outputSummary(os);
+   
+   LOG_PRINT("Network Summary");
+   _network->outputSummary(os);
 }
 
 void Tile::enableModels()

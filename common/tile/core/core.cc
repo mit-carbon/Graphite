@@ -216,7 +216,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
    LOG_ASSERT_ERROR(final_time >= initial_time, "final_time(%llu) < initial_time(%llu)", final_time.getTime(), initial_time.getTime());
    
    LOG_PRINT("Time(%llu), %s - ADDR(%#lx), data_size(%u), END", 
-             final_time.getTime(), ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
+             final_time.toNanosec(), ((mem_op_type == READ) ? "READ" : "WRITE"), address, data_size);
 
    // Calculate the round-trip time
    Time memory_access_time = final_time - initial_time;

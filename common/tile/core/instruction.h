@@ -98,7 +98,7 @@ public:
 
    bool isSimpleMemoryLoad() const;
    bool isDynamic() const
-   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC)); }
+   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC) || (m_type == INST_SPAWN)); }
 
    void print() const;
 

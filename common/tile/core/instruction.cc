@@ -96,7 +96,6 @@ Time BranchInstruction::getCost(CoreModel* perf)
    bool prediction = bp->predict(getAddress(), i.branch_info.target);
    bool correct = (prediction == i.branch_info.taken);
 
-
    bp->update(prediction, i.branch_info.taken, getAddress(), i.branch_info.target);
    Latency cost = correct ? Latency(1,frequency) : Latency(bp->getMispredictPenalty(),frequency);
       

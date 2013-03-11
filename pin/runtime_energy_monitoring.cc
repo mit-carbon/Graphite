@@ -11,6 +11,9 @@
 
 void handleRuntimeEnergyMonitoring()
 {
+   if (!Sim()->isEnabled())
+   return;
+
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    assert(tile);
    if (tile->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())

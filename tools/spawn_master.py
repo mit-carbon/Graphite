@@ -19,34 +19,36 @@ from termcolors import *
 #  returns an object that can be passed to poll_job()
 def spawn_job(machine_list, command, working_dir, graphite_home):
     
-    procs = {}
+    graphite_procs = {}
+    renew_permissions_proc = subprocess.Popen(spawn.renew_permissions(), shell=True, preexec_fn=os.setsid)
+
     # spawn
     for i in range(0, len(machine_list)):
         if (machine_list[i] == "localhost") or (machine_list[i] == r'127.0.0.1'):
             exec_command = "%s" % (command)
             
             print "%s Starting process: %d: %s" % (pmaster(), i, exec_command)
-            procs[i] = spawn.spawn_job(i, exec_command, graphite_home)
+            graphite_procs[i] = spawn.spawn_job(i, exec_command, graphite_home)
         else:
             command = command.replace("\"", "\\\"")
             spawn_slave_command = "python -u %s/tools/spawn_slave.py %s %d \\\"%s\\\"" % (graphite_home, working_dir, i, command)
             exec_command = "ssh -x %s \"%s\"" % (machine_list[i], spawn_slave_command)
    
             print "%s Starting process: %d: %s" % (pmaster(), i, exec_command)
-            procs[i] = subprocess.Popen(exec_command, shell=True, preexec_fn=os.setsid)
+            graphite_procs[i] = subprocess.Popen(exec_command, shell=True, preexec_fn=os.setsid)
 
-    return procs
+    return [graphite_procs, renew_permissions_proc]
 
 # poll_job:
 #  check if a job has finished
 #  returns the returnCode, or None
-def poll_job(procs):
+def poll_job(graphite_procs):
     
     # check status
     returnCode = None
 
-    for i in range(0,len(procs)):
-        returnCode = procs[i].poll()
+    for i in range(0,len(graphite_procs)):
+        returnCode = graphite_procs[i].poll()
         if returnCode != None:
             break
 
@@ -55,15 +57,15 @@ def poll_job(procs):
         return None
 
     # process terminated, so wait or kill remaining
-    for i in range(0,len(procs)):
-        returnCode2 = procs[i].poll()
+    for i in range(0,len(graphite_procs)):
+        returnCode2 = graphite_procs[i].poll()
         if returnCode2 == None:
             if returnCode == 0:
-                returnCode = procs[i].wait()
+                returnCode = graphite_procs[i].wait()
                 print "%s Process: %d exited with ReturnCode: %d" % (pmaster(), i, returnCode)
             else:
                 print "%s Killing process: %d" % (pmaster(), i)
-                os.killpg(procs[i].pid, signal.SIGKILL)
+                os.killpg(graphite_procs[i].pid, signal.SIGKILL)
         else:
             print "%s Process: %d exited with ReturnCode: %d" % (pmaster(), i, returnCode2)
 
@@ -72,23 +74,28 @@ def poll_job(procs):
 
 # wait_job:
 #  wait on a job to finish
-def wait_job(procs):
+def wait_job(graphite_procs, renew_permissions_proc):
     
      while True:
-         ret = poll_job(procs)
+         ret = poll_job(graphite_procs)
          if ret != None:
+             os.killpg(renew_permissions_proc.pid, signal.SIGKILL)
              return ret
          time.sleep(0.5)
 
 # kill_job:
-#  kill all graphite processes
-def kill_job(procs):
-    
-    for i in range(0,len(procs)):
-        returnCode = procs[i].poll()
+#  kill all graphite processes + renew_permissions process
+def kill_job(graphite_procs, renew_permissions_proc):
+   
+    # Kill graphite processes
+    for i in range(0,len(graphite_procs)):
+        returnCode = graphite_procs[i].poll()
         if returnCode == None:
             print "%s Killing process: %d" % (pmaster(), i)
-            os.killpg(procs[i].pid, signal.SIGKILL)
+            os.killpg(graphite_procs[i].pid, signal.SIGKILL)
+    
+    # Kill renew permissions process
+    os.killpg(renew_permissions_proc.pid, signal.SIGKILL)
     
     returnCode = signal.SIGINT
     print "%s %s\n" % (pmaster(), pReturnCode(returnCode))
@@ -205,15 +212,15 @@ if __name__=="__main__":
     create_output_dir(command, graphite_home)
 
     # Spawn job
-    procs = spawn_job(process_list,
-                      command,
-                      working_dir,
-                      graphite_home)
+    [graphite_procs, renew_permissions_proc] = spawn_job(process_list,
+                                                         command,
+                                                         working_dir,
+                                                         graphite_home)
 
     try:
-        sys.exit(wait_job(procs))
+        sys.exit(wait_job(graphite_procs, renew_permissions_proc))
 
     except KeyboardInterrupt:
         msg = colorstr('Keyboard interrupt. Killing simulation', 'RED')
         print "%s %s" % (pmaster(), msg)
-        sys.exit(kill_job(procs))
+        sys.exit(kill_job(graphite_procs, renew_permissions_proc))

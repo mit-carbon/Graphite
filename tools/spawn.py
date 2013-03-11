@@ -36,3 +36,8 @@ def spawn_job(proc_num, command, graphite_home):
     os.environ['CARBON_PROCESS_INDEX'] = "%d" % (proc_num)
     proc = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, env=os.environ)
     return proc
+
+# renew_permissions:
+#  command to renew Kerberos/AFS tokens
+def renew_permissions():
+   return "krenew -K 60 -t"

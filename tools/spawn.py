@@ -37,7 +37,12 @@ def spawn_job(proc_num, command, graphite_home):
     proc = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, env=os.environ)
     return proc
 
-# renew_permissions:
+# spawn_renew_permissions_proc:
 #  command to renew Kerberos/AFS tokens
-def renew_permissions():
-   return "krenew -K 60 -t"
+def spawn_renew_permissions_proc():
+   try:
+      test_proc = subprocess.Popen("krenew")
+   except OSError:
+      return None
+   test_proc.wait()
+   return subprocess.Popen("krenew -K 60 -t", shell=True, preexec_fn=os.setsid)

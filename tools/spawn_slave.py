@@ -20,7 +20,7 @@ def spawn_job(proc_num, command, working_dir, graphite_home):
    exec_command = "cd %s; %s" % (working_dir, command)
    print "%s Starting process: %d: %s" % (pslave(), proc_num, exec_command)
    graphite_proc = spawn.spawn_job(proc_num, exec_command, graphite_home)
-   renew_permissions_proc = subprocess.Popen(spawn.renew_permissions(), shell=True, preexec_fn=os.setsid)
+   renew_permissions_proc = spawn.spawn_renew_permissions_proc()
    return [graphite_proc, renew_permissions_proc]
 
 # wait_job:
@@ -31,7 +31,8 @@ def wait_job(graphite_proc, renew_permissions_proc, proc_num):
       returnCode = graphite_proc.poll()
       if returnCode != None:
          print "%s Process: %d exited with ReturnCode: %d" % (pslave(), proc_num, returnCode)
-         os.killpg(renew_permissions_proc.pid, signal.SIGKILL)
+         if (renew_permissions_proc != None):
+            os.killpg(renew_permissions_proc.pid, signal.SIGKILL)
          return returnCode
       
       # If not, check if some the ssh connection has been killed
@@ -39,7 +40,8 @@ def wait_job(graphite_proc, renew_permissions_proc, proc_num):
       if (os.getppid() == 1):
          # DO NOT place a print statement here
          os.killpg(graphite_proc.pid, signal.SIGKILL)
-         os.killpg(renew_permissions_proc.pid, signal.SIGKILL)
+         if (renew_permissions_proc != None):
+            os.killpg(renew_permissions_proc.pid, signal.SIGKILL)
          return -1
       
       # Sleep for 0.5 seconds before checking parent pid or process status again

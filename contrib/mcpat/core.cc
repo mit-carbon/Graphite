@@ -3755,10 +3755,11 @@ void Core::computeEnergy(bool is_tdp)
     double rtp_pipeline_coe;
     double num_units = 4.0;
 
-   // [graphite] Update clockRate and executionTime
-   coredynp.clockRate          =  XML->sys.core[ithCore].clock_rate;
-   coredynp.clockRate          *= 1e6;
-   coredynp.executionTime      = XML->sys.total_cycles/coredynp.clockRate;
+   // [graphite] Update clockRate, executionTime and pipeline_duty_cycle
+   coredynp.clockRate           =  XML->sys.core[ithCore].clock_rate;
+   coredynp.clockRate           *= 1e6;
+   coredynp.executionTime       = XML->sys.total_cycles/coredynp.clockRate;
+   coredynp.pipeline_duty_cycle = XML->sys.core[ithCore].pipeline_duty_cycle;
 
    // [graphite] Update clockRate and executionTime
    clockRate = coredynp.clockRate;

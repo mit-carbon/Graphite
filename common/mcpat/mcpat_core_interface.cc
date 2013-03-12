@@ -1008,7 +1008,6 @@ void McPATCoreInterface::fillCoreStatsIntoXML()
    // SYSTEM.CORE STATS
    // |-- Used Event Counters
    // |---- Instruction Counters
-   //cout << "|---- Instruction Counters" << endl;
    _xml->sys.core[0].total_instructions = _total_instructions;
    _xml->sys.core[0].int_instructions = _int_instructions;
    _xml->sys.core[0].fp_instructions = _fp_instructions;
@@ -1017,13 +1016,16 @@ void McPATCoreInterface::fillCoreStatsIntoXML()
    _xml->sys.core[0].load_instructions = _load_instructions;
    _xml->sys.core[0].store_instructions = _store_instructions;
    _xml->sys.core[0].committed_instructions = _committed_instructions;
-   _xml->sys.core[0].committed_instructions = _committed_int_instructions;
-   _xml->sys.core[0].committed_instructions = _committed_fp_instructions;
+   _xml->sys.core[0].committed_int_instructions = _committed_int_instructions;
+   _xml->sys.core[0].committed_fp_instructions = _committed_fp_instructions;
+   // |---- Pipeline duty cycle
+   if (_total_cycles > 0)
+      _xml->sys.core[0].pipeline_duty_cycle = _total_instructions / _total_cycles;
    // |---- Cycle Counters
    //cout << "|---- Cycle Counters" << endl;
    _xml->sys.core[0].total_cycles = _total_cycles;
-   _xml->sys.core[0].idle_cycles = _idle_cycles;
    _xml->sys.core[0].busy_cycles = _busy_cycles;
+   _xml->sys.core[0].idle_cycles = _idle_cycles;
    // |---- Reg File Access Counters
    //cout << "|---- Reg File Access Counters" << endl;
    _xml->sys.core[0].int_regfile_reads = _int_regfile_reads;

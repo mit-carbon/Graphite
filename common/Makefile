@@ -28,6 +28,8 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS) $(CONTRIB_LIBS)
 	ar rcs $@ $(OBJECTS)
 
+.PHONY: $(CONTRIB_LIBS)
+
 $(DSENT_LIB):
 	$(MAKE) -C $(SIM_ROOT)/contrib/dsent
 

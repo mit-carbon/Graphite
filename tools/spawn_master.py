@@ -109,7 +109,7 @@ def get_output_dir(command):
 
 # Read config filename from the command string
 def get_config_filename(command):
-    config_filename_match = re.match(r'.*\s+-c\s+([^\s]+)\s+', command)
+    config_filename_match = re.match(r'.*\s+-c\s+([^\s]+)\s+.* -- .*', command)
     if config_filename_match:
         return config_filename_match.group(1)
     

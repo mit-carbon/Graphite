@@ -19,14 +19,12 @@ MemoryManager::MemoryManager(Tile* tile)
    _shmem_perf_model = new ShmemPerfModel();
    
    // Register call-backs
-   _network->registerCallback(SHARED_MEM_1, MemoryManagerNetworkCallback, this);
-   _network->registerCallback(SHARED_MEM_2, MemoryManagerNetworkCallback, this);
+   _network->registerCallback(SHARED_MEM, MemoryManagerNetworkCallback, this);
 }
 
 MemoryManager::~MemoryManager()
 {
-   _network->unregisterCallback(SHARED_MEM_1);
-   _network->unregisterCallback(SHARED_MEM_2);
+   _network->unregisterCallback(SHARED_MEM);
 }
 
 MemoryManager* 
@@ -104,8 +102,7 @@ MemoryManager::__handleMsgFromNetwork(NetPacket& packet)
 
    switch (packet.type)
    {
-   case SHARED_MEM_1:
-   case SHARED_MEM_2:
+   case SHARED_MEM:
       handleMsgFromNetwork(packet);
       break;
 
@@ -257,21 +254,10 @@ MemoryManager::getTileListWithMemoryControllers()
       }
       else
       {
-         UInt32 l_models_memory_1 = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(STATIC_NETWORK_MEMORY_1));
-         UInt32 l_models_memory_2 = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(STATIC_NETWORK_MEMORY_2));
+         UInt32 l_models_memory = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(STATIC_NETWORK_MEMORY));
 
-         pair<bool, vector<tile_id_t> > tile_list_with_memory_controllers_1 = NetworkModel::computeMemoryControllerPositions(l_models_memory_1, num_memory_controllers, application_tile_count);
-         pair<bool, vector<tile_id_t> > tile_list_with_memory_controllers_2 = NetworkModel::computeMemoryControllerPositions(l_models_memory_2, num_memory_controllers, application_tile_count);
-
-         if (tile_list_with_memory_controllers_1.first)
-            return tile_list_with_memory_controllers_1.second;
-         else if (tile_list_with_memory_controllers_2.first)
-            return tile_list_with_memory_controllers_2.second;
-         else
-         {
-            // Return Any of them - Both the network models do not have specific positions
-            return tile_list_with_memory_controllers_1.second;
-         }
+         pair<bool, vector<tile_id_t> > tile_list_with_memory_controllers = NetworkModel::computeMemoryControllerPositions(l_models_memory, num_memory_controllers, application_tile_count);
+         return tile_list_with_memory_controllers.second;
       }
    }
    else

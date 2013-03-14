@@ -82,10 +82,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       CachePerfModel* _L1_dcache_perf_model;
       CachePerfModel* _L2_cache_perf_model;
 
-      // If TRUE, use two networks to communicate shared memory messages.
-      // If FALSE, use just one network
-      bool _switch_networks;
-
       // Cache Line Replication
       static ofstream _cache_line_replication_file;
 
@@ -98,8 +94,5 @@ namespace PrL1PrL2DramDirectoryMOSI
 
       // Check dram directory type
       static void checkDramDirectoryType();
-
-      // Get Packet Type for a message
-      PacketType getPacketType(MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component);
    };
 }

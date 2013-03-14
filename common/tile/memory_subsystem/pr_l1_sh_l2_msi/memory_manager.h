@@ -73,16 +73,11 @@ namespace PrL1ShL2MSI
 
       UInt32 _cache_line_size;
 
-      bool _switch_networks;
-
       bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                     Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
                                     IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
                                     bool modeled);
 
       void handleMsgFromNetwork(NetPacket& packet);
-
-      // Get Packet Type for a message
-      PacketType getPacketType(MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component);
    };
 }

@@ -487,8 +487,7 @@ void Config::parseNetworkParameters()
       config::Config *cfg = Sim()->getCfg();
       network_parameters_list[STATIC_NETWORK_USER_1] = cfg->getString("network/user_1");
       network_parameters_list[STATIC_NETWORK_USER_2] = cfg->getString("network/user_2");
-      network_parameters_list[STATIC_NETWORK_MEMORY_1] = cfg->getString("network/memory_1");
-      network_parameters_list[STATIC_NETWORK_MEMORY_2] = cfg->getString("network/memory_2");
+      network_parameters_list[STATIC_NETWORK_MEMORY] = cfg->getString("network/memory");
       network_parameters_list[STATIC_NETWORK_SYSTEM] = cfg->getString("network/system");
       network_parameters_list[STATIC_NETWORK_FREQ_CONTROL] = DEFAULT_NETWORK_TYPE;
    }

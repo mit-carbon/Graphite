@@ -331,7 +331,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
              shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
              shmem_msg.getRequester(), getTile()->getId(), receiver);
 
-   NetPacket packet(msg_time, SHARED_MEM_1,
+   NetPacket packet(msg_time, SHARED_MEM,
          getTile()->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    getNetwork()->netSend(packet);
@@ -353,7 +353,7 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
              shmem_msg.getType(), shmem_msg.getAddress(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
              shmem_msg.getRequester(), getTile()->getId());
 
-   NetPacket packet(msg_time, SHARED_MEM_1,
+   NetPacket packet(msg_time, SHARED_MEM,
          getTile()->getId(), NetPacket::BROADCAST,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    getNetwork()->netSend(packet);

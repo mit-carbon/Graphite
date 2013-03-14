@@ -102,12 +102,6 @@ MemoryManager::MemoryManager(Tile* tile)
       per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("dram/per_controller_bandwidth");
       dram_queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
       dram_queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
-
-      // If TRUE, use two networks to communicate shared memory messages.
-      // If FALSE, use just one network
-      // SHARED_MEM_1 is used to communicate messages from L1-I/L1-D caches and memory controller
-      // SHARED_MEM_2 is used to communicate messages from L2 cache
-      _switch_networks = Sim()->getCfg()->getBool("caching_protocol/pr_l1_sh_l2_msi/switch_networks");
    }
    catch(...)
    {
@@ -329,9 +323,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
              shmem_msg.getRequester(), getTile()->getId(), receiver,
              shmem_msg.isModeled() ? "TRUE" : "FALSE");
 
-   PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
-
-   NetPacket packet(msg_time, packet_type,
+   NetPacket packet(msg_time, SHARED_MEM,
          getTile()->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    getNetwork()->netSend(packet);
@@ -355,42 +347,13 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
              shmem_msg.getRequester(), getTile()->getId(),
              shmem_msg.isModeled() ? "TRUE" : "FALSE");
 
-   PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
-
-   NetPacket packet(msg_time, packet_type,
+   NetPacket packet(msg_time, SHARED_MEM,
          getTile()->getId(), NetPacket::BROADCAST,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    getNetwork()->netSend(packet);
 
    // Delete the Msg Buf
    delete [] msg_buf;
-}
-
-PacketType
-MemoryManager::getPacketType(MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component)
-{
-   if (_switch_networks)
-   {
-      switch (sender_mem_component)
-      {
-      case MemComponent::CORE:
-         return SHARED_MEM_1;
-      case MemComponent::L1_ICACHE:
-      case MemComponent::L1_DCACHE:
-         return SHARED_MEM_1;
-      case MemComponent::L2_CACHE:
-         return SHARED_MEM_2;
-      case MemComponent::DRAM_CNTLR:
-         return SHARED_MEM_1;
-      default:
-         LOG_PRINT_ERROR("Unrecognized Sender Component(%u)", sender_mem_component);
-         return SHARED_MEM_1;
-      }
-   }
-   else
-   {
-      return SHARED_MEM_1;
-   }
 }
 
 void

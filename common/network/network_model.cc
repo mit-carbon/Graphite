@@ -66,7 +66,7 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
 bool
 NetworkModel::isPacketReadyToBeReceived(const NetPacket& pkt)
 {
-   if ( (_network_id >= STATIC_NETWORK_USER_1) && (_network_id <= STATIC_NETWORK_MEMORY_2) )
+   if ( (_network_id >= STATIC_NETWORK_USER_1) && (_network_id <= STATIC_NETWORK_MEMORY) )
    {
       return (pkt.node_type == RECEIVE_TILE);
    }
@@ -165,7 +165,7 @@ bool
 NetworkModel::isModelEnabled(const NetPacket& pkt)
 {
    SInt32 network_id = getNetworkID();
-   if ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2))
+   if (network_id == STATIC_NETWORK_MEMORY)
    {
       return ( _enabled && (getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) );
    }
@@ -178,7 +178,7 @@ NetworkModel::isModelEnabled(const NetPacket& pkt)
 UInt32
 NetworkModel::getModeledLength(const NetPacket& pkt) // In bits
 {   
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+   if (pkt.type == SHARED_MEM)
    {
       // sender + receiver + size of shmem_msg
       // log2(core_id) for sender and receiver

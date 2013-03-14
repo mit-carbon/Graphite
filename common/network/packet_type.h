@@ -8,8 +8,7 @@ enum PacketType
    INVALID_PACKET_TYPE,
    USER_1,
    USER_2,
-   SHARED_MEM_1,
-   SHARED_MEM_2,
+   SHARED_MEM,
    FREQ_CONTROL,
    SIM_THREAD_TERMINATE_THREADS,
    MCP_REQUEST_TYPE,
@@ -36,8 +35,7 @@ enum EStaticNetwork
 {
    STATIC_NETWORK_USER_1,
    STATIC_NETWORK_USER_2,
-   STATIC_NETWORK_MEMORY_1,
-   STATIC_NETWORK_MEMORY_2,
+   STATIC_NETWORK_MEMORY,
    STATIC_NETWORK_SYSTEM,
    STATIC_NETWORK_FREQ_CONTROL,
    NUM_STATIC_NETWORKS
@@ -48,8 +46,7 @@ static std::string g_static_network_name_list[] __attribute__((unused)) =
 {
    "User-1",
    "User-2",
-   "Memory-1",
-   "Memory-2",
+   "Memory",
    "System",
    "Frequency-Control"
 };
@@ -61,8 +58,7 @@ static EStaticNetwork g_type_to_static_network_map[] __attribute__((unused)) =
    STATIC_NETWORK_SYSTEM,        // INVALID_PACKET_TYPE
    STATIC_NETWORK_USER_1,        // USER_1
    STATIC_NETWORK_USER_2,        // USER_2
-   STATIC_NETWORK_MEMORY_1,      // SM_1
-   STATIC_NETWORK_MEMORY_2,      // SM_2
+   STATIC_NETWORK_MEMORY,        // SHARED_MEM
    STATIC_NETWORK_FREQ_CONTROL,  // FREQ_CONTROL
    STATIC_NETWORK_SYSTEM,        // ST_TERMINATE_THREADS
    STATIC_NETWORK_USER_1,        // MCP_REQ

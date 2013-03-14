@@ -187,12 +187,8 @@ VOID instructionCallback(INS ins, void *v)
    addPeriodicSync(ins);
    // Scheduling
    addYield(ins);
-
-   if (Config::getSingleton()->getEnablePowerModeling())
-   {
-      // Runtime Energy Monitoring
-      addRuntimeEnergyMonitoring(ins);
-   }
+   // Runtime Energy Monitoring
+   addRuntimeEnergyMonitoring(ins);
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {

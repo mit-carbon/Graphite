@@ -9,8 +9,16 @@
 #include "core.h"
 #include "tile_energy_monitor.h"
 
+static bool enabled()
+{
+   return Sim()->getCfg()->getBool("general/enable_power_modeling");
+}
+
 void handleRuntimeEnergyMonitoring()
 {
+   if (!Sim()->isEnabled())
+      return;
+
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    assert(tile);
    if (tile->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())
@@ -20,12 +28,15 @@ void handleRuntimeEnergyMonitoring()
    }
 
    TileEnergyMonitor* energy_monitor = tile->getTileEnergyMonitor();
+   assert(energy_monitor);
 
-   if (energy_monitor)
-      energy_monitor->periodicallyCollectEnergy();
+   energy_monitor->periodicallyCollectEnergy();
 }
 
 void addRuntimeEnergyMonitoring(INS ins)
 {
+   if (!enabled())
+      return;
+
    INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleRuntimeEnergyMonitoring), IARG_END);
 }

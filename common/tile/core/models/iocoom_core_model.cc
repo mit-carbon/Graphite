@@ -93,6 +93,7 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 
 void IOCOOMCoreModel::computeEnergy()
 {
+   m_mcpat_core_interface->updateCycleCounters(m_cycle_count);
    m_mcpat_core_interface->computeMcPATCoreEnergy();
 }
 

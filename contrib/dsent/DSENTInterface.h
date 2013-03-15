@@ -7,9 +7,9 @@
 
 namespace dsent_contrib
 {
-    // This class contains the file locations of DSENT config files and some helpers
-    // used for getting data in/out of DSENT. Maybe other stuff will be added if the
-    // need should arise
+    // This class contains the file locations of DSENT config files, some helpers
+    // used for getting data in/out of DSENT, and global technology overwrites used for all
+    // DSENT calls.  Maybe other stuff will be added if the need should arise
     class DSENTInterface
     {
         public:
@@ -47,6 +47,9 @@ namespace dsent_contrib
             inline const String& get_elec_tech_file_path() const { return m_elec_tech_file_path_; }
             inline const String& get_phot_tech_file_path() const { return m_phot_tech_file_path_; }
 
+            // Add global tech overwrite
+            void add_global_tech_overwrite(const String& var_, const String& val_);
+
             // Run DSENT with some specified arguments, returning outputs
             std::vector<String> run_dsent(const String& cfg_file_path_, const std::vector<String>& evals_, const std::vector<Overwrite>& overwrites_) const;
 
@@ -58,6 +61,8 @@ namespace dsent_contrib
             // Tech file paths
             String m_elec_tech_file_path_;
             String m_phot_tech_file_path_;
+            // Global tech overwrites
+            std::vector<Overwrite>* m_overwrites_tech_;
 
         private:        
             // Singleton

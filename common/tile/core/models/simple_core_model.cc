@@ -39,8 +39,8 @@ void SimpleCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequen
 
 void SimpleCoreModel::handleInstruction(Instruction *instruction)
 {
-   LOG_PRINT("Started processing instruction: Address(%#lx), Type(%u), Cost(%llu), Curr Time(%llu)",
-         instruction->getAddress(), instruction->getType(), instruction->getCost(this).toNanosec(), m_curr_time.toNanosec());
+   // LOG_PRINT("Started processing instruction: Address(%#lx), Type(%u), Cost(%llu), Curr Time(%llu)",
+   //       instruction->getAddress(), instruction->getType(), instruction->getCost(this).toNanosec(), m_curr_time.toNanosec());
    
    // Execute this first so that instructions have the opportunity to
    // abort further processing (via AbortInstructionException)
@@ -105,8 +105,8 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
    // Update Common Counters
    updatePipelineStallCounters(instruction, memory_stall_time, execution_unit_stall_time);
 
-   LOG_PRINT("Finished processing instruction: Address(%#lx), Type(%u), Cost(%llu), Curr Time(%llu)",
-         instruction->getAddress(), instruction->getType(), instruction->getCost(this).toNanosec(), m_curr_time.toNanosec());
+   // LOG_PRINT("Finished processing instruction: Address(%#lx), Type(%u), Cost(%llu), Curr Time(%llu)",
+   //       instruction->getAddress(), instruction->getType(), instruction->getCost(this).toNanosec(), m_curr_time.toNanosec());
 }
 
 Time SimpleCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)

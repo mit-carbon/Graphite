@@ -9,7 +9,7 @@ KERNELS = canneal dedup streamcluster
 blackscholes_flags ?= 64 in_16K.txt prices.txt
 # Bodytrack uses a PARSEC thread count of 62 to fit within 64 cores (n+2)
 bodytrack_flags ?= sequenceB_2 4 2 2000 5 0 62
-facesim_flags ?=
+facesim_flags ?= -timing -threads 64
 ferret_flags ?= corel lsh queries 10 20 15 output.txt
 fluidanimate_flags ?=  64 5 in_100K.fluid out.fluid
 freqmine_flags ?= kosarak_500k.dat 410

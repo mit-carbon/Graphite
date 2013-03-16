@@ -22,7 +22,7 @@ x264_flags ?= --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-p
 
 canneal_flags ?= 64 15000 2000 200000.nets 64
 dedup_flags ?= -c -p -v -t 20 -i media.dat -o output.dat.ddp
-streamcluster_flags ?= 10 20 32 4096 4096 1000 none output.txt 64
+streamcluster_flags ?= 10 20 64 8192 8192 1000 none output.txt 64
 
 include tests/Makefile.tests
 

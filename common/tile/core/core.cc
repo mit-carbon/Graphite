@@ -231,16 +231,14 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
 
    return make_pair<UInt32, Time>(num_misses, memory_access_time);
 }
+
 PacketType
 Core::getPacketTypeFromUserNetType(carbon_network_t net_type)
 {
    switch (net_type)
    {
-   case CARBON_NET_USER_1:
-      return USER_1;
-
-   case CARBON_NET_USER_2:
-      return USER_2;
+   case CARBON_NET_USER:
+      return USER;
 
    case CARBON_FREQ_CONTROL:
       return FREQ_CONTROL;

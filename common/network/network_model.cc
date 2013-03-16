@@ -66,7 +66,7 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
 bool
 NetworkModel::isPacketReadyToBeReceived(const NetPacket& pkt)
 {
-   if ( (_network_id >= STATIC_NETWORK_USER_1) && (_network_id <= STATIC_NETWORK_MEMORY) )
+   if ( (_network_id == STATIC_NETWORK_USER) || (_network_id == STATIC_NETWORK_MEMORY) )
    {
       return (pkt.node_type == RECEIVE_TILE);
    }
@@ -169,7 +169,7 @@ NetworkModel::isModelEnabled(const NetPacket& pkt)
    {
       return ( _enabled && (getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) );
    }
-   else // USER_1, USER_2, SYSTEM
+   else // USER, SYSTEM
    {
       return _enabled;
    }

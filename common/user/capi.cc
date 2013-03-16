@@ -38,7 +38,7 @@ CAPI_return_t CAPI_message_send_w(CAPI_endpoint_t sender,
    if(receiving_tile == INVALID_TILE_ID)
        return CAPI_ReceiverNotInitialized;
 
-   return core ? core->coreSendW(sending_tile, receiving_tile, buffer, size, (carbon_network_t) CARBON_NET_USER_1) : CAPI_SenderNotInitialized;
+   return core ? core->coreSendW(sending_tile, receiving_tile, buffer, size, (carbon_network_t) CARBON_NET_USER) : CAPI_SenderNotInitialized;
 }
 
 CAPI_return_t CAPI_message_send_w_ex(CAPI_endpoint_t sender, 
@@ -85,7 +85,7 @@ CAPI_return_t CAPI_message_receive_w(CAPI_endpoint_t sender,
    if(receiving_tile == INVALID_TILE_ID)
        return CAPI_ReceiverNotInitialized;
 
-   return core ? core->coreRecvW(sending_tile, receiving_tile, buffer, size, (carbon_network_t) CARBON_NET_USER_1) : CAPI_ReceiverNotInitialized;
+   return core ? core->coreRecvW(sending_tile, receiving_tile, buffer, size, (carbon_network_t) CARBON_NET_USER) : CAPI_ReceiverNotInitialized;
 }
 
 CAPI_return_t CAPI_message_receive_w_ex(CAPI_endpoint_t sender, 

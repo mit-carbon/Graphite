@@ -6,8 +6,7 @@
 enum PacketType
 {
    INVALID_PACKET_TYPE,
-   USER_1,
-   USER_2,
+   USER,
    SHARED_MEM,
    FREQ_CONTROL,
    SIM_THREAD_TERMINATE_THREADS,
@@ -33,8 +32,7 @@ enum PacketType
 // This defines the different static network types
 enum EStaticNetwork
 {
-   STATIC_NETWORK_USER_1,
-   STATIC_NETWORK_USER_2,
+   STATIC_NETWORK_USER,
    STATIC_NETWORK_MEMORY,
    STATIC_NETWORK_SYSTEM,
    STATIC_NETWORK_FREQ_CONTROL,
@@ -44,8 +42,7 @@ enum EStaticNetwork
 // This gives the list of names for the static networks
 static std::string g_static_network_name_list[] __attribute__((unused)) =
 {
-   "User-1",
-   "User-2",
+   "User",
    "Memory",
    "System",
    "Frequency-Control"
@@ -56,13 +53,12 @@ static std::string g_static_network_name_list[] __attribute__((unused)) =
 static EStaticNetwork g_type_to_static_network_map[] __attribute__((unused)) =
 {
    STATIC_NETWORK_SYSTEM,        // INVALID_PACKET_TYPE
-   STATIC_NETWORK_USER_1,        // USER_1
-   STATIC_NETWORK_USER_2,        // USER_2
+   STATIC_NETWORK_USER,          // USER
    STATIC_NETWORK_MEMORY,        // SHARED_MEM
    STATIC_NETWORK_FREQ_CONTROL,  // FREQ_CONTROL
    STATIC_NETWORK_SYSTEM,        // ST_TERMINATE_THREADS
-   STATIC_NETWORK_USER_1,        // MCP_REQ
-   STATIC_NETWORK_USER_1,        // MCP_RESP
+   STATIC_NETWORK_USER,          // MCP_REQ
+   STATIC_NETWORK_USER,          // MCP_RESP
    STATIC_NETWORK_SYSTEM,        // MCP_SYSTEM
    STATIC_NETWORK_SYSTEM,        // MCP_SYSTEM_RESP
    STATIC_NETWORK_SYSTEM,        // MCP_THREAD_SPAWN

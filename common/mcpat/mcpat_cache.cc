@@ -103,9 +103,18 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
    CacheParams* cache_params = new CacheParams(*cache_params_);
    CacheArea* cache_area = new CacheArea();
    CachePower* cache_power = new CachePower();
- 
-   SInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node", 0);
-   LOG_ASSERT_ERROR(technology_node != 0, "Please specify non-zero technology node");
+
+   SInt32 technology_node = 0;
+   SInt32 temperature = 0;
+   try
+   { 
+      technology_node = Sim()->getCfg()->getInt("general/technology_node");
+      temperature = Sim()->getCfg()->getInt("general/temperature");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read [general/technology_node] or [general/temperature] from config file");
+   }
 
    // Get Global and Local (process-specific) McPAT directories
    string mcpat_dir = Sim()->getGraphiteHome() + "/common/mcpat";
@@ -124,6 +133,7 @@ McPATCache::runMcPAT(CacheParams* cache_params_)
    ostringstream mcpat_cmd; 
    mcpat_cmd << Sim()->getGraphiteHome() << "/common/mcpat/mcpat_cache_parser.py "
              << " --technology-node " << technology_node
+             << " --temperature " << temperature
              << " --mcpat-home " << _mcpat_home
              << " --type " << cache_params->_type
              << " --size " << cache_params->_size

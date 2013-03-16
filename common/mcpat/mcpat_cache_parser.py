@@ -48,8 +48,8 @@ def createMcPATInput(options, mcpat_input_filename):
   
    # Common Attributes
    system_comp = getArchComponent(dom,'system')
-   # Temperature used by McPAT (in K). This is the same default temperature used by DSENT
-   setAttribute(system_comp, "temperature", "340")
+   # Temperature used by McPAT (in K)
+   setAttribute(system_comp, "temperature", options.temperature)
    setAttribute(system_comp, "core_tech_node", options.technology_node)
    setAttribute(system_comp, "target_core_clockrate", clockrate)
    setAttribute(system_comp, "total_cycles", "1000")
@@ -173,6 +173,7 @@ parser = OptionParser()
 parser.add_option("--suffix", dest="suffix", help="Suffix", default="")
 parser.add_option("--type", dest="type", help="Cache Type (data,directory)")
 parser.add_option("--technology-node", dest="technology_node", help="Technology Node (in nm)")
+parser.add_option("--temperature", dest="temperature", help="Temperature (in Kelvin)")
 parser.add_option("--size", dest="size", type="int", help="Cache Size (in Bytes)")
 parser.add_option("--blocksize", dest="blocksize", type="int", help="Block Size (in Bytes)")
 parser.add_option("--associativity", dest="associativity", type="int", help="Associativity")

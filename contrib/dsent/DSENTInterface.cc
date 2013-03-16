@@ -59,10 +59,19 @@ namespace dsent_contrib
         else if (tech_node_ == 11) m_elec_tech_file_path_ = dsent_path_ + "/dsent-core/tech/tech_models/" + "TG11LVT.model";
         else assert(false);
 
+        // Create global tech overwrites
+        m_overwrites_tech_ = new vector<Overwrite>();
     }
 
     DSENTInterface::~DSENTInterface()
-    {}
+    {
+        delete m_overwrites_tech_;
+    }
+
+    void DSENTInterface::add_global_tech_overwrite(const String& var_, const String& val_)
+    {
+       m_overwrites_tech_->push_back(Overwrite(var_, val_)); 
+    }
 
     vector<String> DSENTInterface::run_dsent(const String& cfg_file_path_, const vector<String>& evals_, const vector<Overwrite>& overwrites_) const
     {
@@ -71,7 +80,9 @@ namespace dsent_contrib
         // Create DSENT arguments vector
         vector<String>* dsent_args = new vector<String>();
         // Overwrites string
-        String overrides_str = "";
+        String overwrites_str = "";
+        // Tech overwrites string
+        String overwrites_tech_str = "";
         // DSENT output string
         String dsent_out_string;
 
@@ -93,19 +104,29 @@ namespace dsent_contrib
             dsent_args->push_back(eval_str);
         }
 
-        // Begin overrides
+        // Begin overwrites
         dsent_args->push_back("-overwrite");
 
         // Add electrical technology model filename
-        overrides_str = "ElectricalTechModelFilename=" + get_elec_tech_file_path() + ";";
-        overrides_str += " PhotonicTechModelFilename=" + get_phot_tech_file_path() + ";";
+        overwrites_str = "ElectricalTechModelFilename=" + get_elec_tech_file_path() + ";";
+        overwrites_str += " PhotonicTechModelFilename=" + get_phot_tech_file_path() + ";";
 
-        // Add other overrides
+        // Add other overwrites
         for (vector<Overwrite>::const_iterator it = overwrites_.begin(); it != overwrites_.end(); it++)
-            overrides_str += " " + it->get_string() + ";" ;
+            overwrites_str += " " + it->get_string() + ";" ;
 
-        // Append full overrides string
-        dsent_args->push_back(overrides_str);
+        // Append full overwrites string
+        dsent_args->push_back(overwrites_str);
+
+        // Begin tech overwrites
+        dsent_args->push_back("-overwrite_tech");
+
+        // Add tech overwrites
+        for (vector<Overwrite>::const_iterator it = m_overwrites_tech_->begin(); it != m_overwrites_tech_->end(); it++)
+            overwrites_tech_str += " " + it->get_string() + ";" ;
+
+        // Append full tech overwrites string
+        dsent_args->push_back(overwrites_tech_str);
 
         // Convert arguments vector to char**
         char** dsent_args_raw = new char*[dsent_args->size()];    

@@ -71,6 +71,7 @@ void ParseXML::parse(char* filepath)
 		if (strcmp(xNode2.getChildNode("param",i).getAttribute("name"),"first_level_dir")==0) {sys.first_level_dir=atoi(xNode2.getChildNode("param",i).getAttribute("value"));continue;}
 		if (strcmp(xNode2.getChildNode("param",i).getAttribute("name"),"homogeneous_cores")==0) {sys.homogeneous_cores=atoi(xNode2.getChildNode("param",i).getAttribute("value"));continue;}
 		if (strcmp(xNode2.getChildNode("param",i).getAttribute("name"),"core_tech_node")==0) {sys.core_tech_node=atof(xNode2.getChildNode("param",i).getAttribute("value"));continue;}
+		if (strcmp(xNode2.getChildNode("param",i).getAttribute("name"),"vdd")==0) {sys.vdd=atof(xNode2.getChildNode("param",i).getAttribute("value"));continue;}
 		if (strcmp(xNode2.getChildNode("param",i).getAttribute("name"),"target_core_clockrate")==0) {sys.target_core_clockrate=atoi(xNode2.getChildNode("param",i).getAttribute("value"));continue;}
 		if (strcmp(xNode2.getChildNode("param",i).getAttribute("name"),"target_chip_area")==0) {sys.target_chip_area=atoi(xNode2.getChildNode("param",i).getAttribute("value"));continue;}
 		if (strcmp(xNode2.getChildNode("param",i).getAttribute("name"),"temperature")==0) {sys.temperature=atoi(xNode2.getChildNode("param",i).getAttribute("value"));continue;}
@@ -1423,6 +1424,7 @@ void ParseXML::initialize() //Initialize all
 	// All params at the level of 'system'
 	//strcpy(sys.homogeneous_cores,"default");
 	sys.core_tech_node=1;
+	sys.vdd=-1; // default: use vdd defined by init_tech_node
 	sys.target_core_clockrate=1;
 	sys.target_chip_area=1;
 	sys.temperature=1;

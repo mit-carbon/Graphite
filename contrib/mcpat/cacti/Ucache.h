@@ -74,7 +74,7 @@ bool calculate_time(
 void update(uca_org_t *fin_res);
 
 void solve(uca_org_t *fin_res);
-void init_tech_params(double tech, bool is_tag);
+void init_tech_params(double tech, double vdd_override, bool is_tag);
 
 
 struct calc_time_mt_wrapper_struct

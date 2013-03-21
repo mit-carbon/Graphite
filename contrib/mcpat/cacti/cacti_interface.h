@@ -135,6 +135,7 @@ struct InputParameter
 
     double   F_sz_nm;          // feature size in nm
     double   F_sz_um;          // feature size in um
+    double   vdd;              // if >0: override default vdd for technology
     unsigned int num_rw_ports;
     unsigned int num_rd_ports;
     unsigned int num_wr_ports;

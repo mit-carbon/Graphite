@@ -551,6 +551,7 @@ typedef struct{
 	int homogeneous_L1Directories;
 	int homogeneous_L2Directories;
 	double core_tech_node;
+	double vdd;
 	int target_core_clockrate;
 	int target_chip_area;
 	int temperature;

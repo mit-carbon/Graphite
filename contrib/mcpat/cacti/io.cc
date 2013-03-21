@@ -674,7 +674,7 @@ uca_org_t cacti_interface(const string & infile_name)
   if (g_ip->print_input_args)
     g_ip->display_ip();
 
-  init_tech_params(g_ip->F_sz_um, false);
+  init_tech_params(g_ip->F_sz_um, g_ip->vdd, false);
   Wire winit; // Do not delete this line. It initializes wires.
 
 
@@ -899,7 +899,7 @@ uca_org_t cacti_interface(
   if (g_ip->error_checking() == false) exit(0);
   if (g_ip->print_input_args)
     g_ip->display_ip();
-  init_tech_params(g_ip->F_sz_um, false);
+  init_tech_params(g_ip->F_sz_um, g_ip->vdd, false);
   Wire winit; // Do not delete this line. It initializes wires.
 
   if (g_ip->nuca == 1)
@@ -1086,7 +1086,7 @@ uca_org_t cacti_interface(
   if(!g_ip->error_checking())
 	  exit(0);
 
-  init_tech_params(g_ip->F_sz_um, false);
+  init_tech_params(g_ip->F_sz_um, g_ip->vdd, false);
   Wire winit; // Do not delete this line. It initializes wires.
 
   g_ip->display_ip();
@@ -2190,7 +2190,7 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
   g_ip->error_checking();
 
 
-  init_tech_params(g_ip->F_sz_um, false);
+  init_tech_params(g_ip->F_sz_um, g_ip->vdd, false);
   Wire winit; // Do not delete this line. It initializes wires.
 
 
@@ -2359,7 +2359,7 @@ uca_org_t init_interface(InputParameter* const local_interface)
 
   g_ip->error_checking();
 
-  init_tech_params(g_ip->F_sz_um, false);
+  init_tech_params(g_ip->F_sz_um, g_ip->vdd, false);
   Wire winit; // Do not delete this line. It initializes wires.
   //solve(&fin_res);
   //g_ip->display_ip();
@@ -2379,7 +2379,7 @@ void reconfigure(InputParameter *local_interface, uca_org_t *fin_res)
   g_ip->error_checking();
 
   // Initialize technology parameters
-  init_tech_params(g_ip->F_sz_um,false);
+  init_tech_params(g_ip->F_sz_um, g_ip->vdd, false);
 
   Wire winit; // Do not delete this line. It initializes wires.
 

@@ -57,7 +57,7 @@ double wire_capacitance(double wire_width, double wire_thickness, double wire_sp
 }
 
 
-void init_tech_params(double technology, bool is_tag)
+void init_tech_params(double technology, double vdd_override, bool is_tag)
 {
   int    iter, tech, tech_lo, tech_hi;
   double curr_alpha, curr_vpp;
@@ -1687,6 +1687,8 @@ void init_tech_params(double technology, bool is_tag)
         curr_macro_layout_overhead = 1.1;//EDA placement and routing tool rule of thumb
     	}
 
+    if (vdd_override > 0)
+      vdd[peri_global_tech_type] = vdd_override;
 
     g_tp.peri_global.Vdd       += curr_alpha * vdd[peri_global_tech_type];
     g_tp.peri_global.t_ox      += curr_alpha * t_ox[peri_global_tech_type];

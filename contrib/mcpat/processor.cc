@@ -753,6 +753,7 @@ void Processor::set_proc_param()
 	interface_ip.temp = debug?360: XML->sys.temperature;
 	interface_ip.F_sz_nm         = debug?90:XML->sys.core_tech_node;//XML->sys.core_tech_node;
 	interface_ip.F_sz_um         = interface_ip.F_sz_nm / 1000;
+	interface_ip.vdd             = XML->sys.vdd;
 
 	//***********This section of code does not have real meaning, they are just to ensure all data will have initial value to prevent errors.
 	//They will be overridden  during each components initialization

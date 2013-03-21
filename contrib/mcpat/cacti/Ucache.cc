@@ -685,7 +685,7 @@ void solve(uca_org_t *fin_res)
   int    pure_ram = g_ip->pure_ram;
   bool   pure_cam = g_ip->pure_cam;
 
-  init_tech_params(g_ip->F_sz_um, false);
+  init_tech_params(g_ip->F_sz_um, g_ip->vdd, false);
 
 
   list<mem_array *> tag_arr (0);
@@ -724,7 +724,7 @@ void solve(uca_org_t *fin_res)
     is_tag              = true;
     ram_cell_tech_type  = g_ip->tag_arr_ram_cell_tech_type;
     is_dram             = ((ram_cell_tech_type == lp_dram) || (ram_cell_tech_type == comm_dram));
-    init_tech_params(g_ip->F_sz_um, is_tag);
+    init_tech_params(g_ip->F_sz_um, g_ip->vdd, is_tag);
 
     for (uint32_t t = 0; t < nthreads; t++)
     {
@@ -755,7 +755,7 @@ void solve(uca_org_t *fin_res)
     is_tag              = false;
     ram_cell_tech_type  = g_ip->data_arr_ram_cell_tech_type;
     is_dram             = ((ram_cell_tech_type == lp_dram) || (ram_cell_tech_type == comm_dram));
-    init_tech_params(g_ip->F_sz_um, is_tag);
+    init_tech_params(g_ip->F_sz_um, g_ip->vdd, is_tag);
 
     for (uint32_t t = 0; t < nthreads; t++)
     {
@@ -877,7 +877,7 @@ void solve(uca_org_t *fin_res)
 
 void update(uca_org_t *fin_res)
 {
-    init_tech_params(g_ip->F_sz_um,true);
+    init_tech_params(g_ip->F_sz_um, g_ip->vdd, true);
     DynamicParameter tag_arr_dyn_p(true, g_ip->pure_ram, g_ip->pure_cam, fin_res->tag_array2.Nspd, fin_res->tag_array2.Ndwl, fin_res->tag_array2.Ndbl, fin_res->tag_array2.Ndcm, fin_res->tag_array2.Ndsam_lev_1, fin_res->tag_array2.Ndsam_lev_2, g_ip->is_main_mem);
     if(tag_arr_dyn_p.is_valid)
     {
@@ -889,7 +889,7 @@ void update(uca_org_t *fin_res)
       cout << "ERROR: Cannot retrieve array structure for leakage feedback" << endl;
       exit(1);
     }
-  init_tech_params(g_ip->F_sz_um,false);
+  init_tech_params(g_ip->F_sz_um, g_ip->vdd, false);
   DynamicParameter data_arr_dyn_p(false, g_ip->pure_ram, g_ip->pure_cam, fin_res->data_array2.Nspd, fin_res->data_array2.Ndwl, fin_res->data_array2.Ndbl, fin_res->data_array2.Ndcm, fin_res->data_array2.Ndsam_lev_1, fin_res->data_array2.Ndsam_lev_2, g_ip->is_main_mem);
   if(data_arr_dyn_p.is_valid)
   {

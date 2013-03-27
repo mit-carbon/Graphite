@@ -36,6 +36,7 @@ parsec_list = [
       "canneal",
       "fluidanimate",
       "streamcluster",
+      "facesim",
       "freqmine",
       "dedup",
       "ferret",

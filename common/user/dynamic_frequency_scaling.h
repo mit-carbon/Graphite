@@ -1,5 +1,5 @@
-#ifndef DVFS_H
-#define DVFS_H
+#ifndef DYNAMIC_FREQUENCY_SCALING_H
+#define DYNAMIC_FREQUENCY_SCALING_H
 
 #include "fixed_types.h"
 
@@ -16,4 +16,4 @@ void CarbonSetRemoteTileFrequency(tile_id_t tile_id, volatile float* frequency);
 }
 #endif
 
-#endif // DVFS_H
+#endif // DYNAMIC_FREQUENCY_SCALING_H

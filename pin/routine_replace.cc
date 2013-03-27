@@ -101,6 +101,9 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonSetTileFrequency") msg_ptr = AFUNPTR(replacementCarbonSetTileFrequency);
    else if (name == "CarbonSetRemoteTileFrequency") msg_ptr = AFUNPTR(replacementCarbonSetRemoteTileFrequency);
 
+   // For DVFS
+   else if (name == "CarbonSetDVFS") msg_ptr = AFUNPTR(replacementCarbonSetDVFS);
+
    // Turn off performance modeling at _start()
    if (name == "_start")
    {
@@ -921,6 +924,33 @@ void replacementCarbonSetRemoteTileFrequency(CONTEXT *ctxt)
 
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonSetDVFS(CONTEXT *ctxt)
+{
+   tile_id_t tile_id;
+   int module_mask;
+   double* frequency;
+   dvfs_option_t frequency_flag;
+   dvfs_option_t voltage_flag;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_UINT32, &module_mask,
+         IARG_PTR, &frequency,
+         IARG_UINT32, &frequency_flag,
+         IARG_UINT32, &voltage_flag,
+         CARBON_IARG_END);
+
+   volatile double frequency_buf;
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
+
+   CarbonSetDVFS(tile_id, module_mask, &frequency_buf, frequency_flag, voltage_flag);
+
+   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+   retFromReplacedRtn(ctxt, ret_val);
+   
 }
 
 

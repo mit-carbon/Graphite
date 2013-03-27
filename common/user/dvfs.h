@@ -29,7 +29,7 @@ int CarbonGetDVFS(tile_id_t tile_id, module_t module_type, double* frequency, do
 int CarbonGetFrequency(tile_id_t tile_id, module_t module_type, double* frequency);
 int CarbonGetVoltage(tile_id_t tile_id, module_t module_type, double* voltage);
 // Set DVFS
-int CarbonSetDVFS(tile_id_t tile_id, int module_mask, double frequency, dvfs_option_t frequency_flag, dvfs_option_t voltage_flag);
+int CarbonSetDVFS(tile_id_t tile_id, int module_mask, volatile double* frequency, dvfs_option_t frequency_flag, dvfs_option_t voltage_flag);
  
 #ifdef __cplusplus
 }

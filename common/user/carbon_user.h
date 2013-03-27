@@ -13,6 +13,7 @@ extern "C"
 #include "thread_support.h"
 #include "performance_counter_support.h"
 #include "dynamic_frequency_scaling.h"
+#include "dvfs.h"
 
 SInt32 CarbonStartSim(int argc, char **argv);
 void CarbonStopSim();

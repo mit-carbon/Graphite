@@ -9,7 +9,8 @@ enum PacketType
    USER,
    SHARED_MEM,
    FREQ_CONTROL,
-   DVFS,
+   DVFS_SET,
+   DVFS_GET,
    SIM_THREAD_TERMINATE_THREADS,
    MCP_REQUEST_TYPE,
    MCP_RESPONSE_TYPE,
@@ -59,7 +60,8 @@ static EStaticNetwork g_type_to_static_network_map[] __attribute__((unused)) =
    STATIC_NETWORK_USER,          // USER
    STATIC_NETWORK_MEMORY,        // SHARED_MEM
    STATIC_NETWORK_FREQ_CONTROL,  // FREQ_CONTROL
-   STATIC_NETWORK_DVFS,          // DVFS
+   STATIC_NETWORK_DVFS,          // DVFS_SET
+   STATIC_NETWORK_DVFS,          // DVFS_GET
    STATIC_NETWORK_SYSTEM,        // ST_TERMINATE_THREADS
    STATIC_NETWORK_USER,          // MCP_REQ
    STATIC_NETWORK_USER,          // MCP_RESP

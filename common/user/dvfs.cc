@@ -1,6 +1,10 @@
 #include "dvfs.h"
 #include "fxsupport.h"
 #include "log.h"
+#include "core.h"
+#include "tile_manager.h"
+#include "tile.h"
+#include "simulator.h"
 
 // Get DVFS
 int CarbonGetDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage)
@@ -26,6 +30,6 @@ int CarbonSetDVFS(tile_id_t tile_id, int module_mask, volatile double* frequency
    FloatingPointHandler floating_point_handler;
 
    //Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
-   //core->coreSendW(core->getId().tile_id, tile_id, (char*) frequency, sizeof(float), (carbon_network_t) CARBON_FREQ_CONTROL);
+   //core->coreSendW(core->getId().tile_id, tile_id, (char*) frequency, sizeof(float), (carbon_network_t) CARBON_DVFS);
    return 0;
 }

@@ -11,7 +11,8 @@ extern "C" {
 typedef enum {
    CARBON_NET_USER = 0,
    CARBON_FREQ_CONTROL,
-   CARBON_DVFS
+   CARBON_DVFS_SET,
+   CARBON_DVFS_GET
 } carbon_network_t;
 
 typedef int CAPI_return_t;

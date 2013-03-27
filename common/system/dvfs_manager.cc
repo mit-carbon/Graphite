@@ -1,11 +1,19 @@
 #include "dvfs_manager.h"
+#include "tile.h"
 
-DVFSManager::DVFSManager(UInt32 technology_node)
+DVFSManager::DVFSManager(UInt32 technology_node, Tile* tile):
+   _tile(tile)
 {
+   // register callbacks
+   _tile->getNetwork()->registerCallback(DVFS_SET, setDVFSCallback, this);
+   _tile->getNetwork()->registerCallback(DVFS_GET, getDVFSCallback, this);
 }
 
 DVFSManager::~DVFSManager()
 {
+   // unregister callback
+   _tile->getNetwork()->unregisterCallback(DVFS_SET);
+   _tile->getNetwork()->unregisterCallback(DVFS_GET);
 }
 
 // Called from common/user/dvfs
@@ -29,12 +37,12 @@ DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, doubl
 
 // Called over the network (callbacks)
 void
-DVFSManager::getDVFSCallback(tile_id_t requester, module_t module_type)
+getDVFSCallback(void* obj, NetPacket packet)
 {
 }
 
 void
-DVFSManager::setDVFSCallback(tile_id_t requester, int module_mask, double frequency, double voltage)
+setDVFSCallback(void* obj, NetPacket packet)
 {
 }
 

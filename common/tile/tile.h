@@ -11,6 +11,7 @@ class MemoryManager;
 
 #include "fixed_types.h"
 #include "network.h"
+#include "dvfs_manager.h"
 
 void TileFreqScalingCallback(void* obj, NetPacket packet);
 
@@ -46,6 +47,7 @@ private:
    Network* _network;
    Core* _core;
    MemoryManager* _memory_manager;
+   DVFSManager* _dvfs_manager;
 
    volatile float _frequency;
 };

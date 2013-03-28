@@ -946,13 +946,12 @@ void replacementCarbonGetDVFS(CONTEXT *ctxt)
    double frequency_buf;
    double voltage_buf;
 
-   CarbonGetDVFS(tile_id, module_type, &frequency_buf, &voltage_buf);
+   ADDRINT ret_val = CarbonGetDVFS(tile_id, module_type, &frequency_buf, &voltage_buf);
 
    Core* core = Sim()->getTileManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) voltage, (char*) &voltage_buf, sizeof(voltage_buf));
 
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
    
 }
@@ -971,12 +970,11 @@ void replacementCarbonGetFrequency(CONTEXT *ctxt)
 
    double frequency_buf;
 
-   CarbonGetFrequency(tile_id, module_type, &frequency_buf);
+   ADDRINT ret_val = CarbonGetFrequency(tile_id, module_type, &frequency_buf);
 
    Core* core = Sim()->getTileManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
 
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
 }
 
@@ -994,12 +992,11 @@ void replacementCarbonGetVoltage(CONTEXT *ctxt)
 
    double voltage_buf;
 
-   CarbonGetVoltage(tile_id, module_type, &voltage_buf);
+   ADDRINT ret_val = CarbonGetVoltage(tile_id, module_type, &voltage_buf);
 
    Core* core = Sim()->getTileManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) voltage, (char*) &voltage_buf, sizeof(voltage_buf));
 
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
 }
 
@@ -1023,9 +1020,8 @@ void replacementCarbonSetDVFS(CONTEXT *ctxt)
    Core* core = Sim()->getTileManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
 
-   CarbonSetDVFS(tile_id, module_mask, &frequency_buf, frequency_flag, voltage_flag);
+   ADDRINT ret_val = CarbonSetDVFS(tile_id, module_mask, &frequency_buf, frequency_flag, voltage_flag);
 
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
    
 }

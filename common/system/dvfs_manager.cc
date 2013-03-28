@@ -40,7 +40,7 @@ DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency,
    recv_buffer >> *frequency;
    recv_buffer >> *voltage;
 
-   return 0;
+   return rc;
 }
 
 int

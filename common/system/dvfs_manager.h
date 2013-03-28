@@ -23,13 +23,13 @@ public:
    int getDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage);
    int setDVFS(tile_id_t tile_id, int module_mask, double frequency, dvfs_option_t frequency_flag, dvfs_option_t voltage_flag);
  
+   // Internal function called after figuring out voltage/frequency
+   int setDVFS(int module_mask, double frequency, double voltage);
+   Tile* _tile;
  
 private:
    // Voltage, Frequency Multiplier
    typedef list<pair<double,double> > DVFSLevels;
    DVFSLevels _dvfs_levels;
  
-   // Internal function called after figuring out voltage/frequency
-   int setDVFS(tile_id_t tile_id, int module_mask, double frequency, double voltage);
-   Tile* _tile;
 };

@@ -27,6 +27,7 @@ public:
    Network* getNetwork()               { return _network; }
    Core* getCore()                     { return _core; }
    MemoryManager* getMemoryManager()   { return _memory_manager; }
+   DVFSManager* getDVFSManager()       { return _dvfs_manager; }
 
    static core_id_t getMainCoreId(tile_id_t id)    { return (core_id_t) {id, MAIN_CORE_TYPE}; }
    static bool isMainCore(core_id_t core_id)       { return (core_id.core_type == MAIN_CORE_TYPE); }

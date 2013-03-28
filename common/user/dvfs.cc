@@ -28,8 +28,9 @@ int CarbonSetDVFS(tile_id_t tile_id, int module_mask, volatile double* frequency
 
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
+   
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   tile->getDVFSManager()->setDVFS(tile_id, module_mask, *frequency, frequency_flag, voltage_flag);
 
-   //Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
-   //core->coreSendW(core->getId().tile_id, tile_id, (char*) frequency, sizeof(float), (carbon_network_t) CARBON_DVFS);
    return 0;
 }

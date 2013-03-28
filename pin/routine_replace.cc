@@ -102,8 +102,10 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonSetRemoteTileFrequency") msg_ptr = AFUNPTR(replacementCarbonSetRemoteTileFrequency);
 
    // For DVFS
-   else if (name == "CarbonSetDVFS") msg_ptr = AFUNPTR(replacementCarbonSetDVFS);
    else if (name == "CarbonGetDVFS") msg_ptr = AFUNPTR(replacementCarbonGetDVFS);
+   else if (name == "CarbonGetFrequency") msg_ptr = AFUNPTR(replacementCarbonGetDVFS);
+   else if (name == "CarbonGetVoltage") msg_ptr = AFUNPTR(replacementCarbonGetDVFS);
+   else if (name == "CarbonSetDVFS") msg_ptr = AFUNPTR(replacementCarbonSetDVFS);
 
    // Turn off performance modeling at _start()
    if (name == "_start")
@@ -953,6 +955,52 @@ void replacementCarbonGetDVFS(CONTEXT *ctxt)
    ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
    
+}
+
+void replacementCarbonGetFrequency(CONTEXT *ctxt)
+{
+   tile_id_t tile_id;
+   module_t module_type;
+   double* frequency;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_UINT32, &module_type,
+         IARG_PTR, &frequency,
+         CARBON_IARG_END);
+
+   double frequency_buf;
+
+   CarbonGetFrequency(tile_id, module_type, &frequency_buf);
+
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
+
+   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonGetVoltage(CONTEXT *ctxt)
+{
+   tile_id_t tile_id;
+   module_t module_type;
+   double* voltage;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_UINT32, &module_type,
+         IARG_PTR, &voltage,
+         CARBON_IARG_END);
+
+   double voltage_buf;
+
+   CarbonGetVoltage(tile_id, module_type, &voltage_buf);
+
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) voltage, (char*) &voltage_buf, sizeof(voltage_buf));
+
+   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+   retFromReplacedRtn(ctxt, ret_val);
 }
 
 void replacementCarbonSetDVFS(CONTEXT *ctxt)

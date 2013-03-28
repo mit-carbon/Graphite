@@ -71,6 +71,7 @@ void replacementCarbonSetTileFrequency(CONTEXT *ctxt);
 void replacementCarbonSetRemoteTileFrequency(CONTEXT *ctxt);
 
 // DVFS
+void replacementCarbonGetDVFS(CONTEXT *ctxt);
 void replacementCarbonSetDVFS(CONTEXT *ctxt);
 
 void initialize_replacement_args (CONTEXT *ctxt, ...);

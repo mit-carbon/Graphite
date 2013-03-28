@@ -23,8 +23,9 @@ public:
    int getDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage);
    int setDVFS(tile_id_t tile_id, int module_mask, double frequency, dvfs_option_t frequency_flag, dvfs_option_t voltage_flag);
  
-   // Internal function called after figuring out voltage/frequency
-   int setDVFS(int module_mask, double frequency, double voltage);
+   // Internal functions called after figuring out voltage/frequency
+   int doGetDVFS(module_t module_type, tile_id_t requester);
+   int doSetDVFS(int module_mask, double frequency, double voltage);
    Tile* _tile;
  
 private:

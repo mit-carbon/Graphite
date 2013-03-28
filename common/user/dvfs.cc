@@ -9,6 +9,8 @@
 // Get DVFS
 int CarbonGetDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage)
 {
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   tile->getDVFSManager()->getDVFS(tile_id, module_type, frequency, voltage);
    return 0;
 }
 

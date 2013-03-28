@@ -26,15 +26,17 @@ DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency,
    // send request
    UnstructuredBuffer send_buffer;
    send_buffer << module_type;
-   core_id_t core_id = {tile_id, MAIN_CORE_TYPE};
-   _tile->getNetwork()->netSend(core_id, DVFS_GET_REQUEST, send_buffer.getBuffer(), send_buffer.size());
+   core_id_t remote_core_id = {tile_id, MAIN_CORE_TYPE};
+   _tile->getNetwork()->netSend(remote_core_id, DVFS_GET_REQUEST, send_buffer.getBuffer(), send_buffer.size());
 
    // receive reply
-   core_id_t recv_id = {_tile->getId(), MAIN_CORE_TYPE};
-   NetPacket packet = _tile->getNetwork()->netRecv(core_id, recv_id, DVFS_GET_REPLY);
+   core_id_t this_core_id = {_tile->getId(), MAIN_CORE_TYPE};
+   NetPacket packet = _tile->getNetwork()->netRecv(remote_core_id, this_core_id, DVFS_GET_REPLY);
    UnstructuredBuffer recv_buffer;
    recv_buffer << std::make_pair(packet.data, packet.length);
 
+   int rc;
+   recv_buffer >> rc;
    recv_buffer >> *frequency;
    recv_buffer >> *voltage;
 
@@ -49,43 +51,27 @@ DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, dvfs_
    // 2. make sure that flag combination is valid.
    // 3. send return code.
    
-   double voltage = 1.0;
-   
+   // send request
    UnstructuredBuffer send_buffer;
-   send_buffer << module_mask << frequency << voltage;
-   core_id_t core_id = {tile_id, MAIN_CORE_TYPE};
-   _tile->getNetwork()->netSend(core_id, DVFS_SET_REQUEST, send_buffer.getBuffer(), send_buffer.size());
+   send_buffer << module_mask << frequency << frequency_flag << voltage_flag;
+   core_id_t remote_core_id = {tile_id, MAIN_CORE_TYPE};
+   _tile->getNetwork()->netSend(remote_core_id, DVFS_SET_REQUEST, send_buffer.getBuffer(), send_buffer.size());
 
-   return 0;
+   // receive reply
+   core_id_t this_core_id = {_tile->getId(), MAIN_CORE_TYPE};
+   NetPacket packet = _tile->getNetwork()->netRecv(remote_core_id, this_core_id, DVFS_SET_REPLY);
+   UnstructuredBuffer recv_buffer;
+   recv_buffer << std::make_pair(packet.data, packet.length);
+
+   int rc;
+   recv_buffer >> rc;
+
+   return rc;
 }
 
-int
-DVFSManager::doSetDVFS(int module_mask, double frequency, double voltage)
-{
-   // parse mask and set frequency and voltage
-   if (module_mask & CORE){
-      //_tile->getCore()->setFrequency(frequency);
-      //_tile->getCore()->setVoltage(voltage);
-   }
-
-   if (module_mask & L1_ICACHE){
-//      _tile->getCore()->setFrequency(frequency);
-//      _tile->getCore()->setVoltage(voltage);
-   }
-   if (module_mask & L1_DCACHE){
-//      _tile->getCore()->setFrequency(frequency);
-//      _tile->getCore()->setVoltage(voltage);
-   }
-   if (module_mask & L2_CACHE){
-//      _tile->getCore()->setFrequency(frequency);
-//      _tile->getCore()->setVoltage(voltage);
-   }
-
-   return 0;
-}
 
 int
-DVFSManager::doGetDVFS(module_t module_type, tile_id_t requester)
+DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
 {
    double frequency, voltage;
    switch (module_type)
@@ -124,13 +110,43 @@ DVFSManager::doGetDVFS(module_t module_type, tile_id_t requester)
          break;
    }
 
+   int rc = 0;
    UnstructuredBuffer send_buffer;
-   send_buffer << frequency << voltage;
+   send_buffer << rc << frequency << voltage;
+   _tile->getNetwork()->netSend(requester, DVFS_GET_REPLY, send_buffer.getBuffer(), send_buffer.size());
 
-   core_id_t core_id = {requester, MAIN_CORE_TYPE};
-   _tile->getNetwork()->netSend(core_id, DVFS_GET_REPLY, send_buffer.getBuffer(), send_buffer.size());
+   return rc;
+}
 
-   return 0;
+int
+DVFSManager::doSetDVFS(int module_mask, double frequency, dvfs_option_t frequency_flag, dvfs_option_t voltage_flag, core_id_t requester)
+{
+   // parse mask and set frequency and voltage
+   if (module_mask & CORE){
+      //_tile->getCore()->setFrequency(frequency);
+      //_tile->getCore()->setVoltage(voltage);
+   }
+
+   if (module_mask & L1_ICACHE){
+//      _tile->getCore()->setFrequency(frequency);
+//      _tile->getCore()->setVoltage(voltage);
+   }
+   if (module_mask & L1_DCACHE){
+//      _tile->getCore()->setFrequency(frequency);
+//      _tile->getCore()->setVoltage(voltage);
+   }
+   if (module_mask & L2_CACHE){
+//      _tile->getCore()->setFrequency(frequency);
+//      _tile->getCore()->setVoltage(voltage);
+   }
+
+   UnstructuredBuffer send_buffer;
+   int rc = 0;
+   send_buffer << rc;
+
+   _tile->getNetwork()->netSend(requester, DVFS_SET_REPLY, send_buffer.getBuffer(), send_buffer.size());
+
+   return rc;
 }
 
 // Called over the network (callbacks)
@@ -145,7 +161,7 @@ getDVFSCallback(void* obj, NetPacket packet)
    recv_buffer >> module_type;
 
    DVFSManager* dvfs_manager = (DVFSManager* ) obj;
-   dvfs_manager->doGetDVFS(module_type, packet.sender.tile_id);
+   dvfs_manager->doGetDVFS(module_type, packet.sender);
 }
 
 void
@@ -156,13 +172,15 @@ setDVFSCallback(void* obj, NetPacket packet)
 
    int module_mask;
    double frequency;
-   double voltage;
+   dvfs_option_t frequency_flag;
+   dvfs_option_t voltage_flag;
    
    recv_buffer >> module_mask;
    recv_buffer >> frequency;
-   recv_buffer >> voltage;
+   recv_buffer >> frequency_flag;
+   recv_buffer >> voltage_flag;
 
    DVFSManager* dvfs_manager = (DVFSManager* ) obj;
-   dvfs_manager->doSetDVFS(module_mask, frequency, voltage);
+   dvfs_manager->doSetDVFS(module_mask, frequency, frequency_flag, voltage_flag, packet.sender);
 }
 

@@ -38,9 +38,6 @@ public:
    void enableModels();
    void disableModels();
 
-   void acquireLock();
-   void releaseLock();
-
 private:
    tile_id_t _id;
    Network* _network;

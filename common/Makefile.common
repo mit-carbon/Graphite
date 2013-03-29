@@ -19,39 +19,44 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
           $(SIM_ROOT)/common/config/	      									\
           $(SIM_ROOT)/common/system/          									\
           $(SIM_ROOT)/common/system/clock_skew_minimization_schemes		\
-				$(SIM_ROOT)/common/shared_models/      							\
+			 $(SIM_ROOT)/common/shared_models/      								\
           $(SIM_ROOT)/common/shared_models/queue_models/     				\
           $(SIM_ROOT)/common/user/													\
           $(SIM_ROOT)/common/mcpat/													\
 			 $(SIM_ROOT)/																	\
 			 $(CURDIR)/
 
-INCLUDE_DIRECTORIES = $(DIRECTORIES)
+INCLUDE_DIRECTORIES = $(DIRECTORIES)												\
+							 $(SIM_ROOT)/contrib/mcpat									\
+							 $(SIM_ROOT)/contrib/mcpat/cacti
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 # Debug information in binary
-DBG = # -ggdb
+DEBUG = # -ggdb
 
 KERNEL = SQUEEZE
 #KERNEL = LENNY
 
-CXXFLAGS += -DKERNEL_$(KERNEL) -fPIC
-
-BOOST_SUFFIX = mt
-
-LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
-
-# Other Libraries in Contrib
+# Libraries in contrib (DSent, McPAT)
 LD_LIBS += -ldsent_contrib
 LD_FLAGS += -L$(SIM_ROOT)/contrib/dsent
+LD_LIBS += -lmcpat
+LD_FLAGS += -L$(SIM_ROOT)/contrib/mcpat
+# Boost library
+BOOST_SUFFIX = mt
+LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX)
+# BerkeleyDB library
+LD_LIBS += -ldb
+# Math, pthread libraries
+LD_LIBS += -lm -pthread
 
 LD_FLAGS += -L$(SIM_ROOT)/lib
-export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(PIN_HOME)/intel64/runtime:$(LD_LIBRARY_PATH)
 
 # Include paths
-CXXFLAGS+=-c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
-          -Wall -Werror -Wno-deprecated-declarations -Wno-unknown-pragmas $(DBG) -O2 -MMD
+CXXFLAGS += -c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
+            -Wall -Werror -Wno-deprecated-declarations -Wno-unknown-pragmas \
+			   $(DEBUG) -O2 -MMD -fPIC -DKERNEL_$(KERNEL)
 
 # Build rules for dependency generation
 %.d: %.cpp

@@ -17,7 +17,8 @@ OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES)
 
 # Other Libraries that are used by Graphite
 DSENT_LIB = $(SIM_ROOT)/contrib/dsent/libdsent_contrib.a
-CONTRIB_LIBS = $(DSENT_LIB)
+MCPAT_LIB = $(SIM_ROOT)/contrib/mcpat/libmcpat.a
+CONTRIB_LIBS = $(DSENT_LIB) $(MCPAT_LIB)
 
 TARGET=$(SIM_ROOT)/lib/libcarbon_sim.a
 
@@ -27,11 +28,17 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS) $(CONTRIB_LIBS)
 	ar rcs $@ $(OBJECTS)
 
+.PHONY: $(CONTRIB_LIBS)
+
 $(DSENT_LIB):
 	$(MAKE) -C $(SIM_ROOT)/contrib/dsent
+
+$(MCPAT_LIB):
+	$(MAKE) -C $(SIM_ROOT)/contrib/mcpat
 
 ifneq ($(CLEAN),)
 clean:
 	$(RM) $(TARGET) $(OBJECTS)
 	make -C $(SIM_ROOT)/contrib/dsent clean
+	make -C $(SIM_ROOT)/contrib/mcpat clean   
 endif

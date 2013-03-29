@@ -31,7 +31,7 @@ public:
    virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    void recomputeAverageFrequency(float frequency); 
 
-   Time getCurrTime(){return m_curr_time; };
+   Time getCurrTime() {return m_curr_time; }
    void setCurrTime(Time time);
 
    void pushDynamicInstructionInfo(DynamicInstructionInfo &i);
@@ -47,6 +47,11 @@ public:
    bool isEnabled() { return m_enabled; }
 
    virtual void outputSummary(std::ostream &os) = 0;
+
+   virtual void computeEnergy() = 0;
+
+   virtual double getDynamicEnergy() { return 0; }
+   virtual double getStaticPower()   { return 0; }
 
    class AbortInstructionException { };
 

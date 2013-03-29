@@ -4,6 +4,7 @@
 #include "simulator.h"
 #include "config.h"
 #include "log.h"
+#include "mcpat_cache_interface.h"
 #include "utils.h"
 
 DirectoryCache::DirectoryCache(Tile* tile,
@@ -25,8 +26,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    , _cache_line_size(cache_line_size)
    , _num_directory_slices(num_directory_slices)
    , _directory_access_time_str(directory_access_time_str)
-   , _power_model(NULL)
-   , _area_model(NULL)
+   , _mcpat_cache_interface(NULL)
    , _enabled(false)
 {
    LOG_PRINT("Directory Cache ctor enter");
@@ -41,9 +41,6 @@ DirectoryCache::DirectoryCache(Tile* tile,
    // Instantiate the directory
    _directory = new Directory(caching_protocol_type, _directory_type, _total_entries, max_hw_sharers, max_num_sharers);
 
-   // Get frequency
-   float frequency = _tile->getFrequency();
-
    // Size of each directory entry (in bytes)
    UInt32 max_application_sharers = Config::getSingleton()->getApplicationTiles();
    UInt32 directory_entry_size = ceil(1.0 * DirectoryEntry::getSize(_directory_type, max_hw_sharers, max_application_sharers)  / 8);
@@ -51,19 +48,13 @@ DirectoryCache::DirectoryCache(Tile* tile,
 
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
    _directory_access_latency = computeDirectoryAccessTime();
-   _directory_access_time = Time(Latency(computeDirectoryAccessTime(),frequency));
+   _directory_access_time = Time(Latency(computeDirectoryAccessTime(), _tile->getFrequency()));
   
    LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)", _total_entries, directory_entry_size, _directory_access_time.toNanosec());
 
-   if (Config::getSingleton()->getEnablePowerModeling())
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      _power_model = new CachePowerModel("directory", _total_entries * directory_entry_size,
-            directory_entry_size, _associativity, _directory_access_latency, frequency);
-   }
-   if (Config::getSingleton()->getEnableAreaModeling())
-   {
-      _area_model = new CacheAreaModel("directory", _total_entries * directory_entry_size,
-            directory_entry_size, _associativity, _directory_access_latency, frequency);
+      // _mcpat_cache_interface = new McPATCacheInterface(this, Sim()->getCfg()->getInt("general/technology_node"));
    }
 
    _log_num_sets = floorLog2(_num_sets);
@@ -92,15 +83,6 @@ void
 DirectoryCache::updateCounters()
 {
    _total_directory_accesses ++;
-   
-   // Update dynamic energy counters
-   if (Config::getSingleton()->getEnablePowerModeling())
-   {
-      _power_model->updateDynamicEnergy(Cache::TAG_ARRAY_READ);
-      _power_model->updateDynamicEnergy(Cache::TAG_ARRAY_WRITE);
-      _power_model->updateDynamicEnergy(Cache::DATA_ARRAY_READ);
-      _power_model->updateDynamicEnergy(Cache::DATA_ARRAY_WRITE);
-   }   
 }
 
 DirectoryEntry*
@@ -358,11 +340,13 @@ DirectoryCache::outputSummary(ostream& out)
    out << "    Total Evictions: " << _total_evictions << endl;
    out << "    Total Back-Invalidations: " << _total_back_invalidations << endl;
 
-   // The power and area model summary
-   if (Config::getSingleton()->getEnablePowerModeling())
-      _power_model->outputSummary(out);
-   if (Config::getSingleton()->getEnableAreaModeling())
-      _area_model->outputSummary(out);
+   // Output Power and Area Summaries
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
+   {
+      // FIXME: Get total cycles from core model
+      // _mcpat_cache_interface->computeEnergy(this, 10000);
+      // _mcpat_cache_interface->outputSummary(out);
+   }
 }
 
 void
@@ -373,11 +357,13 @@ DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
    out << "    Total Evictions: " << endl;
    out << "    Total Back-Invalidations: " << endl;
 
-   // The power and area model summary
-   if (Config::getSingleton()->getEnablePowerModeling())
-      CachePowerModel::dummyOutputSummary(out);
-   if (Config::getSingleton()->getEnableAreaModeling())
-      CacheAreaModel::dummyOutputSummary(out);
+   // Output Power and Area Summaries
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
+   {
+      // FIXME: Get total cycles from core model
+      // _mcpat_cache_interface->computeEnergy(this, 10000);
+      // _mcpat_cache_interface->outputSummary(out);
+   }
 }
 
 void

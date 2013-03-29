@@ -2,8 +2,7 @@ using namespace std;
 
 #include "core.h"
 #include "iocoom_core_model.h"
-
-#include "log.h"
+#include "tile.h"
 #include "dynamic_instruction_info.h"
 #include "config.hpp"
 #include "simulator.h"
@@ -20,23 +19,30 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
 {
    config::Config *cfg = Sim()->getCfg();
 
+   UInt32 num_load_buffer_entries = 0;
+   UInt32 num_store_buffer_entries = 0;
    try
    {
-      m_store_buffer = new StoreBuffer(cfg->getInt("core/iocoom/num_store_buffer_entries",1));
-      m_load_buffer = new LoadBuffer(cfg->getInt("core/iocoom/num_outstanding_loads",3));
+      num_load_buffer_entries = cfg->getInt("core/iocoom/num_outstanding_loads");
+      num_store_buffer_entries = cfg->getInt("core/iocoom/num_store_buffer_entries");
    }
    catch (...)
    {
       LOG_PRINT_ERROR("Config info not available.");
    }
 
+   m_load_buffer = new LoadBuffer(num_load_buffer_entries);
+   m_store_buffer = new StoreBuffer(num_store_buffer_entries);
+   
    initializeRegisterScoreboard();
    initializeRegisterWaitUnitList();
    
-   // For Power and AreaModeling
-   m_mcpat_core_interface = new McPATCoreInterface(
-                            cfg->getInt("core/iocoom/num_outstanding_loads", 3),
-                            cfg->getInt("core/iocoom/num_store_buffer_entries", 1));
+   m_enable_area_and_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
+
+   // For Power and Area Modeling
+   float frequency = m_core->getTile()->getFrequency();
+   m_mcpat_core_interface = new McPATCoreInterface(cfg->getInt("general/technology_node"),
+                                (UInt32) frequency * 1000, num_load_buffer_entries, num_store_buffer_entries);
 
    initializePipelineStallCounters();
 }
@@ -63,6 +69,17 @@ void IOCOOMCoreModel::initializePipelineStallCounters()
 void IOCOOMCoreModel::outputSummary(std::ostream &os)
 {
    CoreModel::outputSummary(os);
+  
+   m_mcpat_core_interface->displayStats(os);
+   m_mcpat_core_interface->displayParam(os);
+   
+   if (m_enable_area_and_power_modeling)
+   {
+      os << "  Area and Power Model Summary:" << endl;
+      // Compute Energy for Total Run
+      m_mcpat_core_interface->computeMcPATCoreEnergy();
+      m_mcpat_core_interface->displayMcPATCoreEnergy(os);
+   }
 
    //os << "    Total Load Buffer Stall Time (in ns): " << m_total_load_buffer_stall_time.toNanosec() << endl;
    //os << "    Total Store Buffer Stall Time (in ns): " << m_total_store_buffer_stall_time.toNanosec() << endl;
@@ -73,6 +90,25 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 //   os << "    Total Intra Ins Execution Unit Stall Time (in ns): " << m_total_intra_ins_execution_unit_stall_time.toNanosec() << endl;
 //   os << "    Total Inter Ins Execution Unit Stall Time (in ns): " << m_total_inter_ins_execution_unit_stall_time.toNanosec() << endl;
 //   os << "    Total Cycle Count: " << m_cycle_count << endl;
+}
+
+void IOCOOMCoreModel::computeEnergy()
+{
+   m_mcpat_core_interface->updateCycleCounters(m_curr_time.toCycles(m_core->getTile()->getFrequency()));
+   m_mcpat_core_interface->computeMcPATCoreEnergy();
+}
+
+double IOCOOMCoreModel::getDynamicEnergy()
+{
+   double dynamic_energy = m_mcpat_core_interface->getDynamicEnergy();
+
+   return dynamic_energy;
+}
+double IOCOOMCoreModel::getStaticPower()
+{
+   double static_power = m_mcpat_core_interface->getStaticPower();
+
+   return static_power;
 }
 
 void IOCOOMCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
@@ -327,8 +363,12 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // Update Common Pipeline Stall Counters
    updatePipelineStallCounters(instruction, memory_stall_time, execution_unit_stall_time);
 
+   // Get Branch Misprediction Count
+   UInt64 m_total_branch_misprediction_count;
+   m_total_branch_misprediction_count = getBranchPredictor()->getNumIncorrectPredictions();
+
    // Update Event Counters
-   m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getTile()->getFrequency()));
+   m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getTile()->getFrequency()), m_total_branch_misprediction_count);
 }
 
 pair<Time,Time>

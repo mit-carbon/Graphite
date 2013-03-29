@@ -1,3 +1,4 @@
+#include <string.h>
 #include "tile.h"
 #include "network.h"
 #include "network_model.h"
@@ -6,11 +7,12 @@
 #include "main_core.h"
 #include "simulator.h"
 #include "log.h"
-#include <string.h>
+#include "tile_energy_monitor.h"
 
 Tile::Tile(tile_id_t id)
    : _id(id)
    , _memory_manager(NULL)
+   , _tile_energy_monitor(NULL)
 {
    LOG_PRINT("Tile ctor for (%i)", _id);
 
@@ -21,6 +23,9 @@ Tile::Tile(tile_id_t id)
    if (Config::getSingleton()->isSimulatingSharedMemory())
       _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this);
 
+   if (Config::getSingleton()->getEnablePowerModeling())
+      _tile_energy_monitor = new TileEnergyMonitor(this);
+   
    // Register callback for clock frequency change
    getNetwork()->registerCallback(FREQ_CONTROL, TileFreqScalingCallback, this);
 }
@@ -33,6 +38,8 @@ Tile::~Tile()
       delete _memory_manager;
    delete _core;
    delete _network;
+   if (_tile_energy_monitor)
+      delete _tile_energy_monitor;
 }
 
 void TileFreqScalingCallback(void* obj, NetPacket packet)
@@ -57,9 +64,13 @@ void Tile::outputSummary(ostream &os)
    LOG_PRINT("Memory Subsystem Summary");
    if (_memory_manager)
       _memory_manager->outputSummary(os);
-   
+
    LOG_PRINT("Network Summary");
    _network->outputSummary(os);
+   
+   LOG_PRINT("Tile Energy Monitor Summary");
+   if (_tile_energy_monitor)
+      _tile_energy_monitor->outputSummary(os);
 }
 
 void Tile::enableModels()
@@ -87,18 +98,4 @@ Tile::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_fr
 {
    _core->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
    _memory_manager->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-}
-
-void
-Tile::acquireLock()
-{
-   _core->acquireLock();
-   _memory_manager->acquireLock();
-}
-
-void
-Tile::releaseLock()
-{
-   _memory_manager->releaseLock();
-   _core->releaseLock();
 }

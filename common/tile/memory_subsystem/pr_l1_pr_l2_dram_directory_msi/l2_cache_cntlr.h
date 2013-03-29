@@ -34,6 +34,7 @@ namespace PrL1PrL2DramDirectoryMSI
                    UInt32 cache_line_size,
                    UInt32 l2_cache_size,
                    UInt32 l2_cache_associativity,
+                   UInt32 l2_cache_num_banks,
                    string l2_cache_replacement_policy,
                    UInt32 l2_cache_access_delay,
                    bool l2_cache_track_miss_types,

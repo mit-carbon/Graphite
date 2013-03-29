@@ -11,26 +11,28 @@ class CoreModel;
 
 enum InstructionType
 {
-   INST_GENERIC,
-   INST_ADD,
-   INST_SUB,
-   INST_MUL,
-   INST_DIV,
-   INST_FADD,
-   INST_FSUB,
+   INST_IALU,
+   INST_IMUL,
+   INST_IDIV,
+   INST_FALU,
    INST_FMUL,
    INST_FDIV,
+   INST_XMM_SS,
+   INST_XMM_SD,
+   INST_XMM_PS,
+   INST_GENERIC,
    INST_JMP,
    INST_BRANCH,
    INST_DYNAMIC_MISC,
    INST_RECV,
    INST_SYNC,
    INST_SPAWN,
+   INST_FAST_FORWARD,
    MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","branch","dynamic_misc","recv","sync","spawn"};
+{"ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","generic","jmp","branch","dynamic_misc","recv","sync","spawn","fast_forward"};
 
 class Operand
 {
@@ -97,7 +99,7 @@ public:
 
    bool isSimpleMemoryLoad() const;
    bool isDynamic() const
-   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC) || (m_type == INST_SPAWN)); }
+   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC) || (m_type == INST_SPAWN) || (m_type == INST_FAST_FORWARD)); }
 
    void print() const;
 
@@ -170,7 +172,7 @@ protected:
    Time m_cost;
 };
 
-// RecvInstruction
+// RecvInstruction - called for netRecv
 class RecvInstruction : public DynamicInstruction
 {
 public:
@@ -179,12 +181,21 @@ public:
    {}
 };
 
-// SyncInstruction
+// SyncInstruction - called for SYNC instructions
 class SyncInstruction : public DynamicInstruction
 {
 public:
    SyncInstruction(Time cost)
       : DynamicInstruction(cost, INST_SYNC)
+   {}
+};
+
+// Fast-forward instruction
+class FastForwardInstruction : public DynamicInstruction
+{
+public:
+   FastForwardInstruction(Time cost)
+      : DynamicInstruction(cost, INST_FAST_FORWARD)
    {}
 };
 

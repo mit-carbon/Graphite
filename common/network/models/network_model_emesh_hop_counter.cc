@@ -238,3 +238,16 @@ NetworkModelEMeshHopCounter::outputEventCountSummary(ostream& out)
       LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
    }
 }
+
+double NetworkModelEMeshHopCounter::getDynamicEnergy()
+{
+   double dynamic_energy = _router_power_model->getDynamicEnergy() +
+                           _electrical_link_power_model->getDynamicEnergy();
+   return dynamic_energy;
+}
+double NetworkModelEMeshHopCounter::getStaticPower()
+{
+   double static_power = _router_power_model->getStaticPower() +
+                           (_electrical_link_power_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
+   return static_power;
+}

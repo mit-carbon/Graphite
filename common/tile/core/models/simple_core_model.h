@@ -12,6 +12,11 @@ public:
    void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    void outputSummary(std::ostream &os);
 
+   void computeEnergy() {};
+
+   double getDynamicEnergy() { return 0; }
+   double getStaticPower()   { return 0; }
+
 private:
    void handleInstruction(Instruction *instruction);
    

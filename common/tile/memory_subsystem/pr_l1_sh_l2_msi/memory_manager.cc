@@ -108,12 +108,6 @@ MemoryManager::MemoryManager(Tile* tile)
       per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("dram/per_controller_bandwidth");
       dram_queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
       dram_queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
-
-      // If TRUE, use two networks to communicate shared memory messages.
-      // If FALSE, use just one network
-      // SHARED_MEM_1 is used to communicate messages from L1-I/L1-D caches and memory controller
-      // SHARED_MEM_2 is used to communicate messages from L2 cache
-      _switch_networks = Sim()->getCfg()->getBool("caching_protocol/pr_l1_sh_l2_msi/switch_networks");
    }
    catch(...)
    {
@@ -235,14 +229,14 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 {
    core_id_t sender = packet.sender;
    ShmemMsg* shmem_msg = ShmemMsg::getShmemMsg((Byte*) packet.data);
-   UInt64 msg_time = packet.time;
+   Time msg_time = packet.time;
 
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
    LOG_PRINT("Time(%llu), Got Shmem Msg: type(%i), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), "
              "sender(%i,%i), receiver(%i,%i), modeled(%s)", 
-             msg_time, shmem_msg->getType(), shmem_msg->getAddress(),
+             msg_time.toNanosec(), shmem_msg->getType(), shmem_msg->getAddress(),
              sender_mem_component, receiver_mem_component,
              sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type,
              shmem_msg->isModeled() ? "TRUE" : "FALSE");
@@ -312,13 +306,13 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
 }
 
 // Update internal variables when frequency is changed
-// Variables that need to be updated include all variables that are expressed in terms of cycles
-//  e.g., total memory access latency, packet arrival time, etc.
 void
 MemoryManager::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   _L1_cache_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   _L2_cache_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   // update cache performance models
+   _L1_icache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   _L1_dcache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   _L2_cache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }
 
 void
@@ -329,18 +323,16 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
                     shmem_msg.getAddress(), shmem_msg.getType(), shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    LOG_PRINT("Time(%llu), Sending Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), "
              "requester(%i), sender(%i), receiver(%i), modeled(%s)",
-             msg_time, shmem_msg.getType(), shmem_msg.getAddress(),
+             msg_time.toNanosec(), shmem_msg.getType(), shmem_msg.getAddress(),
              shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
              shmem_msg.getRequester(), getTile()->getId(), receiver,
              shmem_msg.isModeled() ? "TRUE" : "FALSE");
 
-   PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
-
-   NetPacket packet(msg_time, packet_type,
+   NetPacket packet(msg_time, SHARED_MEM,
          getTile()->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    getNetwork()->netSend(packet);
@@ -355,18 +347,16 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
    assert((shmem_msg.getDataBuf() == NULL) == (shmem_msg.getDataLength() == 0));
 
    Byte* msg_buf = shmem_msg.makeMsgBuf();
-   UInt64 msg_time = getShmemPerfModel()->getCycleCount();
+   Time msg_time = getShmemPerfModel()->getCurrTime();
 
    LOG_PRINT("Time(%llu), Broadcasting Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), "
              "requester(%i), sender(%i), modeled(%s)",
-             msg_time, shmem_msg.getType(), shmem_msg.getAddress(),
+             msg_time.toNanosec(), shmem_msg.getType(), shmem_msg.getAddress(),
              shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
              shmem_msg.getRequester(), getTile()->getId(),
              shmem_msg.isModeled() ? "TRUE" : "FALSE");
 
-   PacketType packet_type = getPacketType(shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent());
-
-   NetPacket packet(msg_time, packet_type,
+   NetPacket packet(msg_time, SHARED_MEM,
          getTile()->getId(), NetPacket::BROADCAST,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
    getNetwork()->netSend(packet);
@@ -375,48 +365,21 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
    delete [] msg_buf;
 }
 
-PacketType
-MemoryManager::getPacketType(MemComponent::Type sender_mem_component, MemComponent::Type receiver_mem_component)
-{
-   if (_switch_networks)
-   {
-      switch (sender_mem_component)
-      {
-      case MemComponent::CORE:
-         return SHARED_MEM_1;
-      case MemComponent::L1_ICACHE:
-      case MemComponent::L1_DCACHE:
-         return SHARED_MEM_1;
-      case MemComponent::L2_CACHE:
-         return SHARED_MEM_2;
-      case MemComponent::DRAM_CNTLR:
-         return SHARED_MEM_1;
-      default:
-         LOG_PRINT_ERROR("Unrecognized Sender Component(%u)", sender_mem_component);
-         return SHARED_MEM_1;
-      }
-   }
-   else
-   {
-      return SHARED_MEM_1;
-   }
-}
-
 void
-MemoryManager::incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
+MemoryManager::incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
 {
    switch (mem_component)
    {
    case MemComponent::L1_ICACHE:
-      getShmemPerfModel()->incrCycleCount(_L1_icache_perf_model->getLatency(access_type));
+      getShmemPerfModel()->incrCurrTime(_L1_icache_perf_model->getLatency(access_type));
       break;
 
    case MemComponent::L1_DCACHE:
-      getShmemPerfModel()->incrCycleCount(_L1_dcache_perf_model->getLatency(access_type));
+      getShmemPerfModel()->incrCurrTime(_L1_dcache_perf_model->getLatency(access_type));
       break;
 
    case MemComponent::L2_CACHE:
-      getShmemPerfModel()->incrCycleCount(_L2_cache_perf_model->getLatency(access_type));
+      getShmemPerfModel()->incrCurrTime(_L2_cache_perf_model->getLatency(access_type));
       break;
 
    case MemComponent::INVALID:

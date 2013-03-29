@@ -18,6 +18,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 #include "shmem_req.h"
 #include "shmem_msg.h"
 #include "mem_component.h"
+#include "time_types.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -83,30 +84,30 @@ namespace PrL1PrL2DramDirectoryMOSI
       UInt64 _total_exreq_in_shared_state;
       UInt64 _total_exreq_with_upgrade_replies;
       UInt64 _total_exreq_in_uncached_state;
-      UInt64 _total_exreq_serialization_time;
-      UInt64 _total_exreq_processing_time;
+      Time _total_exreq_serialization_time;
+      Time _total_exreq_processing_time;
 
       UInt64 _total_shreq;
       UInt64 _total_shreq_in_modified_state;
       UInt64 _total_shreq_in_shared_state;
       UInt64 _total_shreq_in_uncached_state;
-      UInt64 _total_shreq_serialization_time;
-      UInt64 _total_shreq_processing_time;
+      Time _total_shreq_serialization_time;
+      Time _total_shreq_processing_time;
 
       UInt64 _total_nullifyreq;
       UInt64 _total_nullifyreq_in_modified_state;
       UInt64 _total_nullifyreq_in_shared_state;
       UInt64 _total_nullifyreq_in_uncached_state;
-      UInt64 _total_nullifyreq_serialization_time;
-      UInt64 _total_nullifyreq_processing_time;
+      Time _total_nullifyreq_serialization_time;
+      Time _total_nullifyreq_processing_time;
 
       UInt64 _total_invalidations_unicast_mode;
       UInt64 _total_sharers_invalidated_unicast_mode;
-      UInt64 _total_invalidation_processing_time_unicast_mode;
+      Time _total_invalidation_processing_time_unicast_mode;
 
       UInt64 _total_invalidations_broadcast_mode;
       UInt64 _total_sharers_invalidated_broadcast_mode;
-      UInt64 _total_invalidation_processing_time_broadcast_mode;
+      Time _total_invalidation_processing_time_broadcast_mode;
 
       UInt32 getCacheLineSize();
       MemoryManager* getMemoryManager() { return _memory_manager; }
@@ -136,7 +137,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       void updateShmemReqEventCounters(ShmemReq* shmem_req, DirectoryEntry* directory_entry);
       void updateInvalidationEventCounters(bool in_broadcast_mode, SInt32 num_sharers);
       void updateShmemReqLatencyCounters(const ShmemReq* shmem_req);
-      void updateInvalidationLatencyCounters(bool initial_broadcast_mode, UInt64 shmem_req_latency);
+      void updateInvalidationLatencyCounters(bool initial_broadcast_mode, Time shmem_req_latency);
 
       // Add/Remove Sharer
       bool addSharer(DirectoryEntry* directory_entry, tile_id_t sharer_id);

@@ -885,7 +885,7 @@ void SyscallServer::futexWait(core_id_t core_id, int *addr, int val, UInt64 curr
       curr_val = *addr;
    }
 
-   LOG_PRINT("Futex Wait: core_id(%i,%i), addr(%p), val(%i), curr_val(%i), time(%llu)",
+   LOG_PRINT("Futex Wait: core_id(%i,%i), addr(%p), val(%i), curr_val(%i), time(%llu ps)",
              core_id.tile_id, core_id.core_type, addr, val, curr_val, curr_time);
    
    if (val != curr_val)
@@ -915,7 +915,7 @@ void SyscallServer::futexWaitClockReal(core_id_t core_id, int *addr, int val, UI
       curr_val = *addr;
    }
 
-   LOG_PRINT("Futex Wait Clock Real: core_id(%i,%i), addr(%p), val(%i), curr_val(%i), time(%llu)",
+   LOG_PRINT("Futex Wait Clock Real: core_id(%i,%i), addr(%p), val(%i), curr_val(%i), time(%llu ps)",
              core_id.tile_id, core_id.core_type, addr, val, curr_val, curr_time);
    
    if (val != curr_val)
@@ -934,7 +934,7 @@ void SyscallServer::futexWaitClockReal(core_id_t core_id, int *addr, int val, UI
 
 void SyscallServer::futexWake(core_id_t core_id, int *addr, int val, UInt64 curr_time)
 {
-   LOG_PRINT("Futex Wake: core_id(%i,%i), addr(%p), val(%i), curr_time(%llu)",
+   LOG_PRINT("Futex Wake: core_id(%i,%i), addr(%p), val(%i), curr_time(%llu ps)",
              core_id.tile_id, core_id.core_type, addr, val, curr_time);
 
    int num_procs_woken_up = __futexWake(addr, val, curr_time);
@@ -967,7 +967,7 @@ void SyscallServer::futexWakeOp(core_id_t core_id, int *addr1, int val1, int val
    }
 
    LOG_PRINT("Futex WakeOp: core_id(%i,%i), addr1(%p), val1(%i), val2(%i), "
-             "addr2(%p), val3(%i), oldval(%i), curr_time(%llu)",
+             "addr2(%p), val3(%i), oldval(%i), curr_time(%llu ps)",
              core_id.tile_id, core_id.core_type, addr1, val1, val2, addr2, val3, oldval, curr_time);
 
    int newval = 0;
@@ -1069,7 +1069,7 @@ void SyscallServer::futexCmpRequeue(core_id_t core_id, int *addr1, int val1, int
    }
 
    LOG_PRINT("Futex CmpRequeue: core_id(%i,%i), addr1(%p), val1(%i), val2(%i), "
-             "addr2(%p), val3(%i), curr_val(%i), curr_time(%llu)",
+             "addr2(%p), val3(%i), curr_val(%i), curr_time(%llu ps)",
              core_id.tile_id, core_id.core_type, addr1, val1, val2, addr2, val3, curr_val, curr_time);
 
    if (val3 != curr_val)
@@ -1112,7 +1112,7 @@ void SyscallServer::futexCmpRequeue(core_id_t core_id, int *addr1, int val1, int
 
 int SyscallServer::__futexWake(int* addr, int val, UInt64 curr_time)
 {
-   LOG_PRINT("__Futex Wake: addr(%p), val(%i), curr_time(%llu)", addr, val, curr_time);
+   LOG_PRINT("__Futex Wake: addr(%p), val(%i), curr_time(%llu ps)", addr, val, curr_time);
 
    SimFutex *sim_futex = &m_futexes[(IntPtr) addr];
 

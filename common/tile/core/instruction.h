@@ -4,6 +4,10 @@
 #include <sstream>
 #include <vector>
 #include "fixed_types.h"
+#include "time_types.h"
+
+// forward declaration
+class CoreModel;
 
 enum InstructionType
 {
@@ -18,18 +22,17 @@ enum InstructionType
    INST_XMM_PS,
    INST_GENERIC,
    INST_JMP,
+   INST_BRANCH,
    INST_DYNAMIC_MISC,
    INST_RECV,
    INST_SYNC,
    INST_SPAWN,
-   INST_STRING,
-   INST_BRANCH,
    INST_FAST_FORWARD,
    MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","generic","jmp","dynamic_misc","recv","sync","spawn","string","branch","fast_forward"};
+{"ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","generic","jmp","branch","dynamic_misc","recv","sync","spawn","fast_forward"};
 
 class Operand
 {
@@ -73,8 +76,8 @@ public:
 
    Instruction(InstructionType type);
 
-   virtual ~Instruction() { };
-   virtual UInt64 getCost();
+   virtual ~Instruction() {}
+   virtual Time getCost(CoreModel* perf);
 
    static void initializeStaticInstructionModel();
 
@@ -96,12 +99,15 @@ public:
 
    bool isSimpleMemoryLoad() const;
    bool isDynamic() const
-   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC) || (m_type == INST_FAST_FORWARD)); }
+   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC) || (m_type == INST_SPAWN) || (m_type == INST_FAST_FORWARD)); }
 
    void print() const;
 
-private:
    typedef std::vector<unsigned int> StaticInstructionCosts;
+
+   static StaticInstructionCosts getStaticInstructionCosts(){ return m_instruction_costs; }
+
+private:
    static StaticInstructionCosts m_instruction_costs;
 
    InstructionType m_type;
@@ -109,6 +115,7 @@ private:
 
    IntPtr m_address;
    UInt32 m_size;
+
 
 protected:
    OperandList m_operands;
@@ -138,25 +145,38 @@ public:
    {}
 };
 
+// conditional branches
+class BranchInstruction : public Instruction
+{
+public:
+   BranchInstruction(UInt64 opcode, OperandList &l);
+
+   Time getCost(CoreModel* perf);
+};
+
 // for operations not associated with the binary -- such as processing
 // a packet
 class DynamicInstruction : public Instruction
 {
 public:
-   DynamicInstruction(UInt64 cost, InstructionType type = INST_DYNAMIC_MISC);
-   ~DynamicInstruction();
+   DynamicInstruction(Time cost, InstructionType type = INST_DYNAMIC_MISC)
+      : Instruction(type)
+      , m_cost(cost)
+   {}
+   ~DynamicInstruction() {}
 
-   UInt64 getCost();
+   Time getCost(CoreModel* perf)
+   { return m_cost; }
 
-private:
-   UInt64 m_cost;
+protected:
+   Time m_cost;
 };
 
 // RecvInstruction - called for netRecv
 class RecvInstruction : public DynamicInstruction
 {
 public:
-   RecvInstruction(UInt64 cost)
+   RecvInstruction(Time cost)
       : DynamicInstruction(cost, INST_RECV)
    {}
 };
@@ -165,36 +185,27 @@ public:
 class SyncInstruction : public DynamicInstruction
 {
 public:
-   SyncInstruction(UInt64 cost);
+   SyncInstruction(Time cost)
+      : DynamicInstruction(cost, INST_SYNC)
+   {}
 };
 
 // Fast-forward instruction
 class FastForwardInstruction : public DynamicInstruction
 {
 public:
-   FastForwardInstruction(UInt64 cost)
+   FastForwardInstruction(Time cost)
       : DynamicInstruction(cost, INST_FAST_FORWARD)
    {}
 };
 
-// set clock to particular time
-class SpawnInstruction : public Instruction
+// SpawnInstruction - set clock to particular time
+class SpawnInstruction : public DynamicInstruction
 {
 public:
-   SpawnInstruction(UInt64 time);
-   UInt64 getCost();
-
-private:
-   UInt64 m_time;
-};
-
-// conditional branches
-class BranchInstruction : public Instruction
-{
-public:
-   BranchInstruction(UInt64 opcode, OperandList &l);
-
-   UInt64 getCost();
+   SpawnInstruction(Time time);
+   
+   Time getCost(CoreModel* perf);
 };
 
 #endif

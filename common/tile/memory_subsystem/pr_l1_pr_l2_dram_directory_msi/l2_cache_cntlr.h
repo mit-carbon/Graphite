@@ -21,6 +21,7 @@ namespace PrL1PrL2DramDirectoryMSI
 #include "shmem_perf_model.h"
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
+#include "time_types.h"
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -66,7 +67,7 @@ namespace PrL1PrL2DramDirectoryMSI
       
       // Outstanding Miss information
       ShmemMsg _outstanding_shmem_msg;
-      UInt64 _outstanding_shmem_msg_time;
+      Time _outstanding_shmem_msg_time;
       
       // L2 cache operations
       void readCacheLine(IntPtr address, Byte* data_buf);

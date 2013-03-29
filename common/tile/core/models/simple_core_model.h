@@ -20,12 +20,12 @@ public:
 private:
    void handleInstruction(Instruction *instruction);
    
-   UInt64 modelICache(IntPtr ins_address, UInt32 ins_size);
+   Time modelICache(IntPtr ins_address, UInt32 ins_size);
    void initializePipelineStallCounters();
 
-   UInt64 m_total_l1icache_stall_cycles;
-   UInt64 m_total_l1dcache_read_stall_cycles;
-   UInt64 m_total_l1dcache_write_stall_cycles;
+   Time m_total_l1icache_stall_time;
+   Time m_total_l1dcache_read_stall_time;
+   Time m_total_l1dcache_write_stall_time;
 };
 
 #endif

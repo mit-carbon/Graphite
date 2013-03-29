@@ -39,7 +39,6 @@ Network::Network(Tile *tile)
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
       UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
-      
       _models[i] = NetworkModel::createModel(this, i, network_model);
    }
 
@@ -84,7 +83,9 @@ void Network::outputSummary(std::ostream &out) const
    out << "Network Summary: " << endl;
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
-      out << "  Network Model " << i << ": " << endl;
+      if (i > STATIC_NETWORK_SYSTEM)
+         break;         
+      out << "  Network (" <<  _models[i]->getNetworkName() << "): " << endl;
       _models[i]->outputSummary(out);
    }
 }
@@ -102,7 +103,7 @@ void Network::netPullFromTransport()
       NetPacket packet(_transport->recv());
 
       LOG_PRINT("Pull packet : type %i, from (%i, %i), time %llu",
-                (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.time);
+                (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type, packet.time.toNanosec());
       LOG_ASSERT_ERROR(0 <= packet.sender.tile_id && packet.sender.tile_id < _numMod,
                        "Invalid Packet Sender(%i)", packet.sender);
       LOG_ASSERT_ERROR(0 <= packet.type && packet.type < NUM_PACKET_TYPES,
@@ -123,7 +124,7 @@ void Network::netPullFromTransport()
             LOG_PRINT("Executing callback on packet : type %i, from (%i, %i), to (%i, %i), tile_id %i, time %llu", 
                       (SInt32) packet.type, packet.sender.tile_id, packet.sender.core_type,
                       packet.receiver.tile_id, packet.receiver.core_type,
-                      _tile->getId(), packet.time);
+                      _tile->getId(), packet.time.toNanosec());
             assert(0 <= packet.sender.tile_id && packet.sender.tile_id < _numMod);
             assert(0 <= packet.type && packet.type < NUM_PACKET_TYPES);
 
@@ -140,7 +141,7 @@ void Network::netPullFromTransport()
             LOG_PRINT("Enqueuing packet : type %i, from (%i, %i), to (%i, %i), tile_id %i, time %llu",
                       (SInt32)packet.type, packet.sender.tile_id, packet.sender.core_type,
                       packet.receiver.tile_id, packet.receiver.core_type,
-                      _tile->getId(), packet.time);
+                      _tile->getId(), packet.time.toNanosec());
 
             _netQueueLock.acquire();
             _netQueue.push_back(packet);
@@ -155,7 +156,8 @@ void Network::netPullFromTransport()
          LOG_PRINT("Forwarding packet : type %i, from (%i, %i), to (%i, %i), tile_id %i, time %llu.", 
                    (SInt32) packet.type, packet.sender.tile_id, packet.sender.core_type,
                    packet.receiver.tile_id, packet.receiver.core_type,
-                   _tile->getId(), packet.time);
+                   _tile->getId(), packet.time.toNanosec());
+
          forwardPacket(packet);
          
          // De-allocate packet payload
@@ -183,10 +185,8 @@ SInt32 Network::netSend(NetPacket& packet)
    LOG_PRINT("netSend: type %i, from (%i,%i) to (%i,%i), tile_id %i, time %llu",
              packet.type, packet.sender.tile_id, packet.sender.core_type,
              packet.receiver.tile_id, packet.receiver.core_type,
-             _tile->getId(), packet.time);
-
-   // Convert from tile cycle count to network cycle count
-   packet.time = convertCycleCount(packet.time, _tile->getFrequency(), model->getFrequency());
+             _tile->getId(), packet.time.toNanosec());
+   
 
    // Send packet as multiple packets if model has not broadcast capability and receiver is ALL
    if ( (TILE_ID(packet.receiver) == NetPacket::BROADCAST) && (!model->hasBroadcastCapability()) )
@@ -246,7 +246,8 @@ SInt32 Network::forwardPacket(const NetPacket& packet)
                    buf_pkt->sender.tile_id, buf_pkt->sender.core_type,
                    buf_pkt->receiver.tile_id, buf_pkt->receiver.core_type,
                    hop._next_tile_id,
-                   _tile->getId(), hop._time);
+                   _tile->getId(), hop._time.toNanosec());
+         
          _transport->send(hop._next_tile_id, buffer, packet.bufferSize());
       }
    }
@@ -374,8 +375,8 @@ NetPacket Network::netRecv(const NetMatch &match)
 
    LOG_ASSERT_ERROR(_tile && _tile->getCore()->getModel(),
                     "Tile and/or performance model not initialized.");
-   UInt64 start_time = _tile->getCore()->getModel()->getCycleCount();
-   LOG_PRINT("netRecv: Start waiting at %llu", start_time);
+   Time start_time = _tile->getCore()->getModel()->getCurrTime();
+   LOG_PRINT("netRecv: Start waiting at %llu", start_time.toNanosec());
 
    _netQueueLock.acquire();
 
@@ -415,11 +416,14 @@ NetPacket Network::netRecv(const NetMatch &match)
       // go to sleep until a packet arrives if none have been found
       if (!found)
       {
+         LOG_PRINT("netRecv: Packet match NOT found");
          LOG_PRINT("netRecv: Waiting on condition variable");
          _netQueueCond.wait(_netQueueLock);
-         LOG_PRINT("netRecv: Exit waiting");
+         LOG_PRINT("netRecv: Woken up");
       }
    }
+
+   LOG_PRINT("netRecv: Packet match found");
 
    assert(found == true && itr != _netQueue.end());
    assert(0 <= itr->sender.tile_id && itr->sender.tile_id < _numMod);
@@ -432,20 +436,16 @@ NetPacket Network::netRecv(const NetMatch &match)
 
    _netQueueLock.release();
 
-   // Convert packet time into tile frequency domain
-   NetworkModel* model = getNetworkModelFromPacketType(packet.type);
-   packet.time = convertCycleCount(packet.time, model->getFrequency(), _tile->getFrequency());
-         
-   LOG_PRINT("netRecv: Started waiting at %llu, Got packet at %llu", start_time, packet.time);
+   LOG_PRINT("netRecv: Started waiting at %llu, Got packet at %llu", start_time.toNanosec(), packet.time.toNanosec());
 
    if (packet.time > start_time)
    {
       CoreModel* core_model = _tile->getCore()->getModel();
       if (core_model)
       {  
-         LOG_PRINT("netRecv: Queueing RecvInstruction(%llu)", packet.time - start_time);
+         LOG_PRINT("netRecv: Queueing RecvInstruction(%llu)", packet.time.toNanosec() - start_time.toNanosec());
          Instruction *i = new RecvInstruction(packet.time - start_time);
-         core_model->queueDynamicInstruction(i);
+         core_model->processDynamicInstruction(i);
       }
    }
 
@@ -463,7 +463,7 @@ SInt32 Network::netSend(core_id_t dest, PacketType type, const void *buf, UInt32
    NetPacket packet;
    assert(_tile);
    assert(_tile->getCore()->getModel()); 
-   packet.time = _tile->getCore()->getModel()->getCycleCount();
+   packet.time = _tile->getCore()->getModel()->getCurrTime();
    packet.sender = _tile->getCore()->getId();
    packet.receiver = dest;
    packet.length = len;
@@ -651,7 +651,7 @@ NetPacket::NetPacket()
 {
 }
 
-NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
+NetPacket::NetPacket(Time t, PacketType ty, SInt32 s,
                      SInt32 r, UInt32 l, const void *d)
    : time(t)
    , type(ty)
@@ -666,7 +666,7 @@ NetPacket::NetPacket(UInt64 t, PacketType ty, SInt32 s,
 }
 
 
-NetPacket::NetPacket(UInt64 t, PacketType ty, core_id_t s,
+NetPacket::NetPacket(Time t, PacketType ty, core_id_t s,
                      core_id_t r, UInt32 l, const void *d)
    : time(t)
    , type(ty)

@@ -38,14 +38,14 @@ private:
 
    void handleInstruction(Instruction *instruction);
 
-   UInt64 modelICache(IntPtr ins_address, UInt32 ins_size);
-   std::pair<UInt64,UInt64> executeLoad(UInt64 time, const DynamicInstructionInfo &);
-   UInt64 executeStore(UInt64 time, const DynamicInstructionInfo &);
+   Time modelICache(IntPtr ins_address, UInt32 ins_size);
+   std::pair<Time,Time> executeLoad(Time time, const DynamicInstructionInfo &);
+   Time executeStore(Time time, const DynamicInstructionInfo &);
 
    void initializeRegisterScoreboard();
    void initializeRegisterWaitUnitList();
 
-   typedef std::vector<UInt64> Scoreboard;
+   typedef std::vector<Time> Scoreboard;
 
    class LoadBuffer
    {
@@ -53,7 +53,7 @@ private:
       LoadBuffer(unsigned int num_units);
       ~LoadBuffer();
 
-      UInt64 execute(UInt64 time, UInt64 occupancy);
+      Time execute(Time time, Time occupancy);
 
    private:
       Scoreboard m_scoreboard;
@@ -79,14 +79,14 @@ private:
         @param time Time store starts.
         @param addr Address of store.
       */
-      UInt64 executeStore(UInt64 time, UInt64 occupancy, IntPtr addr);
+      Time executeStore(Time time, Time occupancy, IntPtr addr);
 
       /*
         @return True if addr is in store buffer at given time.
         @param time Time to check for addr.
         @param addr Address to check.
       */
-      Status isAddressAvailable(UInt64 time, IntPtr addr);
+      Status isAddressAvailable(Time time, IntPtr addr);
 
    private:
       Scoreboard m_scoreboard;
@@ -102,14 +102,14 @@ private:
    LoadBuffer *m_load_buffer;
 
    // Pipeline Stall Counters
-   UInt64 m_total_load_buffer_stall_cycles;
-   UInt64 m_total_store_buffer_stall_cycles;
-   UInt64 m_total_l1icache_stall_cycles;
-   UInt64 m_total_intra_ins_l1dcache_read_stall_cycles;
-   UInt64 m_total_inter_ins_l1dcache_read_stall_cycles;
-   UInt64 m_total_l1dcache_write_stall_cycles;
-   UInt64 m_total_intra_ins_execution_unit_stall_cycles;
-   UInt64 m_total_inter_ins_execution_unit_stall_cycles;
+   Time m_total_load_buffer_stall_time;
+   Time m_total_store_buffer_stall_time;
+   Time m_total_l1icache_stall_time;
+   Time m_total_intra_ins_l1dcache_read_stall_time;
+   Time m_total_inter_ins_l1dcache_read_stall_time;
+   Time m_total_l1dcache_write_stall_time;
+   Time m_total_intra_ins_execution_unit_stall_time;
+   Time m_total_inter_ins_execution_unit_stall_time;
    void initializePipelineStallCounters();
 
    bool m_enable_area_and_power_modeling;

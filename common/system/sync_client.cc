@@ -58,12 +58,11 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_MUTEX_LOCK;
 
-   // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getModel()->getCycleCount(), m_core->getTile()->getFrequency(), 1.0);
+   UInt64 start_time = m_core->getModel()->getCurrTime().getTime();
 
    m_send_buff << msg_type << *mux << start_time;
 
-   LOG_PRINT("mutexLock(): mux(%u), start_time(%llu)", *mux, start_time);
+   LOG_PRINT("mutexLock(): mux(%u), start_time(%llu ps)", *mux, start_time);
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    // Set the CoreState to 'STALLED'
@@ -88,9 +87,8 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
    {
       if (m_core->getModel())
       {
-         // Global Clock to Core Clock
-         UInt64 cycles_elapsed = convertCycleCount(time - start_time, 1.0, m_core->getTile()->getFrequency());
-         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+         Time time_elapsed = Time(time - start_time);
+         m_core->getModel()->processDynamicInstruction(new SyncInstruction(time_elapsed));
       }
    }
 
@@ -108,12 +106,11 @@ void SyncClient::mutexUnlock(carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_MUTEX_UNLOCK;
 
-   // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getModel()->getCycleCount(), m_core->getTile()->getFrequency(), 1.0);
+   UInt64 start_time = m_core->getModel()->getCurrTime().getTime();
 
    m_send_buff << msg_type << *mux << start_time;
 
-   LOG_PRINT("mutexUnlock(): mux(%u), start_time(%llu)", *mux, start_time);
+   LOG_PRINT("mutexUnlock(): mux(%u), start_time(%llu ps)", *mux, start_time);
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
@@ -139,8 +136,7 @@ void SyncClient::condInit(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_INIT;
 
-   // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getModel()->getCycleCount(), m_core->getTile()->getFrequency(), 1.0);
+   UInt64 start_time = m_core->getModel()->getCurrTime().getTime();
 
    m_send_buff << msg_type << *cond << start_time;
 
@@ -166,12 +162,11 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 
    int msg_type = MCP_MESSAGE_COND_WAIT;
 
-   // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getModel()->getCycleCount(), m_core->getTile()->getFrequency(), 1.0);
+   UInt64 start_time = m_core->getModel()->getCurrTime().getTime();
 
    m_send_buff << msg_type << *cond << *mux << start_time;
 
-   LOG_PRINT("condWait(): cond(%u), mux(%u), start_time(%llu)", *cond, *mux, start_time);
+   LOG_PRINT("condWait(): cond(%u), mux(%u), start_time(%llu ps)", *cond, *mux, start_time);
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    // Set the CoreState to 'STALLED'
@@ -196,9 +191,8 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
    {
       if (m_core->getModel())
       {
-         // Global Clock to Core Clock
-         UInt64 cycles_elapsed = convertCycleCount(time  - start_time, 1.0, m_core->getTile()->getFrequency());
-         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+         Time time_elapsed = Time(time  - start_time);
+         m_core->getModel()->processDynamicInstruction(new SyncInstruction(time_elapsed));
       }
    }
 
@@ -216,12 +210,11 @@ void SyncClient::condSignal(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_SIGNAL;
 
-   // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getModel()->getCycleCount(), m_core->getTile()->getFrequency(), 1.0);
+   UInt64 start_time = m_core->getModel()->getCurrTime().getTime();
 
    m_send_buff << msg_type << *cond << start_time;
 
-   LOG_PRINT("condSignal(): cond(%u), start_time(%llu)", *cond, start_time);
+   LOG_PRINT("condSignal(): cond(%u), start_time(%llu) ps", *cond, start_time);
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
@@ -247,12 +240,11 @@ void SyncClient::condBroadcast(carbon_cond_t *cond)
 
    int msg_type = MCP_MESSAGE_COND_BROADCAST;
 
-   // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getModel()->getCycleCount(), m_core->getTile()->getFrequency(), 1.0);
+   UInt64 start_time = m_core->getModel()->getCurrTime().getTime();
 
    m_send_buff << msg_type << *cond << start_time;
 
-   LOG_PRINT("condBroadcast(): cond(%u), start_time(%llu)", *cond, start_time);
+   LOG_PRINT("condBroadcast(): cond(%u), start_time(%llu ps)", *cond, start_time);
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    NetPacket recv_pkt;
@@ -278,8 +270,7 @@ void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
 
    int msg_type = MCP_MESSAGE_BARRIER_INIT;
 
-   // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getModel()->getCycleCount(), m_core->getTile()->getFrequency(), 1.0);
+   UInt64 start_time = m_core->getModel()->getCurrTime().getTime();
 
    m_send_buff << msg_type << count << start_time;
 
@@ -305,12 +296,11 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
 
    int msg_type = MCP_MESSAGE_BARRIER_WAIT;
 
-   // Core Clock to Global Clock
-   UInt64 start_time = convertCycleCount(m_core->getModel()->getCycleCount(), m_core->getTile()->getFrequency(), 1.0);
+   UInt64 start_time = m_core->getModel()->getCurrTime().getTime();
 
    m_send_buff << msg_type << *barrier << start_time;
 
-   LOG_PRINT("barrierWait(): barrier(%u), start_time(%llu)", *barrier, start_time);
+   LOG_PRINT("barrierWait(): barrier(%u), start_time(%llu ps)", *barrier, start_time);
    m_network->netSend(Config::getSingleton()->getMCPCoreId(), MCP_REQUEST_TYPE, m_send_buff.getBuffer(), m_send_buff.size());
 
    ThreadScheduler * thread_scheduler = Sim()->getThreadScheduler();
@@ -326,7 +316,7 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    assert(recv_pkt.length == sizeof(unsigned int) + sizeof(UInt64));
 
 
-   LOG_PRINT("barrierResponse!: barrier(%u), start_time(%llu)", *barrier, start_time);
+   LOG_PRINT("barrierResponse!: barrier(%u), start_time(%llu ps)", *barrier, start_time);
 
    // Set the CoreState to 'RUNNING'
    m_core->setState(Core::WAKING_UP);
@@ -345,9 +335,8 @@ void SyncClient::barrierWait(carbon_barrier_t *barrier)
    {
       if (m_core->getModel())
       {
-         // Global Clock to Core Clock
-         UInt64 cycles_elapsed = convertCycleCount(time - start_time, 1.0, m_core->getTile()->getFrequency());
-         m_core->getModel()->queueDynamicInstruction(new SyncInstruction(cycles_elapsed));
+         Time time_elapsed = Time(time - start_time);
+         m_core->getModel()->processDynamicInstruction(new SyncInstruction(time_elapsed));
       }
    }
 

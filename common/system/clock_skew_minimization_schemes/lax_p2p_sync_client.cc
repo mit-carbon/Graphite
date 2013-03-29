@@ -141,7 +141,7 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
    // Even if this is an approximate value, this is OK
    
    // Tile Clock to Global clock conversion
-   UInt64 curr_time = convertCycleCount(_core->getModel()->getCycleCount(), _core->getTile()->getFrequency(), 1.0);
+   UInt64 curr_time = _core->getModel()->getCurrTime().toNanosec();
 
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
 
@@ -196,9 +196,9 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
 
 // Called by user thread
 void
-LaxP2PSyncClient::synchronize(UInt64 cycle_count)
+LaxP2PSyncClient::synchronize(Time time)
 {
-   LOG_ASSERT_ERROR(cycle_count == 0, "cycle_count(%llu), Cannot be used", cycle_count);
+   LOG_ASSERT_ERROR(time == 0, "tiem(%llu), Cannot be used", time.toNanosec());
 
    if (! _enabled)
       return;
@@ -209,7 +209,7 @@ LaxP2PSyncClient::synchronize(UInt64 cycle_count)
    if (_core->getState() == Core::WAKING_UP)
       _core->setState(Core::RUNNING);
 
-   UInt64 curr_time = convertCycleCount(_core->getModel()->getCycleCount(), _core->getTile()->getFrequency(), 1.0);
+   UInt64 curr_time = _core->getModel()->getCurrTime().toNanosec();
 
    assert(curr_time >= _last_sync_time);
 
@@ -306,7 +306,7 @@ LaxP2PSyncClient::gotoSleep(const UInt64 sleep_time)
       // Set the CoreState to 'SLEEPING'
       _core->setState(Core::SLEEPING);
 
-      UInt64 elapsed_simulated_time = convertCycleCount(_core->getModel()->getCycleCount(), _core->getTile()->getFrequency(), 1.0);
+      UInt64 elapsed_simulated_time = _core->getModel()->getCurrTime().toNanosec();
 
       UInt64 elapsed_wall_clock_time = getElapsedWallClockTime();
 

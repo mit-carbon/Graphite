@@ -7,9 +7,9 @@ import os
 import time
 import shutil
 import subprocess
+import signal
+import random
 
-import spawn
-import spawn_master
 from termcolors import *
 
 # Job:
@@ -32,91 +32,66 @@ class Job:
     def kill(self):
         pass
 
-# LocalJob:
-#  just run something locally but consume lots of machines to do so
-class LocalJob(Job):
-    def __init__(self, num_machines, command):
-        Job.__init__(self, num_machines, command)
-
-    def spawn(self):
-        self.pid = subprocess.Popen(self.command, shell=True)
-
-    def poll(self):
-        return self.pid.poll()
-
-    def wait(self):
-        return self.pid.wait()
-
-    def kill(self):
-        return os.kill(self.pid, signal.SIGKILL)
-
 # SpawnJob:
-#  a job that should be run across several machines using the spawn
-#  infrastructure
+#  just run something locally but consume lots of machines to do so
 class SpawnJob(Job):
     def __init__(self, num_machines, command):
         Job.__init__(self, num_machines, command)
 
     def spawn(self):
-        self.plist = spawn_master.spawn_job(self.machines, self.command, os.getcwd(), os.getcwd())
+        self.proc = subprocess.Popen(self.command, shell=True, preexec_fn=os.setsid)
 
     def poll(self):
-        return spawn_master.poll_job(self.plist)
+        return self.proc.poll()
 
     def wait(self):
-        return spawn_master.wait_job(self.plist)
+        return self.proc.wait()
 
     def kill(self):
-        return spawn_master.kill_job(self.plist)
+        return os.killpg(self.proc.pid, signal.SIGINT)
 
 # MakeJob:
 #  a job built around the make system
 class MakeJob(SpawnJob):
 
-    def __init__(self, num_machines, command, results_dir, sub_dir, sim_flags, mode="pin"):
+    def __init__(self, num_machines, command, config_filename, results_dir, sub_dir, sim_flags, app_flags, mode="pin"):
         SpawnJob.__init__(self, num_machines, command)
+        self.config_filename = config_filename
         self.results_dir = results_dir
         self.sub_dir = "%s/%s" % (results_dir, sub_dir)
         self.sim_flags = sim_flags
+        self.app_flags = app_flags
         self.mode = mode
 
-    def make_pin_command(self):
-        self.sim_flags += " --general/output_dir=%s --general/num_processes=%d" % (self.sub_dir, len(self.machines))
+    def make_command(self):
+        self.sim_flags += " -c %s/%s --general/output_dir=%s/%s --general/num_processes=%d --transport/base_port=%d" % \
+              (os.getcwd(), self.config_filename, os.getcwd(), self.sub_dir, len(self.machines), random.randint(2000,15000))
         for i in range(0,len(self.machines)):
-            self.sim_flags += " --process_map/process%i=%s" % (i, self.machines[i])
-
-        if (self.mode == "pin"):
-            graphite_home = spawn.get_graphite_home()
-            PIN_PATH = "%s/intel64/bin/pinbin" % spawn.get_pin_home(graphite_home)
-            PIN_LIB = "%s/lib/pin_sim" % (graphite_home)
-            self.command = "%s -tool_exit_timeout 1 -mt -t %s %s -- %s" % (PIN_PATH, PIN_LIB, self.sim_flags, self.command)
-        elif (self.mode == "standalone"):
-            self.command = "%s %s" % (self.command, self.sim_flags)
-
-        self.command += " > %s/output 2>&1" % self.sub_dir
+            self.sim_flags += " --process_map/process%d=%s" % (i, self.machines[i])
+       
+        self.command += " SIM_FLAGS=\"%s\"" % (self.sim_flags)
+        if self.app_flags != None:
+            self.command += " APP_FLAGS=\"%s\"" % (self.app_flags)
+        self.command += " > %s/output 2>&1" % (self.sub_dir)
 
     def spawn(self):
 
-        # make output dir
+        # make output directory
         try:
             os.makedirs(self.sub_dir)
         except OSError:
             pass
 
         # format command
-        self.make_pin_command()
+        self.make_command()
+        print "%s %s" % (pschedule(), self.command)
 
-        cmdfile = open("%s/command" % self.sub_dir,'w')
-        cmdfile.write(self.command)
-        cmdfile.close()
-        
         SpawnJob.spawn(self)
 
 # schedule - run a list of jobs across some machines
 def schedule(machine_list, jobs):
 
     # initialization
-    
     available = machine_list
     running = []
 

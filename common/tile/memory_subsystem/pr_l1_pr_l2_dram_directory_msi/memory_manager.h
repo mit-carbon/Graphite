@@ -23,9 +23,9 @@ namespace PrL1PrL2DramDirectoryMSI
 
       UInt32 getCacheLineSize() { return _cache_line_size; }
 
-      Cache* getL1ICache() { return _l1_cache_cntlr->getL1ICache(); }
-      Cache* getL1DCache() { return _l1_cache_cntlr->getL1DCache(); }
-      Cache* getL2Cache() { return _l2_cache_cntlr->getL2Cache(); }
+      Cache* getL1ICache() { return _L1_cache_cntlr->getL1ICache(); }
+      Cache* getL1DCache() { return _L1_cache_cntlr->getL1DCache(); }
+      Cache* getL2Cache() { return _L2_cache_cntlr->getL2Cache(); }
       DirectoryCache* getDramDirectoryCache() { return _dram_directory_cntlr->getDramDirectoryCache(); }
       DramCntlr* getDramCntlr() { return _dram_cntlr; }
       bool isDramCntlrPresent() { return _dram_cntlr_present; }
@@ -58,11 +58,11 @@ namespace PrL1PrL2DramDirectoryMSI
       double getDynamicEnergy();
       double getStaticPower();
 
-      void incrCycleCount(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
    
    private:
-      L1CacheCntlr* _l1_cache_cntlr;
-      L2CacheCntlr* _l2_cache_cntlr;
+      L1CacheCntlr* _L1_cache_cntlr;
+      L2CacheCntlr* _L2_cache_cntlr;
       DramDirectoryCntlr* _dram_directory_cntlr;
       DramCntlr* _dram_cntlr;
 
@@ -74,9 +74,9 @@ namespace PrL1PrL2DramDirectoryMSI
       UInt32 _cache_line_size;
 
       // Performance Models
-      CachePerfModel* _l1_icache_perf_model;
-      CachePerfModel* _l1_dcache_perf_model;
-      CachePerfModel* _l2_cache_perf_model;
+      CachePerfModel* _L1_icache_perf_model;
+      CachePerfModel* _L1_dcache_perf_model;
+      CachePerfModel* _L2_cache_perf_model;
       
       bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                     Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,

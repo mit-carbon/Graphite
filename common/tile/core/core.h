@@ -18,6 +18,7 @@ class PinMemoryManager;
 #include "capi.h"
 #include "packet_type.h"
 #include "lock.h"
+#include "time_types.h"
 
 class Core
 {
@@ -53,14 +54,14 @@ public:
    int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    int coreRecvW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
    
-   virtual UInt64 readInstructionMemory(IntPtr address, UInt32 instruction_size);
+   virtual Time readInstructionMemory(IntPtr address, UInt32 instruction_size);
 
-   virtual pair<UInt32, UInt64> initiateMemoryAccess(MemComponent::Type mem_component,
+   virtual pair<UInt32, Time> initiateMemoryAccess(MemComponent::Type mem_component,
                                                      lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                                      Byte* data_buf, UInt32 data_size, bool push_info = false,
-                                                     UInt64 time = 0);
+                                                     Time time = Time(0));
    
-   virtual pair<UInt32, UInt64> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
+   virtual pair<UInt32, Time> accessMemory(lock_signal_t lock_signal, mem_op_t mem_op_type, IntPtr address,
                                              char* data_buffer, UInt32 data_size, bool push_info = false);
 
    core_id_t getId()                         { return _id; }
@@ -97,11 +98,13 @@ private:
 
    Lock _lock;
 
-   UInt64 _num_memory_accesses;
-   UInt64 _total_memory_access_latency;   // In clock-cycles
+   UInt64 _num_instruction_memory_accesses;
+   Time _total_instruction_memory_access_latency;
+   UInt64 _num_data_memory_accesses;
+   Time _total_data_memory_access_latency;
 
    void initializeMemoryAccessLatencyCounters();
-   void incrTotalMemoryAccessLatency(UInt64 memory_access_latency);
+   void incrTotalMemoryAccessLatency(MemComponent::Type mem_component, Time memory_access_latency);
    PacketType getPacketTypeFromUserNetType(carbon_network_t net_type);
 };
 

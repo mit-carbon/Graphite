@@ -106,16 +106,16 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num))
       {
-         // Increment Shared Mem Perf model cycle counts
+         // Increment Shared Mem Perf model curr time
          // L1 Cache
-         getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
                  
          return l1_cache_hit;
       }
 
-      getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
      
       // Miss in the L1 cache 
       l1_cache_hit = false;
@@ -132,19 +132,19 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       // Is cache hit?
       if (!l2_cache_miss)
       {
-         // Increment Shared Mem Perf model cycle counts
+         // Increment Shared Mem Perf model curr time
          // L2 Cache
-         getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
          // L1 Cache
-         getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
          return false;
       }
 
-      // Increment shared mem perf model cycle counts
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      // Increment shared mem perf model curr time
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
       
       // Is the miss type modeled? If yes, all the msgs' created by this miss are modeled 
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());

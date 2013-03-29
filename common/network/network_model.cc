@@ -66,7 +66,7 @@ NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
 bool
 NetworkModel::isPacketReadyToBeReceived(const NetPacket& pkt)
 {
-   if ( (_network_id >= STATIC_NETWORK_USER_1) && (_network_id <= STATIC_NETWORK_MEMORY_2) )
+   if ( (_network_id == STATIC_NETWORK_USER) || (_network_id == STATIC_NETWORK_MEMORY) )
    {
       return (pkt.node_type == RECEIVE_TILE);
    }
@@ -138,8 +138,8 @@ NetworkModel::processReceivedPacket(NetPacket& pkt)
    // Add serialization latency due to finite link bandwidth
    UInt64 num_flits = computeNumFlits(getModeledLength(pkt));
 
-   pkt.time += num_flits;
-   pkt.zero_load_delay += num_flits;
+   pkt.time += Latency(num_flits,_frequency);
+   pkt.zero_load_delay += Latency(num_flits,_frequency);
 }
 
 void
@@ -157,19 +157,19 @@ NetworkModel::initializeEventCounters()
    _total_flits_received = 0;
    _total_bits_received = 0;
    
-   _total_packet_latency = 0;
-   _total_contention_delay = 0;
+   _total_packet_latency = Time(0);
+   _total_contention_delay = Time(0);
 }
 
 bool
 NetworkModel::isModelEnabled(const NetPacket& pkt)
 {
-   SInt32 network_id = getNetworkId();
-   if ((network_id == STATIC_NETWORK_MEMORY_1) || (network_id == STATIC_NETWORK_MEMORY_2))
+   SInt32 network_id = getNetworkID();
+   if (network_id == STATIC_NETWORK_MEMORY)
    {
       return ( _enabled && (getNetwork()->getTile()->getMemoryManager()->isModeled(pkt.data)) );
    }
-   else // USER_1, USER_2, SYSTEM
+   else // USER, SYSTEM
    {
       return _enabled;
    }
@@ -178,7 +178,7 @@ NetworkModel::isModelEnabled(const NetPacket& pkt)
 UInt32
 NetworkModel::getModeledLength(const NetPacket& pkt) // In bits
 {   
-   if ((pkt.type == SHARED_MEM_1) || (pkt.type == SHARED_MEM_2))
+   if (pkt.type == SHARED_MEM)
    {
       // sender + receiver + size of shmem_msg
       // log2(core_id) for sender and receiver
@@ -258,8 +258,8 @@ NetworkModel::updateReceiveCounters(const NetPacket& packet)
    _total_bits_received += packet_length;
    _total_flits_received_in_current_interval += num_flits;
 
-   UInt64 packet_latency = packet.zero_load_delay + packet.contention_delay;
-   UInt64 contention_delay = packet.contention_delay;
+   Time packet_latency = packet.zero_load_delay + packet.contention_delay;
+   Time contention_delay = packet.contention_delay;
    _total_packet_latency += packet_latency;
    _total_contention_delay += contention_delay;
 }
@@ -281,16 +281,16 @@ NetworkModel::outputSummary(ostream& out)
 
    if (_total_packets_received > 0)
    {
-      UInt64 total_packet_latency_in_ns = convertCycleCount(_total_packet_latency, getFrequency(), 1.0);
-      UInt64 total_contention_delay_in_ns = convertCycleCount(_total_contention_delay, getFrequency(), 1.0);
+      UInt64 total_packet_latency_in_ns = _total_packet_latency.toNanosec();
+      UInt64 total_contention_delay_in_ns = _total_contention_delay.toNanosec();
 
       out << "    Average Packet Latency (in clock cycles): " <<
-         ((float) _total_packet_latency) / _total_packets_received << endl;
+         ((float) _total_packet_latency.toCycles(_frequency)) / _total_packets_received << endl;
       out << "    Average Packet Latency (in ns): " <<
          ((float) total_packet_latency_in_ns) / _total_packets_received << endl;
 
       out << "    Average Contention Delay (in clock cycles): " <<
-         ((float) _total_contention_delay) / _total_packets_received << endl;
+         ((float) _total_contention_delay.toCycles(_frequency)) / _total_packets_received << endl;
       out << "    Average Contention Delay (in ns): " <<
          ((float) total_contention_delay_in_ns) / _total_packets_received << endl;
    }
@@ -475,7 +475,7 @@ NetworkModel::popCurrentUtilizationStatistics(UInt64& flits_sent, UInt64& flits_
 }
 
 NetworkModel::Hop::Hop(const NetPacket& pkt, tile_id_t next_tile_id, SInt32 next_node_type,
-                       UInt64 zero_load_delay, UInt64 contention_delay)
+                       Time zero_load_delay, Time contention_delay)
    : _next_tile_id(next_tile_id)
    , _next_node_type(next_node_type)
    , _time(pkt.time + contention_delay + zero_load_delay)

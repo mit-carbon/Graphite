@@ -27,10 +27,10 @@ Instruction::Instruction(InstructionType type)
 {
 }
 
-UInt64 Instruction::getCost()
+Time Instruction::getCost(CoreModel* perf)
 {
    LOG_ASSERT_ERROR(m_type < MAX_INSTRUCTION_COUNT, "Unknown instruction type: %d", m_type);
-   return Instruction::m_instruction_costs[m_type]; 
+   return perf->getCost(m_type); 
 }
 
 bool Instruction::isSimpleMemoryLoad() const
@@ -82,52 +82,15 @@ void Instruction::initializeStaticInstructionModel()
    }
 }
 
-// DynamicInstruction
-
-DynamicInstruction::DynamicInstruction(UInt64 cost, InstructionType type)
-   : Instruction(type)
-   , m_cost(cost)
-{
-}
-
-DynamicInstruction::~DynamicInstruction()
-{
-}
-
-UInt64 DynamicInstruction::getCost()
-{
-   return m_cost;
-}
-
-// SyncInstruction
-
-SyncInstruction::SyncInstruction(UInt64 cost)
-   : DynamicInstruction(cost, INST_SYNC)
-{ }
-
-// SpawnInstruction
-
-SpawnInstruction::SpawnInstruction(UInt64 time)
-   : Instruction(INST_SPAWN)
-   , m_time(time)
-{ }
-
-UInt64 SpawnInstruction::getCost()
-{
-   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getModel();
-   perf->setCycleCount(m_time);
-   throw CoreModel::AbortInstructionException(); // exit out of handleInstruction
-}
-
 // BranchInstruction
 
 BranchInstruction::BranchInstruction(UInt64 opcode, OperandList &l)
    : Instruction(INST_BRANCH, opcode, l)
 { }
 
-UInt64 BranchInstruction::getCost()
+Time BranchInstruction::getCost(CoreModel* perf)
 {
-   CoreModel *perf = Sim()->getTileManager()->getCurrentCore()->getModel();
+   volatile float frequency = perf->getCore()->getTile()->getFrequency();
    BranchPredictor *bp = perf->getBranchPredictor();
 
    DynamicInstructionInfo &i = perf->getDynamicInstructionInfo();
@@ -137,17 +100,29 @@ UInt64 BranchInstruction::getCost()
    if (bp == NULL)
    {
       perf->popDynamicInstructionInfo();
-      return 1;
+      return Time(Latency(1,frequency));
    }
 
    bool prediction = bp->predict(getAddress(), i.branch_info.target);
    bool correct = (prediction == i.branch_info.taken);
 
    bp->update(prediction, i.branch_info.taken, getAddress(), i.branch_info.target);
-   UInt64 cost = correct ? 1 : bp->getMispredictPenalty();
+   Latency cost = correct ? Latency(1,frequency) : Latency(bp->getMispredictPenalty(),frequency);
       
    perf->popDynamicInstructionInfo();
-   return cost;
+   return Time(cost);
+}
+
+// SpawnInstruction
+
+SpawnInstruction::SpawnInstruction(Time cost)
+   : DynamicInstruction(cost, INST_SPAWN)
+{}
+
+Time SpawnInstruction::getCost(CoreModel* perf)
+{
+   perf->setCurrTime(m_cost);
+   throw CoreModel::AbortInstructionException(); // exit out of handleInstruction
 }
 
 // Instruction

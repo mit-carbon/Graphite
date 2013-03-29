@@ -5,6 +5,7 @@
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
 #include "log.h"
+#include "time_types.h"
 
 RouterModel::RouterModel(NetworkModel* model, float frequency,
                          SInt32 num_input_ports, SInt32 num_output_ports,
@@ -85,7 +86,7 @@ RouterModel::processPacket(const NetPacket& pkt, vector<SInt32>& output_port_lis
       UInt64 max_queue_delay = 0;
       for (vector<SInt32>::iterator it = output_port_list.begin(); it != output_port_list.end(); it++)
       {
-         UInt64 queue_delay = _contention_model_list[*it]->computeQueueDelay(pkt.time, num_flits);
+         UInt64 queue_delay = _contention_model_list[*it]->computeQueueDelay(pkt.time.toCycles(_frequency), num_flits);
          max_queue_delay = max<UInt64>(max_queue_delay, queue_delay);
       }
 

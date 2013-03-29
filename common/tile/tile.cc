@@ -1,3 +1,4 @@
+#include <string.h>
 #include "tile.h"
 #include "network.h"
 #include "network_model.h"
@@ -24,10 +25,15 @@ Tile::Tile(tile_id_t id)
 
    if (Config::getSingleton()->getEnablePowerModeling())
       _tile_energy_monitor = new TileEnergyMonitor(this);
+   
+   // Register callback for clock frequency change
+   getNetwork()->registerCallback(FREQ_CONTROL, TileFreqScalingCallback, this);
 }
 
 Tile::~Tile()
 {
+   getNetwork()->unregisterCallback(FREQ_CONTROL);
+
    if (_memory_manager)
       delete _memory_manager;
    delete _core;
@@ -36,18 +42,32 @@ Tile::~Tile()
       delete _tile_energy_monitor;
 }
 
+void TileFreqScalingCallback(void* obj, NetPacket packet)
+{
+   Tile *tile = (Tile*) obj;
+   assert(tile != NULL);
+
+   core_id_t sender = packet.sender;
+   volatile float new_frequency;
+   memcpy((void*) &new_frequency, packet.data, sizeof(float));
+
+   float old_frequency = tile->getFrequency();
+   tile->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+   tile->setFrequency(new_frequency);
+}
+
 void Tile::outputSummary(ostream &os)
 {
    LOG_PRINT("Core Summary");
    _core->outputSummary(os);
 
-   LOG_PRINT("Network Summary");
-   _network->outputSummary(os);
-
    LOG_PRINT("Memory Subsystem Summary");
    if (_memory_manager)
       _memory_manager->outputSummary(os);
 
+   LOG_PRINT("Network Summary");
+   _network->outputSummary(os);
+   
    LOG_PRINT("Tile Energy Monitor Summary");
    if (_tile_energy_monitor)
       _tile_energy_monitor->outputSummary(os);

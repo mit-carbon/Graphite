@@ -7,6 +7,7 @@ using std::map;
 #include "dram_perf_model.h"
 #include "shmem_perf_model.h"
 #include "fixed_types.h"
+#include "time_types.h"
 
 class DramCntlr
 {
@@ -40,7 +41,7 @@ private:
    AccessCountMap* _dram_access_count;
 
    ShmemPerfModel* getShmemPerfModel();
-   UInt64 runDramPerfModel();
+   Latency runDramPerfModel();
 
    void addToDramAccessCount(IntPtr address, AccessType access_type);
    void printDramAccessCount();

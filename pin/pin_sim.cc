@@ -179,16 +179,16 @@ VOID instructionCallback(INS ins, void *v)
    {
       // Core Performance Modeling
       addInstructionModeling(ins);
-   }
 
-   // Progress Trace
-   addProgressTrace(ins);
-   // Clock Skew Minimization
-   addPeriodicSync(ins);
-   // Scheduling
-   addYield(ins);
-   // Runtime Energy Monitoring
-   addRuntimeEnergyMonitoring(ins);
+      // Progress Trace
+      addProgressTrace(ins);
+      // Clock Skew Minimization
+      addPeriodicSync(ins);
+      // Scheduling
+      addYield(ins);
+      // Runtime Energy Monitoring
+      addRuntimeEnergyMonitoring(ins);
+   }
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
@@ -291,12 +291,10 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             tile_id_t tile_id = Sim()->getConfig()->getCurrentThreadSpawnerTileNum();
             Sim()->getTileManager()->initializeThread(Tile::getMainCoreId(tile_id));
             
-            //Tile *tile = Sim()->getTileManager()->getCurrentTile();
             Core *core = Sim()->getTileManager()->getCurrentCore();
 
             // main thread clock is not affected by start-up time of other processes
-            //tile->getNetwork()->netRecv (0, SYSTEM_INITIALIZATION_NOTIFY);
-            core->getTile()->getNetwork()->netRecv (Tile::getMainCoreId(0), core->getId(), SYSTEM_INITIALIZATION_NOTIFY);
+            core->getTile()->getNetwork()->netRecv(Tile::getMainCoreId(0), core->getId(), SYSTEM_INITIALIZATION_NOTIFY);
 
             LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
             copyInitialStackData(reg_esp, Tile::getMainCoreId(tile_id));
@@ -412,11 +410,7 @@ int main(int argc, char *argv[])
    // Instrumentation
    LOG_PRINT("Start of instrumentation.");
    
-   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
-      RTN_AddInstrumentFunction(routineCallback, 0);
-   else // Sim()->getConfig()->getSimulationMode() == Config::LITE
-      RTN_AddInstrumentFunction(lite::routineCallback, 0);
-
+   // Added thread start/fini callback
    PIN_AddThreadStartFunction(threadStartCallback, 0);
    PIN_AddThreadFiniFunction(threadFiniCallback, 0);
    
@@ -436,10 +430,18 @@ int main(int argc, char *argv[])
       }
    }
 
+   // Add RTN instrumentation
+   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
+      RTN_AddInstrumentFunction(routineCallback, 0);
+   else // Sim()->getConfig()->getSimulationMode() == Config::LITE
+      RTN_AddInstrumentFunction(lite::routineCallback, 0);
+
+   // Add INS instrumentation
    INS_AddInstrumentFunction(instructionCallback, 0);
 
    initProgressTrace();
 
+   // Add Application Fini function
    PIN_AddFiniFunction(ApplicationExit, 0);
 
    // Never returns

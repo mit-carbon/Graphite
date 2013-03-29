@@ -21,7 +21,7 @@ public:
    bool __coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                    Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
                                    IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,
-                                   UInt64& curr_time, bool modeled);
+                                   Time& curr_time, bool modeled);
 
    void __handleMsgFromNetwork(NetPacket& packet);
 

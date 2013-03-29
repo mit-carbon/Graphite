@@ -15,6 +15,7 @@ class BranchPredictor;
 #include "fixed_types.h"
 #include "lock.h"
 #include "dynamic_instruction_info.h"
+#include "time_types.h"
 
 class CoreModel
 {
@@ -22,15 +23,16 @@ public:
    CoreModel(Core* core);
    virtual ~CoreModel();
 
-   void queueDynamicInstruction(Instruction *i);
+   void processDynamicInstruction(Instruction* i);
+   bool queueDynamicInstruction(Instruction *i);
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 
    virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    void recomputeAverageFrequency(float frequency); 
 
-   UInt64 getCycleCount()                          { return m_cycle_count; }
-   void setCycleCount(UInt64 cycle_count);
+   Time getCurrTime() {return m_curr_time; }
+   void setCurrTime(Time time);
 
    void pushDynamicInstructionInfo(DynamicInstructionInfo &i);
    void popDynamicInstructionInfo();
@@ -52,6 +54,10 @@ public:
    virtual double getStaticPower()   { return 0; }
 
    class AbortInstructionException { };
+
+   Time getCost(InstructionType type);
+
+   Core* getCore(){return m_core;};
 
 protected:
    enum RegType
@@ -75,12 +81,15 @@ protected:
 
    Core* m_core;
 
-   UInt64 m_cycle_count;
+   Time m_curr_time;
    UInt64 m_instruction_count;
    
-   void updatePipelineStallCounters(Instruction* i, UInt64 memory_stall_cycles, UInt64 execution_unit_stall_cycles);
+   void updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time);
+
+   void updateCoreStaticInstructionModel(volatile float frequency);
 
 private:
+
    class DynamicInstructionInfoNotAvailableException { };
 
    virtual void handleInstruction(Instruction *instruction) = 0;
@@ -89,8 +98,9 @@ private:
    void initializePipelineStallCounters();
 
    volatile float m_average_frequency;
-   UInt64 m_total_time;
-   UInt64 m_checkpointed_cycle_count;
+   Time m_total_time;
+   Time m_checkpointed_time;
+   UInt64 m_total_cycles;
 
    bool m_enabled;
 
@@ -104,13 +114,18 @@ private:
 
    BranchPredictor *m_bp;
 
+   // Instruction costs
+   typedef std::vector<Time> CoreStaticInstructionCosts;
+   CoreStaticInstructionCosts m_core_instruction_costs;
+   void initializeCoreStaticInstructionModel(volatile float frequency);
+
    // Pipeline Stall Counters
    UInt64 m_total_recv_instructions;
    UInt64 m_total_sync_instructions;
-   UInt64 m_total_recv_instruction_stall_cycles;
-   UInt64 m_total_sync_instruction_stall_cycles;
-   UInt64 m_total_memory_stall_cycles;
-   UInt64 m_total_execution_unit_stall_cycles;
+   Time m_total_recv_instruction_stall_time;
+   Time m_total_sync_instruction_stall_time;
+   Time m_total_memory_stall_time;
+   Time m_total_execution_unit_stall_time;
 };
 
 #endif

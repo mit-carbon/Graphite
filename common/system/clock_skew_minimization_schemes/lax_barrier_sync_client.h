@@ -5,6 +5,7 @@
 #include "clock_skew_minimization_object.h"
 #include "fixed_types.h"
 #include "packetize.h"
+#include "time_types.h"
 
 // Forward Decls
 class Core;
@@ -24,7 +25,7 @@ public:
    void enable() {}
    void disable() {}
 
-   void synchronize(UInt64 cycle_count);
+   void synchronize(Time time);
    void netProcessSyncMsg(const NetPacket& packet) { assert(false); }
 
    static const unsigned int BARRIER_RELEASE = 0xBABECAFE;

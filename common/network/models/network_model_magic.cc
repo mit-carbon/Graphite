@@ -16,8 +16,9 @@ NetworkModelMagic::~NetworkModelMagic()
 void
 NetworkModelMagic::routePacket(const NetPacket &pkt, queue<Hop> &next_hops)
 {
+   LOG_PRINT("Entering routePacket");
    // A latency of '1'
-   Hop hop(pkt, TILE_ID(pkt.receiver), RECEIVE_TILE, 1, 0);
+   Hop hop(pkt, TILE_ID(pkt.receiver), RECEIVE_TILE, Latency(1,_frequency), Latency(0,_frequency));
    next_hops.push(hop);
 }
 

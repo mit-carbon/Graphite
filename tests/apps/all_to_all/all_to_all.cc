@@ -65,7 +65,7 @@ void do_bcast(int rank)
    CAPI_endpoint_t receiver_rank = (CAPI_endpoint_t) CAPI_ENDPOINT_ALL;
 		
    printf("[do_bcast] rank %d is broadcasting out message; value = %d\n", rank, sent_message_payload);
-   CAPI_message_send_w_ex(sender_rank, receiver_rank, (char *) &sent_message_payload, sizeof(int), CARBON_NET_USER_1);
+   CAPI_message_send_w(sender_rank, receiver_rank, (char *) &sent_message_payload, sizeof(int));
    printf("[do_bcast] rank %d finished broadcasting out message\n", rank);
 }
 
@@ -78,7 +78,7 @@ void receive_from_all(int rank)
       CAPI_endpoint_t receiver_rank = (CAPI_endpoint_t) rank;
 
       printf("[receive_from_all] rank %d is about to receive message\n", rank);
-      CAPI_message_receive_w_ex(sender_rank, receiver_rank, (char*) &received_message_payload, sizeof(int), CARBON_NET_USER_1);
+      CAPI_message_receive_w(sender_rank, receiver_rank, (char*) &received_message_payload, sizeof(int));
       printf("[receive_from_all] rank %d received message; value = %d\n", rank, received_message_payload);
    }
 }

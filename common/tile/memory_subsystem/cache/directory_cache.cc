@@ -47,9 +47,10 @@ DirectoryCache::DirectoryCache(Tile* tile,
    _directory_size = _total_entries * directory_entry_size;
 
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
-   _directory_access_time = computeDirectoryAccessTime();
+   _directory_access_latency = computeDirectoryAccessTime();
+   _directory_access_time = Time(Latency(computeDirectoryAccessTime(), _tile->getFrequency()));
   
-   LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)", _total_entries, directory_entry_size, _directory_access_time);
+   LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)", _total_entries, directory_entry_size, _directory_access_time.toNanosec());
 
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
@@ -90,7 +91,7 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
    if (_enabled)
    {
       // Update Performance Model
-      getShmemPerfModel()->incrCycleCount(_directory_access_time);
+      getShmemPerfModel()->incrCurrTime(_directory_access_time);
       // Update event & dynamic energy counters
       updateCounters();
    }
@@ -109,7 +110,7 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
       if (directory_entry->getAddress() == address)
       {
          if (getShmemPerfModel())
-            getShmemPerfModel()->incrCycleCount(directory_entry->getLatency());
+            getShmemPerfModel()->incrCurrTime(Latency(directory_entry->getLatency(),_tile->getFrequency()));
          // Simple check for now. Make sophisticated later
          return directory_entry;
       }
@@ -183,7 +184,7 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
    if (_enabled)
    {
       // Update Performance Model
-      getShmemPerfModel()->incrCycleCount(_directory_access_time);
+      getShmemPerfModel()->incrCurrTime(_directory_access_time);
       // Update event & dynamic energy counters
       updateCounters();
       // Increment number of evictions
@@ -376,7 +377,7 @@ DirectoryCache::printAutogenDirectorySizeAndAccessTime(ostream& out)
    }
    if (_directory_access_time_str == "auto")
    {
-      out << "    Access Time (in clock cycles) [auto-generated]: " << _directory_access_time << endl;
+      out << "    Access Time (in clock cycles) [auto-generated]: " << _directory_access_latency << endl;
    }
 }
 

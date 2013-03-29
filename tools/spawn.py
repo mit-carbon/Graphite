@@ -28,7 +28,7 @@ def get_pin_home(graphite_home):
 
 # spawn_job:
 #  start up a command on one machine
-#  can be called by spawn_master.py or spawn.py
+#  can be called by spawn_master.py or spawn_slave.py
 
 def spawn_job(proc_num, command, graphite_home):
     # Set LD_LIBRARY_PATH using PIN_HOME from Makefile.config
@@ -36,3 +36,13 @@ def spawn_job(proc_num, command, graphite_home):
     os.environ['CARBON_PROCESS_INDEX'] = "%d" % (proc_num)
     proc = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, env=os.environ)
     return proc
+
+# spawn_renew_permissions_proc:
+#  command to renew Kerberos/AFS tokens
+def spawn_renew_permissions_proc():
+   try:
+      test_proc = subprocess.Popen("krenew")
+   except OSError:
+      return None
+   test_proc.wait()
+   return subprocess.Popen("krenew -K 60 -t", shell=True, preexec_fn=os.setsid)

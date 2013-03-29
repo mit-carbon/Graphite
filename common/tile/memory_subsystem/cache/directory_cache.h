@@ -72,7 +72,8 @@ private:
    UInt32 _log_num_directory_slices;
 
    string _directory_access_time_str;
-   UInt64 _directory_access_time;
+   UInt64 _directory_access_latency;
+   Time _directory_access_time;
 
    // Dram Directory Cache Power and Area Models (through McPAT)
    McPATCacheInterface* _mcpat_cache_interface;

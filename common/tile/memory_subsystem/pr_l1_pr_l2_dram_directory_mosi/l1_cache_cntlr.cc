@@ -106,15 +106,15 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       if (operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num))
       {
-         // Increment Shared Mem Perf model cycle counts
+         // Increment Shared Mem Perf model current time 
          // L1 Cache
-         getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
          return L1_cache_hit;
       }
 
-      getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
 
       // The memory request misses in the L1 cache
       L1_cache_hit = false;
@@ -126,19 +126,19 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       bool L2_cache_miss = L2_cache_miss_info.first;
       if (!L2_cache_miss)
       {
-         // Increment Shared Mem Perf model cycle counts
+         // Increment Shared Mem Perf model current time
          // L2 Cache
-         getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
          // L1 Cache
-         getMemoryManager()->incrCycleCount(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
          return false;
       }
 
-      // Increment shared mem perf model cycle counts
-      getMemoryManager()->incrCycleCount(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      // Increment shared mem perf model current time 
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
       
       // Send out a request to the network thread for the cache data
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());

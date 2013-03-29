@@ -121,7 +121,7 @@ void LCP::updateCommId(void *vp)
    LOG_PRINT("Initializing comm_id: %d to tile_id: %d", update->comm_id, update->tile_id);
    Config::getSingleton()->updateCommToTileMap(update->comm_id, update->tile_id);
 
-   NetPacket ack(/*time*/ 0,
+   NetPacket ack(/*time*/ Time(0),
                  /*type*/ LCP_COMM_ID_UPDATE_REPLY,
                  /*sender*/ 0, // doesn't matter ; see tile_manager.cc
                  /*receiver*/ update->tile_id,

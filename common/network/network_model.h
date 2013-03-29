@@ -16,6 +16,8 @@ using std::pair;
 #include "config.h"
 #include "packet_type.h"
 #include "fixed_types.h"
+#include "time_types.h"
+#include "constants.h"
 
 #define CORE_ID(x)         ((core_id_t) {x, MAIN_CORE_TYPE})
 #define TILE_ID(x)         (x.tile_id)
@@ -42,7 +44,8 @@ public:
    {
    public:
       Hop(const NetPacket& pkt, tile_id_t next_tile_id, SInt32 next_node_type,
-          UInt64 zero_load_delay = 0, UInt64 contention_delay = 0);
+         Time zero_load_delay = Time(0),
+         Time contention_delay = Time(0));
       ~Hop();
 
       // Next destinations of a packet
@@ -50,13 +53,15 @@ public:
       // Next Node Type (can mean router type)
       SInt32 _next_node_type;
       // This field fills in the 'time' field in NetPacket
-      UInt64 _time;
+      Time _time;
       // This field fill in the 'zero_load_delay' field in NetPacket
-      UInt64 _zero_load_delay;
+      Time _zero_load_delay;
       // This field fills in the 'contention_delay' field in NetPacket
-      UInt64 _contention_delay;
+      Time _contention_delay;
    };
 
+   string getNetworkName() { return _network_name; }
+   
    volatile float getFrequency() { return _frequency; }
    bool hasBroadcastCapability() { return _has_broadcast_capability; }
 
@@ -119,9 +124,9 @@ protected:
    // Tile Width
    volatile double _tile_width;
 
-   Network *getNetwork() { return _network; }
-   SInt32 getNetworkId() { return _network_id; }
-
+   Network *getNetwork()   { return _network; }
+   SInt32 getNetworkID()   { return _network_id; }
+   
    // Is Application Tile?
    bool isApplicationTile(tile_id_t tile_id);
    // Is System Tile - Thread Spawner or MCP
@@ -150,8 +155,8 @@ private:
    UInt64 _total_flits_received;
    UInt64 _total_bits_received;
 
-   UInt64 _total_packet_latency;
-   UInt64 _total_contention_delay;
+   Time _total_packet_latency;
+   Time _total_contention_delay;
 
    // For getting a trace of network injection/ejection rate
    UInt64 _total_flits_sent_in_current_interval;

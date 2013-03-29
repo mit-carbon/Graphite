@@ -58,20 +58,20 @@ static VOID traceProgress()
 
    CoreModel *pm = Sim()->getTileManager()->getCurrentCore()->getModel();
 
-   UInt64 cycles = pm->getCycleCount();
+   UInt64 curr_time = pm->getCurrTime().getTime();
 
-   LOG_ASSERT_ERROR(counter <= cycles, "counter(%llu) > cycles(%llu)", counter, cycles);
+   LOG_ASSERT_ERROR(counter <= curr_time, "counter(%llu) > curr_time(%llu)", counter, curr_time);
 
-   if (cycles - counter > interval)
+   if (curr_time - counter > interval)
    {
       FILE *f = getFileDescriptor();
 
       if (f)
-         fprintf(f, "time: %llu, cycles: %llu\n", \
+         fprintf(f, "time: %llu, curr_time: %llu\n", \
                (long long unsigned int) getTime(),\
-               (long long unsigned int) cycles);
+               (long long unsigned int) curr_time);
 
-      *counter_ptr = cycles;
+      *counter_ptr = curr_time;
    }
 }
 

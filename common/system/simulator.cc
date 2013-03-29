@@ -94,7 +94,9 @@ void Simulator::start()
    { 
       string dsent_path = m_graphite_home + "/contrib/dsent";
       dsent_contrib::DSENTInterface::allocate(dsent_path, getCfg()->getInt("general/technology_node"));
-  }
+      dsent_contrib::DSENTInterface::getSingleton()->add_global_tech_overwrite("Temperature",
+         getCfg()->getFloat("general/temperature"));
+   }
   
    m_transport = Transport::create();
    m_tile_manager = new TileManager();

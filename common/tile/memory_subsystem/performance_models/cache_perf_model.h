@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fixed_types.h"
+#include "time_types.h"
 
 class CachePerfModel
 {
@@ -32,9 +33,13 @@ public:
    virtual void disable() = 0;
    virtual bool isEnabled() = 0;
 
-   virtual UInt64 getLatency(CacheAccess_t access) = 0;
+   virtual Time getLatency(CacheAccess_t access) = 0;
+
+   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
 
 protected:
-   UInt64 _data_array_access_time;
-   UInt64 _tag_array_access_time;
+   UInt64 _data_array_access_cycles;
+   UInt64 _tag_array_access_cycles;
+   Time _data_array_access_time;
+   Time _tag_array_access_time;
 };

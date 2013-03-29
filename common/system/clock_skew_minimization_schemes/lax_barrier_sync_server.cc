@@ -56,14 +56,14 @@ LaxBarrierSyncServer::signal()
 void
 LaxBarrierSyncServer::barrierWait(core_id_t core_id)
 {
-   UInt64 time;
-   m_recv_buff >> time;
+   UInt64 time_ns;
+   m_recv_buff >> time_ns;
 
-   LOG_PRINT("Received 'SIM_BARRIER_WAIT' from Core(%i, %i), Time(%llu)", core_id.tile_id, core_id.core_type, time);
+   LOG_PRINT("Received 'SIM_BARRIER_WAIT' from Core(%i, %i), Time(%llu)", core_id.tile_id, core_id.core_type, time_ns);
 
-   LOG_ASSERT_ERROR(m_thread_manager->isCoreRunning(core_id) != INVALID_THREAD_ID || m_thread_manager->isCoreInitializing(core_id) != INVALID_THREAD_ID, "Thread on core(%i) is not running or initializing at time(%llu)", core_id, time);
+   LOG_ASSERT_ERROR(m_thread_manager->isCoreRunning(core_id) != INVALID_THREAD_ID || m_thread_manager->isCoreInitializing(core_id) != INVALID_THREAD_ID, "Thread on core(%i) is not running or initializing at time(%llu)", core_id, time_ns);
 
-   if (time < m_next_barrier_time)
+   if (time_ns < m_next_barrier_time)
    {
       LOG_PRINT("Sent 'SIM_BARRIER_RELEASE' immediately time(%llu), m_next_barrier_time(%llu)", time, m_next_barrier_time);
       // LOG_PRINT_WARNING("tile_id(%i), local_clock(%llu), m_next_barrier_time(%llu), m_barrier_interval(%llu)", tile_id, time, m_next_barrier_time, m_barrier_interval);
@@ -75,7 +75,7 @@ LaxBarrierSyncServer::barrierWait(core_id_t core_id)
 
    if (core_id.core_type == MAIN_CORE_TYPE)
    {
-      m_local_clock_list[core_id.tile_id] = time;
+      m_local_clock_list[core_id.tile_id] = time_ns;
       m_barrier_acquire_list[core_id.tile_id] = true;
    }
    else

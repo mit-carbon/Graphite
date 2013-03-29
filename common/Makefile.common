@@ -33,19 +33,16 @@ INCLUDE_DIRECTORIES = $(DIRECTORIES)												\
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 # Debug information in binary
-DBG = # -ggdb
+DEBUG = # -ggdb
 
 KERNEL = SQUEEZE
 #KERNEL = LENNY
-
-CXXFLAGS += -DKERNEL_$(KERNEL) -fPIC
 
 # Libraries in contrib (DSent, McPAT)
 LD_LIBS += -ldsent_contrib
 LD_FLAGS += -L$(SIM_ROOT)/contrib/dsent
 LD_LIBS += -lmcpat
 LD_FLAGS += -L$(SIM_ROOT)/contrib/mcpat
-
 # Boost library
 BOOST_SUFFIX = mt
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX)
@@ -55,11 +52,11 @@ LD_LIBS += -ldb
 LD_LIBS += -lm -pthread
 
 LD_FLAGS += -L$(SIM_ROOT)/lib
-export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(PIN_HOME)/intel64/runtime:$(LD_LIBRARY_PATH)
 
 # Include paths
-CXXFLAGS+=-c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
-          -Wall -Werror -Wno-deprecated-declarations -Wno-unknown-pragmas $(DBG) -O2 -MMD
+CXXFLAGS += -c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
+            -Wall -Werror -Wno-deprecated-declarations -Wno-unknown-pragmas \
+			   $(DEBUG) -O2 -MMD -fPIC -DKERNEL_$(KERNEL)
 
 # Build rules for dependency generation
 %.d: %.cpp

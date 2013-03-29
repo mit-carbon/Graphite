@@ -31,24 +31,26 @@ int main(int argc, char* argv[])  // main begins
    // Read in the command line arguments
    const unsigned int numThreads = 5;
 
+   fprintf(stderr, "TestManyMutex: Initting barrier.\n");
+   // FIXME: shouldn't be hardcoding the barrier count here
+   CarbonMutexInit(&my_mux1);
+   CarbonMutexInit(&my_mux2);
+   CarbonMutexInit(&my_mux3);
+   fprintf(stderr, "TestManyMutex: Barrier Initialized.\n");
+   
    // Declare threads and related variables
    pthread_t threads[numThreads];
-   pthread_attr_t attr;
 
 #ifdef DEBUG
    printf("This is the function main()\n");
 #endif
-
-   // Initialize threads and related variables
-   pthread_attr_init(&attr);
-   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
 #ifdef DEBUG
    printf("Spawning threads\n");
 #endif
 
    for (unsigned int i = 0; i < numThreads; i++)
-      pthread_create(&threads[i], &attr, test_many_mutex, (void *) i);
+      pthread_create(&threads[i], NULL, test_many_mutex, (void *) i);
 
    // Wait for all threads to complete
    for (unsigned int i = 0; i < numThreads; i++)
@@ -67,21 +69,6 @@ void* test_many_mutex(void *threadid)
    int tid = (int) threadid;
 
    // Thread starts here
-
-   // FIXME: This should be in the main thread or something.
-   if (tid == 0)
-   {
-      fprintf(stderr, "TestManyMutex(%d): Initting barrier.\n", (int)tid);
-      // FIXME: shouldn't be hardcoding the barrier count here
-      CarbonMutexInit(&my_mux1);
-      CarbonMutexInit(&my_mux2);
-      CarbonMutexInit(&my_mux3);
-      fprintf(stderr, "TestManyMutex(%d): Barrier Initialized.\n", (int)tid);
-   }
-   else
-   {
-      sleep(1);
-   }
 
    for (int i = 0; i < 1000; i++)
    {

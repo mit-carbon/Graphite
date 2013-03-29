@@ -63,7 +63,7 @@ double _offered_load = 0.1;                                    // Number of pack
 SInt32 _packet_size = 8;                                       // Size of each Packet in Bytes
 UInt64 _total_packets = 10000;                                 // Total number of packets injected into the network per tile
 
-PacketType _packet_type = USER_2;                              // Type of each packet (so as to send on 2nd user network)
+PacketType _packet_type = USER;                                // Type of each packet (so as to send on 2nd user network)
 carbon_barrier_t _global_barrier;
 SInt32 _num_tiles;
 

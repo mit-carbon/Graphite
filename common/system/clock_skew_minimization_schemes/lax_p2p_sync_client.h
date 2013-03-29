@@ -76,7 +76,7 @@ public:
    void disable();
 
    // Called by user thread
-   void synchronize(UInt64 cycle_count);
+   void synchronize(Time time);
 
    // Called by network thread
    void netProcessSyncMsg(const NetPacket& recv_pkt);

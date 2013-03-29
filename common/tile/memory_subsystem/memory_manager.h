@@ -39,11 +39,8 @@ public:
    virtual void enableModels();
    virtual void disableModels();
    bool isEnabled()                       { return _enabled;  }
-   
-   // App + Sim thread synchronization
-   void acquireLock()                     { _lock.acquire(); }
-   void releaseLock()                     { _lock.release(); }
-
+  
+   // APP + SIM thread synchronization 
    void waitForAppThread();
    void wakeUpAppThread();
    void waitForSimThread();

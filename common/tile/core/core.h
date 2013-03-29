@@ -82,9 +82,6 @@ public:
    void enableModels();
    void disableModels();
 
-   void acquireLock()                        { _lock.acquire(); }
-   void releaseLock()                        { _lock.release(); }
-
 private:
    core_id_t _id;
    Tile *_tile;
@@ -95,8 +92,6 @@ private:
    State _state;
    PinMemoryManager *_pin_memory_manager;
    bool _enabled;
-
-   Lock _lock;
 
    UInt64 _num_instruction_memory_accesses;
    Time _total_instruction_memory_access_latency;

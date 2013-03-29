@@ -52,7 +52,13 @@ namespace PrL1ShL2MSI
       { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
       void outputSummary(std::ostream &os);
-      
+
+      // Energy monitoring
+      void computeEnergy();
+
+      double getDynamicEnergy();
+      double getStaticPower();
+
       void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
 
    private:

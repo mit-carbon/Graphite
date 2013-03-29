@@ -25,6 +25,9 @@ public:
 
    void outputSummary(std::ostream &out);
 
+   double getDynamicEnergy();
+   double getStaticPower();
+
    static SInt32 computeDistance(tile_id_t sender, tile_id_t receiver);
 
 private:

@@ -78,8 +78,6 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
    {
       case CORE:
       {
-         frequency = 2.5;
-         voltage = 1.5;
          //*frequency = _tile->getCore()->getFrequency();
          //*voltage = _tile->getCore()->getVoltage();
          break;

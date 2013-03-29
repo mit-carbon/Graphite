@@ -23,7 +23,7 @@ ALL_OBJS = $(shell find $(CURDIR) -type f -name '*.o')
 
 all: $(TARGET)
 
-%.a: $(OBJS) dsent-core
+$(TARGET): $(OBJS) dsent-core
 	@echo $(ALL_OBJS)
 	$(AR) rcs $@ $(ALL_OBJS)
 

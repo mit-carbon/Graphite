@@ -4,6 +4,7 @@
 #include "cache_line_info.h"
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
+#include "mcpat_cache_interface.h"
 #include "utils.h"
 #include "log.h"
 
@@ -17,6 +18,7 @@ Cache::Cache(string name,
              UInt32 cache_size,
              UInt32 associativity,
              UInt32 line_size,
+             UInt32 num_banks,
              CacheReplacementPolicy* replacement_policy,
              CacheHashFn* hash_fn,
              UInt32 access_delay,
@@ -29,11 +31,13 @@ Cache::Cache(string name,
    , _cache_size(k_KILO * cache_size)
    , _associativity(associativity)
    , _line_size(line_size)
+   , _num_banks(num_banks)
+   , _frequency(frequency)
+   , _access_delay(access_delay)
    , _replacement_policy(replacement_policy)
    , _hash_fn(hash_fn)
-   , _power_model(NULL)
-   , _area_model(NULL)
    , _track_miss_types(track_miss_types)
+   , _mcpat_cache_interface(NULL)
 {
    _num_sets = _cache_size / (_associativity * _line_size);
    _log_line_size = floorLog2(_line_size);
@@ -44,15 +48,9 @@ Cache::Cache(string name,
       _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, _replacement_policy, _associativity, _line_size);
    }
 
-   if (Config::getSingleton()->getEnablePowerModeling())
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      _power_model = new CachePowerModel("data", _cache_size, _line_size,
-            associativity, access_delay, frequency);
-   }
-   if (Config::getSingleton()->getEnableAreaModeling())
-   {
-      _area_model = new CacheAreaModel("data", _cache_size, _line_size,
-            associativity, access_delay, frequency);
+      _mcpat_cache_interface = new McPATCacheInterface(this, Sim()->getCfg()->getInt("general/technology_node"));
    }
 
    // Initialize Cache Counters
@@ -98,10 +96,6 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
       // Update data array reads/writes
       OperationType operation_type = (access_type == LOAD) ? DATA_ARRAY_READ : DATA_ARRAY_WRITE;
       _event_counters[operation_type] ++;
- 
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy(operation_type);
    }
    LOG_PRINT("accessCacheLine: Address(%#lx), AccessType(%s), Num Bytes(%u) end",
              address, (access_type == 0) ? "LOAD": "STORE", num_bytes);
@@ -157,13 +151,6 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          _event_counters[TAG_ARRAY_READ] ++;
          _event_counters[DATA_ARRAY_READ] ++;
       
-         // Update dynamic energy counters
-         if (_power_model)
-         {
-            _power_model->updateDynamicEnergy(TAG_ARRAY_READ);
-            _power_model->updateDynamicEnergy(DATA_ARRAY_READ);
-         }
-         
          // Increment number of evictions and dirty evictions
          _total_evictions ++;
          // Update number of dirty evictions
@@ -176,22 +163,11 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          
          // Update tag array reads
          _event_counters[TAG_ARRAY_READ] ++;
-      
-         // Update dynamic energy counters
-         if (_power_model)
-            _power_model->updateDynamicEnergy(TAG_ARRAY_READ);
       }
 
       // Update tag/data array writes
       _event_counters[TAG_ARRAY_WRITE] ++;
       _event_counters[DATA_ARRAY_WRITE] ++;
-
-      // Update dynamic energy counters
-      if (_power_model)
-      {
-         _power_model->updateDynamicEnergy(TAG_ARRAY_WRITE);
-         _power_model->updateDynamicEnergy(DATA_ARRAY_WRITE);
-      }
    }
    
    LOG_PRINT("insertCacheLine: Address(%#lx) end", inserted_address);
@@ -213,9 +189,6 @@ Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
    {
       // Update tag/data array reads/writes
       _event_counters[TAG_ARRAY_READ] ++;
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy(TAG_ARRAY_READ);
    }
 
    LOG_PRINT("getCacheLineInfo: Address(%#lx) end", address);
@@ -253,9 +226,6 @@ Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
    {
       // Update tag/data array reads/writes
       _event_counters[TAG_ARRAY_WRITE] ++;
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy(TAG_ARRAY_WRITE);
    }
    LOG_PRINT("setCacheLineInfo: Address(%#lx) end", address);
 }
@@ -437,10 +407,11 @@ Cache::outputSummary(ostream& out)
    }
    
    // Output Power and Area Summaries
-   if (_power_model)
-      _power_model->outputSummary(out);
-   if (_area_model)
-      _area_model->outputSummary(out);
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
+   {
+      _mcpat_cache_interface->computeEnergy(this);
+      _mcpat_cache_interface->outputSummary(out);
+   }
 
    // Track miss types
    if (_track_miss_types)
@@ -457,6 +428,22 @@ Cache::outputSummary(ostream& out)
    out << "      Tag Array Writes: " << _event_counters[TAG_ARRAY_WRITE] << endl;
    out << "      Data Array Reads: " << _event_counters[DATA_ARRAY_READ] << endl;
    out << "      Data Array Writes: " << _event_counters[DATA_ARRAY_WRITE] << endl;
+}
+
+void Cache::computeEnergy()
+{
+   _mcpat_cache_interface->computeEnergy(this);
+}
+
+double Cache::getDynamicEnergy()
+{
+   double dynamic_energy = _mcpat_cache_interface->getDynamicEnergy();
+   return dynamic_energy;
+}
+double Cache::getStaticPower()
+{
+   double static_power = _mcpat_cache_interface->getStaticPower();
+   return static_power;
 }
 
 // Utilities

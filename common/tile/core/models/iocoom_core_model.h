@@ -21,6 +21,11 @@ public:
    void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    void outputSummary(std::ostream &os);
 
+   void computeEnergy();
+
+   double getDynamicEnergy();
+   double getStaticPower();
+
 private:
 
    enum CoreUnit
@@ -107,6 +112,7 @@ private:
    Time m_total_inter_ins_execution_unit_stall_time;
    void initializePipelineStallCounters();
 
+   bool m_enable_area_and_power_modeling;
    McPATCoreInterface* m_mcpat_core_interface;
 };
 

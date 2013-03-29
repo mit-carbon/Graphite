@@ -3,7 +3,6 @@
 #include "simple_core_model.h"
 #include "branch_predictor.h"
 #include "clock_converter.h"
-#include "tile.h"
 
 using std::endl;
 

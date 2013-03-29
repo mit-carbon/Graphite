@@ -1,7 +1,7 @@
 # this gives us default build rules and dependency handling
 SIM_ROOT ?= $(CURDIR)/..
 
-LD_LIBS += -pthread -lcarbon_sim
+LD_LIBS += -lcarbon_sim
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
@@ -11,13 +11,6 @@ endif
 
 # Use these files for auto targets
 .SUFFIXES:  .o .c .h .cc
-
-# Debug information in binary
-DBG = # -ggdb
-
-# Add other CXX Flags
-CXXFLAGS += -g -c \
-            -Wall -Werror -Wno-unknown-pragmas $(DBG) -O2 -MMD
 
 # Use the pin flags for building
 include $(SIM_ROOT)/Makefile.config
@@ -46,7 +39,7 @@ $(SIM_ROOT)/lib/libcarbon_sim.a:
 $(TARGET): $(PIN_HOME)/intel64/lib/libpin.a $(SIM_ROOT)/lib/libcarbon_sim.a
 $(TARGET): $(OBJECTS)
 	@echo $(TARGET)
-	$(CXX) $(TOOL_LDFLAGS) $(LD_FLAGS) -o $@ $(OBJECTS) $(TOOL_LPATHS) $(TOOL_LIBS) $(LD_LIBS) $(DBG)
+	$(CXX) $(TOOL_LDFLAGS) $(LD_FLAGS) -o $@ $(OBJECTS) $(TOOL_LPATHS) $(TOOL_LIBS) $(LD_LIBS) $(DEBUG)
 
 ifneq ($(CLEAN),)
 clean:

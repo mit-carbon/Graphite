@@ -15,6 +15,9 @@ public:
    void routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
    void outputSummary(std::ostream &out);
 
+   double getDynamicEnergy();
+   double getStaticPower();
+
 private:
    // Topolgy parameters
    SInt32 _mesh_width;

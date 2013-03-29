@@ -18,7 +18,6 @@
 #include "statistics_thread.h"
 #include "fxsupport.h"
 #include "contrib/dsent/dsent_contrib.h"
-#include "mcpat_cache.h"
 
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
@@ -99,12 +98,6 @@ void Simulator::start()
          getCfg()->getFloat("general/temperature"));
    }
   
-   // McPAT for cache power and area modeling
-   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
-   {
-      McPATCache::allocate();
-   }
- 
    m_transport = Transport::create();
    m_tile_manager = new TileManager();
    m_thread_manager = new ThreadManager(m_tile_manager);
@@ -199,9 +192,6 @@ Simulator::~Simulator()
    m_tile_manager = NULL;
    delete m_transport;
 
-   // Release McPAT cache object
-   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
-      McPATCache::release();
    // Release DSENT interface object
    if (Config::getSingleton()->getEnablePowerModeling())
       dsent_contrib::DSENTInterface::release();

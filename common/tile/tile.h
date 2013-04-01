@@ -12,6 +12,7 @@ class TileEnergyMonitor;
 
 #include "fixed_types.h"
 #include "network.h"
+#include "dvfs_manager.h"
 
 void TileFreqScalingCallback(void* obj, NetPacket packet);
 
@@ -27,6 +28,7 @@ public:
    Network* getNetwork()               { return _network; }
    Core* getCore()                     { return _core; }
    MemoryManager* getMemoryManager()   { return _memory_manager; }
+   DVFSManager* getDVFSManager()       { return _dvfs_manager; }
    TileEnergyMonitor* getTileEnergyMonitor()       { return _tile_energy_monitor; }
 
    static core_id_t getMainCoreId(tile_id_t id)    { return (core_id_t) {id, MAIN_CORE_TYPE}; }
@@ -45,6 +47,7 @@ private:
    Network* _network;
    Core* _core;
    MemoryManager* _memory_manager;
+   DVFSManager* _dvfs_manager;
    TileEnergyMonitor* _tile_energy_monitor;
 
    volatile float _frequency;

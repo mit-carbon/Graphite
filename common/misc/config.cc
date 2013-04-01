@@ -489,6 +489,7 @@ void Config::parseNetworkParameters()
       network_parameters_list[STATIC_NETWORK_MEMORY] = cfg->getString("network/memory");
       network_parameters_list[STATIC_NETWORK_SYSTEM] = cfg->getString("network/system");
       network_parameters_list[STATIC_NETWORK_FREQ_CONTROL] = DEFAULT_NETWORK_TYPE;
+      network_parameters_list[STATIC_NETWORK_DVFS] = DEFAULT_NETWORK_TYPE;
    }
    catch (...)
    {

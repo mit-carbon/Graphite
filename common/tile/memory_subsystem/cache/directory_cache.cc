@@ -48,7 +48,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
 
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
    _directory_access_latency = computeDirectoryAccessTime();
-   _directory_access_time = Time(Latency(computeDirectoryAccessTime(), _tile->getFrequency()));
+   _directory_access_time = Time(Latency(_directory_access_latency, _tile->getFrequency()));
   
    LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)", _total_entries, directory_entry_size, _directory_access_time.toNanosec());
 
@@ -367,6 +367,12 @@ DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
 }
 
 void
+DirectoryCache::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   _directory_access_time = Time(Latency(_directory_access_latency, new_frequency));
+}
+
+void
 DirectoryCache::printAutogenDirectorySizeAndAccessTime(ostream& out)
 {
    if (_total_entries_str == "auto")
@@ -400,3 +406,4 @@ DirectoryCache::getShmemPerfModel()
 {
    return _tile->getMemoryManager()->getShmemPerfModel();
 }
+

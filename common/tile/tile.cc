@@ -28,12 +28,17 @@ Tile::Tile(tile_id_t id)
    
    // Register callback for clock frequency change
    getNetwork()->registerCallback(FREQ_CONTROL, TileFreqScalingCallback, this);
+
+   // Create DVFS manager
+   UInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node");
+   _dvfs_manager = new DVFSManager(technology_node, this);
 }
 
 Tile::~Tile()
 {
    getNetwork()->unregisterCallback(FREQ_CONTROL);
 
+   delete _dvfs_manager;
    if (_memory_manager)
       delete _memory_manager;
    delete _core;

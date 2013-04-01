@@ -683,6 +683,7 @@ double McPATCoreInterface::getDynamicEnergy()
 
    return dynamic_energy;
 }
+
 double McPATCoreInterface::getStaticPower()
 {
    // Get Longer Channel Leakage Boolean

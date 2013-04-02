@@ -27,12 +27,12 @@ enum InstructionType
    INST_RECV,
    INST_SYNC,
    INST_SPAWN,
-   INST_FAST_FORWARD,
+   INST_STALL,
    MAX_INSTRUCTION_COUNT
 };
 
 __attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","generic","jmp","branch","dynamic_misc","recv","sync","spawn","fast_forward"};
+{"ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","generic","jmp","branch","dynamic_misc","recv","sync","spawn","stall"};
 
 class Operand
 {
@@ -99,7 +99,7 @@ public:
 
    bool isSimpleMemoryLoad() const;
    bool isDynamic() const
-   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC) || (m_type == INST_SPAWN) || (m_type == INST_FAST_FORWARD)); }
+   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC) || (m_type == INST_SPAWN) || (m_type == INST_STALL)); }
 
    void print() const;
 
@@ -190,12 +190,12 @@ public:
    {}
 };
 
-// Fast-forward instruction
-class FastForwardInstruction : public DynamicInstruction
+// Stall instruction
+class StallInstruction : public DynamicInstruction
 {
 public:
-   FastForwardInstruction(Time cost)
-      : DynamicInstruction(cost, INST_FAST_FORWARD)
+   StallInstruction(Time cost)
+      : DynamicInstruction(cost, INST_STALL)
    {}
 };
 

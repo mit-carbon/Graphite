@@ -319,7 +319,7 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
 {
    // Get Instruction Type
    McPATInstructionType instruction_type = getMcPATInstructionType(instruction->getType());
-   if (instruction->getType() != INST_FAST_FORWARD)
+   if (instruction->getType() != INST_STALL)
       updateInstructionCounters(instruction_type, total_branch_misprediction_count);
 
    // Execution Unit Accesses

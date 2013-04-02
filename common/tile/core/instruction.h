@@ -105,7 +105,7 @@ public:
 
    typedef std::vector<unsigned int> StaticInstructionCosts;
 
-   static StaticInstructionCosts getStaticInstructionCosts(){ return m_instruction_costs; }
+   static StaticInstructionCosts getStaticInstructionCosts() { return m_instruction_costs; }
 
 private:
    static StaticInstructionCosts m_instruction_costs;

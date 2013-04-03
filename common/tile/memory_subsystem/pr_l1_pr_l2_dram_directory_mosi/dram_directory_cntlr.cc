@@ -112,6 +112,9 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
+
+   _dram_directory_cache->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
+
 /*
    HashMapList<IntPtr,ShmemReq*>::iterator it1 = _dram_directory_req_queue.begin();
    for ( ; it1 != _dram_directory_req_queue.end(); it1++)

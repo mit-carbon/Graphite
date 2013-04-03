@@ -101,7 +101,7 @@ public:
    typedef vector<ExecutionUnitType> ExecutionUnitList;
    
    // McPAT Core Interface Constructor
-   McPATCoreInterface(UInt32 technology_node, UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);
+   McPATCoreInterface(UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);
    // McPAT Core Interface Destructor
    ~McPATCoreInterface();
 
@@ -133,7 +133,6 @@ private:
    // System Parameters
    // |---- General Parameters
    int _clock_rate;
-   double _core_tech_node;
    // Architectural Parameters
    // |---- General Parameters
    int _instruction_length;
@@ -223,7 +222,7 @@ private:
    bool _enable_area_and_power_modeling;
 
    // Initialize Architectural Parameters
-   void initializeArchitecturalParameters(UInt32 technology_node, UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);
+   void initializeArchitecturalParameters(UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);
    // Initialize Event Counters
    void initializeEventCounters();
    // Initialize Output Data Structure
@@ -235,7 +234,7 @@ private:
    void updateExecutionUnitAccessCounters(ExecutionUnitType unit_type);
 
    // Initialize XML Object
-   void fillCoreParamsIntoXML();
+   void fillCoreParamsIntoXML(UInt32 technology_node, UInt32 temperature);
    void fillCoreStatsIntoXML();
 };
 

@@ -41,8 +41,7 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
 
    // For Power and Area Modeling
    float frequency = m_core->getTile()->getFrequency();
-   m_mcpat_core_interface = new McPATCoreInterface(cfg->getInt("general/technology_node"),
-                                (UInt32) frequency * 1000, num_load_buffer_entries, num_store_buffer_entries);
+   m_mcpat_core_interface = new McPATCoreInterface((UInt32) frequency * 1000, num_load_buffer_entries, num_store_buffer_entries);
 
    initializePipelineStallCounters();
 }

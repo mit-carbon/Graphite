@@ -50,7 +50,7 @@ Cache::Cache(string name,
 
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      _mcpat_cache_interface = new McPATCacheInterface(this, Sim()->getCfg()->getInt("general/technology_node"));
+      _mcpat_cache_interface = new McPATCacheInterface(this);
    }
 
    // Initialize Cache Counters

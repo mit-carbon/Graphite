@@ -289,27 +289,6 @@ L2CacheCntlr::handleMsgFromDram(tile_id_t sender, ShmemMsg* shmem_msg)
    restartShmemReq(shmem_req, &L2_cache_line_info, shmem_msg->getDataBuf());
 }
 
-// Update internal variables when frequency is changed
-// Variables that need to be updated include all variables that are expressed in terms of cycles
-//  e.g., total memory access latency, packet arrival time, etc.
-void
-L2CacheCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-/*
-   HashMapList<IntPtr,ShmemReq*>::iterator it1 = _L2_cache_req_queue.begin();
-   for ( ; it1 != _L2_cache_req_queue.end(); it1++)
-   {
-      list<ShmemReq*>& shmem_req_list = (*it1).second;
-      list<ShmemReq*>::iterator it2 = shmem_req_list.begin();
-      for ( ; it2 != shmem_req_list.end(); it2++)
-      {
-         ShmemReq* shmem_req = (*it2);
-         shmem_req->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-      }
-   }
-*/
-}
-
 void
 L2CacheCntlr::processNextReqFromL1Cache(IntPtr address)
 {

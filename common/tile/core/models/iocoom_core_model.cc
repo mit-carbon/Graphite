@@ -75,23 +75,6 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 //   os << "    Total Cycle Count: " << m_cycle_count << endl;
 }
 
-void IOCOOMCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   // Update Pipeline stall counters due to memory
-   /*
-   m_total_load_buffer_stall_cycles = convertCycleCount(m_total_load_buffer_stall_cycles, old_frequency, new_frequency);
-   m_total_store_buffer_stall_cycles = convertCycleCount(m_total_store_buffer_stall_cycles, old_frequency, new_frequency);
-   m_total_l1icache_stall_cycles = convertCycleCount(m_total_l1icache_stall_cycles, old_frequency, new_frequency);
-   m_total_intra_ins_l1dcache_read_stall_cycles = convertCycleCount(m_total_intra_ins_l1dcache_read_stall_cycles, old_frequency, new_frequency);
-   m_total_inter_ins_l1dcache_read_stall_cycles = convertCycleCount(m_total_inter_ins_l1dcache_read_stall_cycles, old_frequency, new_frequency);
-   m_total_l1dcache_write_stall_cycles = convertCycleCount(m_total_l1dcache_write_stall_cycles, old_frequency, new_frequency);
-   m_total_intra_ins_execution_unit_stall_cycles = convertCycleCount(m_total_intra_ins_execution_unit_stall_cycles, old_frequency, new_frequency);
-   m_total_inter_ins_execution_unit_stall_cycles = convertCycleCount(m_total_inter_ins_execution_unit_stall_cycles, old_frequency, new_frequency);
-
-   CoreModel::updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-*/
-}
-
 void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
 {
    // Execute this first so that instructions have the opportunity to

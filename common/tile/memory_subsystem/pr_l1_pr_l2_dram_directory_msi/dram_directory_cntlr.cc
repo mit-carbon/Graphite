@@ -93,19 +93,6 @@ void
 DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
    _dram_directory_cache->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-/*
-   HashMapList<IntPtr,ShmemReq*>::iterator it1 = _dram_directory_req_queue.begin();
-   for ( ; it1 != _dram_directory_req_queue.end(); it1++)
-   {
-      list<ShmemReq*>& shmem_req_list = (*it1).second;
-      list<ShmemReq*>::iterator it2 = shmem_req_list.begin();
-      for ( ; it2 != shmem_req_list.end(); it2++)
-      {
-         ShmemReq* shmem_req = (*it2);
-         shmem_req->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-      }
-   }
-*/
 }
 
 void

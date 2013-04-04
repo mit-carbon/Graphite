@@ -134,8 +134,8 @@ private:
    mcpat_core_output _mcpat_core_out;
 
    // Nominal voltage and max frequency at nominal voltage
-   double _nominal_voltage;
-   double _base_frequency;
+   volatile double _nominal_voltage;
+   volatile double _base_frequency;
 
    // Architectural Parameters
    // |---- General Parameters

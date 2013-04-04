@@ -64,7 +64,7 @@ McPATCoreInterface::~McPATCoreInterface()
 {
    if (_enable_area_and_power_modeling)
    {
-      for (map<double,McPAT::CoreWrapper*>::iterator it = _core_wrapper_map.begin(); it != _core_wrapper_map.end(); it++)
+      for (CoreWrapperMap::iterator it = _core_wrapper_map.begin(); it != _core_wrapper_map.end(); it++)
          delete (*it).second;
       delete _xml;
    }

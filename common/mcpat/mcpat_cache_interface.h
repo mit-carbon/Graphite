@@ -42,7 +42,8 @@ public:
 
 private:
    // McPAT Objects
-   map<double,McPAT::CacheWrapper*> _cache_wrapper_map;
+   typedef map<volatile double,McPAT::CacheWrapper*> CacheWrapperMap;
+   CacheWrapperMap _cache_wrapper_map;
    McPAT::CacheWrapper* _cache_wrapper;
    McPAT::ParseXML* _xml;
    // McPAT Output Data Structure

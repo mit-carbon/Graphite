@@ -49,7 +49,7 @@ McPATCacheInterface::McPATCacheInterface(Cache* cache)
 //---------------------------------------------------------------------------
 McPATCacheInterface::~McPATCacheInterface()
 {
-   for (map<double,McPAT::CacheWrapper*>::iterator it = _cache_wrapper_map.begin(); it != _cache_wrapper_map.end(); it++)
+   for (CacheWrapperMap::iterator it = _cache_wrapper_map.begin(); it != _cache_wrapper_map.end(); it++)
       delete (*it).second;
    delete _xml;
 }

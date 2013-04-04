@@ -21,7 +21,7 @@ class McPATCacheInterface
 {
 public:
    // McPAT Cache Interface Constructor
-   McPATCacheInterface(Cache* cache, UInt32 technology_node);
+   McPATCacheInterface(Cache* cache);
    // McPAT Cache Interface Destructor
    ~McPATCacheInterface();
 
@@ -43,6 +43,6 @@ private:
    mcpat_cache_output _mcpat_cache_out;
    
    // Initialize XML Object
-   void fillCacheParamsIntoXML(Cache* cache, UInt32 technology_node);
+   void fillCacheParamsIntoXML(Cache* cache, UInt32 technology_node, UInt32 temperature);
    void fillCacheStatsIntoXML(Cache* cache);
 };

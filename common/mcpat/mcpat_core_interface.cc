@@ -2,22 +2,28 @@
  * Graphite-McPAT Core Interface
  ***************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
-#include <iostream>
 #include "mcpat_core_interface.h"
-#include "config.h"
-#include "log.h"
-
-using namespace std;
+#include "simulator.h"
 
 //---------------------------------------------------------------------------
 // McPAT Core Interface Constructor
 //---------------------------------------------------------------------------
-McPATCoreInterface::McPATCoreInterface(UInt32 technology_node, UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size)
+McPATCoreInterface::McPATCoreInterface(UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size)
 {
+   UInt32 technology_node = 0;
+   UInt32 temperature = 0;
+   try
+   {
+      technology_node = Sim()->getCfg()->getInt("general/technology_node");
+      temperature = Sim()->getCfg()->getInt("general/temperature");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read [general/technology_node] or [general/temperature] from the cfg file");
+   }
+
    // Initialize Architectural Parameters
-   initializeArchitecturalParameters(technology_node, core_frequency, load_buffer_size, store_buffer_size);
+   initializeArchitecturalParameters(core_frequency, load_buffer_size, store_buffer_size);
    // Initialize Event Counters
    initializeEventCounters();
 
@@ -35,7 +41,7 @@ McPATCoreInterface::McPATCoreInterface(UInt32 technology_node, UInt32 core_frequ
       _xml->setNiagara1();
 
       // Fill the ParseXML's Core Params from McPATCoreInterface
-      fillCoreParamsIntoXML();
+      fillCoreParamsIntoXML(technology_node, temperature);
 
       // Make a Processor Object from the ParseXML
       _core_wrapper = new McPAT::CoreWrapper(_xml);
@@ -60,12 +66,11 @@ McPATCoreInterface::~McPATCoreInterface()
 //---------------------------------------------------------------------------
 // Initialize Architectural Parameters
 //---------------------------------------------------------------------------
-void McPATCoreInterface::initializeArchitecturalParameters(UInt32 technology_node, UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size)
+void McPATCoreInterface::initializeArchitecturalParameters(UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size)
 {
    // System Parameters
    // |---- General Parameters
    _clock_rate = core_frequency;
-   _core_tech_node = technology_node;
    // Architectural Parameters
    // |---- General Parameters
    _instruction_length = 32;
@@ -319,7 +324,8 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
 {
    // Get Instruction Type
    McPATInstructionType instruction_type = getMcPATInstructionType(instruction->getType());
-   updateInstructionCounters(instruction_type, total_branch_misprediction_count);
+   if (instruction->getType() != INST_STALL)
+      updateInstructionCounters(instruction_type, total_branch_misprediction_count);
 
    // Execution Unit Accesses
    // A single instruction can access multiple execution units
@@ -825,7 +831,6 @@ void McPATCoreInterface::displayParam(std::ostream &os)
    // System Parameters
    // |---- General Parameters
    os << "    Clock Rate (in MHz): " << _clock_rate << std::endl;
-   os << "    Core Tech Node (in nm): " << _core_tech_node << std::endl;
    // Architectural Parameters
    // |---- General Parameters
    os << "    Instruction Length : " << _instruction_length << std::endl;
@@ -927,7 +932,7 @@ void McPATCoreInterface::displayStats(std::ostream &os)
 //---------------------------------------------------------------------------
 // Fill ParseXML Architectural Parameters
 //---------------------------------------------------------------------------
-void McPATCoreInterface::fillCoreParamsIntoXML()
+void McPATCoreInterface::fillCoreParamsIntoXML(UInt32 technology_node, UInt32 temperature)
 {
    // System parameters
    _xml->sys.number_of_cores = 1;
@@ -943,9 +948,9 @@ void McPATCoreInterface::fillCoreParamsIntoXML()
    _xml->sys.homogeneous_L3s = 1;
    _xml->sys.homogeneous_ccs = 1;
    _xml->sys.homogeneous_NoCs = 1;
-   _xml->sys.core_tech_node = _core_tech_node;
+   _xml->sys.core_tech_node = technology_node;
    _xml->sys.target_core_clockrate = _clock_rate;
-   _xml->sys.temperature = 340;  // In Kelvin (K)
+   _xml->sys.temperature = temperature;  // In Kelvin (K)
    _xml->sys.number_cache_levels = 2;
    _xml->sys.interconnect_projection_type = 0;
    _xml->sys.device_type = 0;    // 0 - HP (High Performance), 1 - LSTP (Low Standby Power)

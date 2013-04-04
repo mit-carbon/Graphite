@@ -3,12 +3,25 @@
  ***************************************************************************/
 
 #include "mcpat_cache_interface.h"
+#include "simulator.h"
 
 //---------------------------------------------------------------------------
 // McPAT Cache Interface Constructor
 //---------------------------------------------------------------------------
-McPATCacheInterface::McPATCacheInterface(Cache* cache, UInt32 technology_node)
+McPATCacheInterface::McPATCacheInterface(Cache* cache)
 {
+   UInt32 technology_node = 0;
+   UInt32 temperature = 0;
+   try
+   {
+      technology_node = Sim()->getCfg()->getInt("general/technology_node");
+      temperature = Sim()->getCfg()->getInt("general/temperature");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not read [general/technology_node] or [general/temperature] from the cfg file");
+   }
+
    // Make a ParseXML Object and Initialize it
    _xml = new McPAT::ParseXML();
 
@@ -16,7 +29,7 @@ McPATCacheInterface::McPATCacheInterface(Cache* cache, UInt32 technology_node)
    _xml->initialize();
 
    // Fill the ParseXML's Core Params from McPATCacheInterface
-   fillCacheParamsIntoXML(cache, technology_node);
+   fillCacheParamsIntoXML(cache, technology_node, temperature);
 
    // Make a Processor Object from the ParseXML
    _cache_wrapper = new McPAT::CacheWrapper(_xml);
@@ -80,7 +93,7 @@ void McPATCacheInterface::outputSummary(ostream& os)
    os << indent4 << "Dynamic Energy (in J): "  << _mcpat_cache_out.dynamic_energy << endl;
 }
 
-void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology_node)
+void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology_node, UInt32 temperature)
 {
    // System parameters
    _xml->sys.number_of_cores = 0;
@@ -98,7 +111,7 @@ void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology
    _xml->sys.homogeneous_NoCs = 1;
    _xml->sys.core_tech_node = technology_node;
    _xml->sys.target_core_clockrate = cache->_frequency * 1000;
-   _xml->sys.temperature = 340;                                // In Kelvin (K)
+   _xml->sys.temperature = temperature;                        // In Kelvin (K)
    _xml->sys.number_cache_levels = 2;
    _xml->sys.interconnect_projection_type = 0;
    _xml->sys.device_type = 0;                                  // 0 - HP (High Performance), 1 - LSTP (Low Standby Power)

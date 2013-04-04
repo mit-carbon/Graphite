@@ -34,15 +34,14 @@ int CarbonGetVoltage(tile_id_t tile_id, module_t module_type, double* voltage)
 }
 
 // Set DVFS
-int CarbonSetDVFS(tile_id_t tile_id, int module_mask, volatile double* frequency, dvfs_option_t frequency_flag, dvfs_option_t voltage_flag)
+int CarbonSetDVFS(tile_id_t tile_id, int module_mask, volatile double* frequency, voltage_option_t voltage_flag)
 {
-
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
    
    int rc;
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   rc = tile->getDVFSManager()->setDVFS(tile_id, module_mask, *frequency, frequency_flag, voltage_flag);
+   rc = tile->getDVFSManager()->setDVFS(tile_id, module_mask, *frequency, voltage_flag);
 
    return rc;
 }

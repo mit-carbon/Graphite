@@ -54,7 +54,7 @@ DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency,
 }
 
 int
-DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, dvfs_option_t frequency_flag, dvfs_option_t voltage_flag)
+DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, voltage_option_t voltage_flag)
 {
    // TODO:
    // 1. figure out voltage. Currently just passing zero.
@@ -63,7 +63,7 @@ DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, dvfs_
    
    // send request
    UnstructuredBuffer send_buffer;
-   send_buffer << module_mask << frequency << frequency_flag << voltage_flag;
+   send_buffer << module_mask << frequency << voltage_flag;
    core_id_t remote_core_id = {tile_id, MAIN_CORE_TYPE};
    _tile->getNetwork()->netSend(remote_core_id, DVFS_SET_REQUEST, send_buffer.getBuffer(), send_buffer.size());
 
@@ -127,7 +127,7 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
 }
 
 int
-DVFSManager::doSetDVFS(int module_mask, double frequency, dvfs_option_t frequency_flag, dvfs_option_t voltage_flag, core_id_t requester)
+DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, core_id_t requester)
 {
    // parse mask and set frequency and voltage
    if (module_mask & CORE){
@@ -179,16 +179,14 @@ setDVFSCallback(void* obj, NetPacket packet)
 
    int module_mask;
    double frequency;
-   dvfs_option_t frequency_flag;
-   dvfs_option_t voltage_flag;
+   voltage_option_t voltage_flag;
    
    recv_buffer >> module_mask;
    recv_buffer >> frequency;
-   recv_buffer >> frequency_flag;
    recv_buffer >> voltage_flag;
 
    DVFSManager* dvfs_manager = (DVFSManager* ) obj;
-   dvfs_manager->doSetDVFS(module_mask, frequency, frequency_flag, voltage_flag, packet.sender);
+   dvfs_manager->doSetDVFS(module_mask, frequency, voltage_flag, packet.sender);
 }
 
 // Called from the McPAT interfaces

@@ -490,6 +490,87 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
    }
+
+   // Dynamic voltage frequency updating
+   else if (rtn_name == "CarbonGetDVFS")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(int),
+            CALLINGSTD_DEFAULT,
+            "CarbonGetDVFS",
+            PIN_PARG(tile_id_t),
+            PIN_PARG(module_t),
+            PIN_PARG(double*),
+            PIN_PARG(double*),
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonGetDVFS),
+            IARG_PROTOTYPE, proto,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+            IARG_END);
+   }
+
+   else if (rtn_name == "CarbonGetFrequency")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(int),
+            CALLINGSTD_DEFAULT,
+            "CarbonGetFrequency",
+            PIN_PARG(tile_id_t),
+            PIN_PARG(module_t),
+            PIN_PARG(double*),
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonGetFrequency),
+            IARG_PROTOTYPE, proto,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+            IARG_END);
+   }
+
+   else if (rtn_name == "CarbonGetVoltage")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(int),
+            CALLINGSTD_DEFAULT,
+            "CarbonGetVoltage",
+            PIN_PARG(tile_id_t),
+            PIN_PARG(module_t),
+            PIN_PARG(double*),
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonGetVoltage),
+            IARG_PROTOTYPE, proto,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+            IARG_END);
+   }
+   
+   else if (rtn_name == "CarbonSetDVFS")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(int),
+            CALLINGSTD_DEFAULT,
+            "CarbonSetDVFS",
+            PIN_PARG(tile_id_t),
+            PIN_PARG(int),
+            PIN_PARG(double*),
+            PIN_PARG(voltage_option_t),
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonSetDVFS),
+            IARG_PROTOTYPE, proto,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+            IARG_END);
+   }
 }
 
 AFUNPTR getFunptr(CONTEXT* context, string func_name)

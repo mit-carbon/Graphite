@@ -34,7 +34,7 @@ int CarbonGetVoltage(tile_id_t tile_id, module_t module_type, double* voltage)
 }
 
 // Set DVFS
-int CarbonSetDVFS(tile_id_t tile_id, int module_mask, volatile double* frequency, voltage_option_t voltage_flag)
+int CarbonSetDVFS(tile_id_t tile_id, int module_mask, double* frequency, voltage_option_t voltage_flag)
 {
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;

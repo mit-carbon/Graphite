@@ -1014,7 +1014,7 @@ void replacementCarbonSetDVFS(CONTEXT *ctxt)
          IARG_UINT32, &voltage_flag,
          CARBON_IARG_END);
 
-   volatile double frequency_buf;
+   double frequency_buf;
    Core* core = Sim()->getTileManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
 

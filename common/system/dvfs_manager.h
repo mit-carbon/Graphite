@@ -36,7 +36,7 @@ public:
  
 private:
    // Voltage, Frequency Multiplier
-   typedef list<pair<double,double> > DVFSLevels;
+   typedef list<pair<volatile double,volatile double> > DVFSLevels;
    static DVFSLevels _dvfs_levels;
    Tile* _tile;
 };

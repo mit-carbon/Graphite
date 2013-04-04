@@ -13,6 +13,7 @@
 #include "thread_scheduler.h"
 #include "performance_counter_manager.h"
 #include "sim_thread_manager.h"
+#include "dvfs_manager.h"
 #include "clock_skew_minimization_object.h"
 #include "statistics_manager.h"
 #include "statistics_thread.h"
@@ -99,6 +100,10 @@ void Simulator::start()
    }
   
    m_transport = Transport::create();
+
+   // Initialize the DVFS levels
+   DVFSManager::initializeDVFSLevels();
+
    m_tile_manager = new TileManager();
    m_thread_manager = new ThreadManager(m_tile_manager);
    m_thread_scheduler = ThreadScheduler::create(m_thread_manager, m_tile_manager);

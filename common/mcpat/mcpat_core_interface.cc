@@ -4,11 +4,12 @@
 
 #include "mcpat_core_interface.h"
 #include "simulator.h"
+#include "dvfs_manager.h"
 
 //---------------------------------------------------------------------------
 // McPAT Core Interface Constructor
 //---------------------------------------------------------------------------
-McPATCoreInterface::McPATCoreInterface(UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size)
+McPATCoreInterface::McPATCoreInterface(double core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size)
 {
    UInt32 technology_node = 0;
    UInt32 temperature = 0;
@@ -23,7 +24,7 @@ McPATCoreInterface::McPATCoreInterface(UInt32 core_frequency, UInt32 load_buffer
    }
 
    // Initialize Architectural Parameters
-   initializeArchitecturalParameters(core_frequency, load_buffer_size, store_buffer_size);
+   initializeArchitecturalParameters(load_buffer_size, store_buffer_size);
    // Initialize Event Counters
    initializeEventCounters();
 
@@ -43,11 +44,16 @@ McPATCoreInterface::McPATCoreInterface(UInt32 core_frequency, UInt32 load_buffer
       // Fill the ParseXML's Core Params from McPATCoreInterface
       fillCoreParamsIntoXML(technology_node, temperature);
 
-      // Make a Processor Object from the ParseXML
-      _core_wrapper = new McPAT::CoreWrapper(_xml);
+      // Get nominal voltage from the DVFS Manager
+      _nominal_voltage = DVFSManager::getNominalVoltage();
+      _base_frequency = core_frequency; // in GHz
+      // Create cache wrapper
+      _core_wrapper = createCoreWrapper(_nominal_voltage, _base_frequency);
+      // Save for future use
+      _core_wrapper_map[_nominal_voltage] = _core_wrapper;
 
       // Initialize Static Power
-      computeMcPATCoreEnergy();
+      computeEnergy();
    }
 }
 
@@ -58,19 +64,51 @@ McPATCoreInterface::~McPATCoreInterface()
 {
    if (_enable_area_and_power_modeling)
    {
-      delete _core_wrapper;
+      for (map<double,McPAT::CoreWrapper*>::iterator it = _core_wrapper_map.begin(); it != _core_wrapper_map.end(); it++)
+         delete (*it).second;
       delete _xml;
    }
 }
 
 //---------------------------------------------------------------------------
+// Create core wrapper
+//---------------------------------------------------------------------------
+McPAT::CoreWrapper* McPATCoreInterface::createCoreWrapper(double voltage, double max_frequency_at_voltage)
+{
+   // Set frequency and voltage in XML object
+   _xml->sys.vdd = voltage;
+   // Frequency (in MHz)
+   _xml->sys.target_core_clockrate = max_frequency_at_voltage * 1000;
+   _xml->sys.core[0].clock_rate = max_frequency_at_voltage * 1000;
+
+   // Create McPAT core object
+   return new McPAT::CoreWrapper(_xml);
+}
+
+//---------------------------------------------------------------------------
+// setDVFS (change voltage and frequency)
+//---------------------------------------------------------------------------
+void McPATCoreInterface::setDVFS(double voltage, double frequency)
+{
+   // Check if a McPATInterface object has already been created
+   _core_wrapper = _core_wrapper_map[voltage];
+   if (_core_wrapper == NULL)
+   {
+      // Calculate max frequency at given voltage
+      double max_frequency_factor_at_voltage = DVFSManager::getMaxFrequencyFactorAtVoltage(voltage);
+      double max_frequency_at_voltage = max_frequency_factor_at_voltage * _base_frequency;
+      
+      _core_wrapper = createCoreWrapper(voltage, max_frequency_at_voltage);
+      // Save for future use
+      _core_wrapper_map[voltage] = _core_wrapper;
+   }
+}
+//---------------------------------------------------------------------------
 // Initialize Architectural Parameters
 //---------------------------------------------------------------------------
-void McPATCoreInterface::initializeArchitecturalParameters(UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size)
+void McPATCoreInterface::initializeArchitecturalParameters(UInt32 load_buffer_size, UInt32 store_buffer_size)
 {
    // System Parameters
-   // |---- General Parameters
-   _clock_rate = core_frequency;
    // Architectural Parameters
    // |---- General Parameters
    _instruction_length = 32;
@@ -471,7 +509,7 @@ void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count)
 //---------------------------------------------------------------------------
 // Compute Energy from McPat
 //---------------------------------------------------------------------------
-void McPATCoreInterface::computeMcPATCoreEnergy()
+void McPATCoreInterface::computeEnergy()
 {
    // Fill the ParseXML's Core Event Stats from McPATCoreInterface
    fillCoreStatsIntoXML();
@@ -704,7 +742,7 @@ double McPATCoreInterface::getStaticPower()
 //---------------------------------------------------------------------------
 // Display Energy from McPat
 //---------------------------------------------------------------------------
-void McPATCoreInterface::displayMcPATCoreEnergy(std::ostream &os)
+void McPATCoreInterface::displayEnergy(std::ostream &os)
 {
    // Get Longer Channel Leakage Boolean
    bool long_channel = _xml->sys.longer_channel_device;
@@ -828,9 +866,6 @@ void McPATCoreInterface::displayMcPATCoreEnergy(std::ostream &os)
 void McPATCoreInterface::displayParam(std::ostream &os)
 {
    os << "  Core Parameters:" << std::endl;
-   // System Parameters
-   // |---- General Parameters
-   os << "    Clock Rate (in MHz): " << _clock_rate << std::endl;
    // Architectural Parameters
    // |---- General Parameters
    os << "    Instruction Length : " << _instruction_length << std::endl;
@@ -949,7 +984,6 @@ void McPATCoreInterface::fillCoreParamsIntoXML(UInt32 technology_node, UInt32 te
    _xml->sys.homogeneous_ccs = 1;
    _xml->sys.homogeneous_NoCs = 1;
    _xml->sys.core_tech_node = technology_node;
-   _xml->sys.target_core_clockrate = _clock_rate;
    _xml->sys.temperature = temperature;  // In Kelvin (K)
    _xml->sys.number_cache_levels = 2;
    _xml->sys.interconnect_projection_type = 0;
@@ -960,7 +994,6 @@ void McPATCoreInterface::fillCoreParamsIntoXML(UInt32 technology_node, UInt32 te
    _xml->sys.physical_address_width = 52;
    _xml->sys.virtual_memory_page_size = 4096;
    
-   _xml->sys.core[0].clock_rate = _clock_rate;
    _xml->sys.core[0].instruction_length = _instruction_length;
    _xml->sys.core[0].opcode_width = _opcode_width;
    _xml->sys.core[0].machine_type = _machine_type;

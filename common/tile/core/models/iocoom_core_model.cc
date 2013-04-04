@@ -41,7 +41,7 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
 
    // For Power and Area Modeling
    float frequency = m_core->getTile()->getFrequency();
-   m_mcpat_core_interface = new McPATCoreInterface((UInt32) frequency * 1000, num_load_buffer_entries, num_store_buffer_entries);
+   m_mcpat_core_interface = new McPATCoreInterface(frequency, num_load_buffer_entries, num_store_buffer_entries);
 
    initializePipelineStallCounters();
 }
@@ -76,13 +76,13 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
    {
       os << "  Area and Power Model Summary:" << endl;
       // Compute Energy for Total Run
-      m_mcpat_core_interface->computeMcPATCoreEnergy();
-      m_mcpat_core_interface->displayMcPATCoreEnergy(os);
+      m_mcpat_core_interface->computeEnergy();
+      m_mcpat_core_interface->displayEnergy(os);
    }
 
-   //os << "    Total Load Buffer Stall Time (in ns): " << m_total_load_buffer_stall_time.toNanosec() << endl;
-   //os << "    Total Store Buffer Stall Time (in ns): " << m_total_store_buffer_stall_time.toNanosec() << endl;
-   //os << "    Total L1-I Cache Stall Time (in ns): " << m_total_l1icache_stall_time.toNanosec() << endl;
+//   os << "    Total Load Buffer Stall Time (in ns): " << m_total_load_buffer_stall_time.toNanosec() << endl;
+//   os << "    Total Store Buffer Stall Time (in ns): " << m_total_store_buffer_stall_time.toNanosec() << endl;
+//   os << "    Total L1-I Cache Stall Time (in ns): " << m_total_l1icache_stall_time.toNanosec() << endl;
 //   os << "    Total Intra Ins L1-D Cache Read Stall Time (in ns): " << m_total_intra_ins_l1dcache_read_stall_time.toNanosec() << endl;
 //   os << "    Total Inter Ins L1-D Cache Read Stall Time (in ns): " << m_total_inter_ins_l1dcache_read_stall_time.toNanosec() << endl;
 //   os << "    Total L1-D Cache Write Stall Time (in ns): " << m_total_l1dcache_write_stall_time.toNanosec() << endl;
@@ -94,7 +94,7 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 void IOCOOMCoreModel::computeEnergy()
 {
    m_mcpat_core_interface->updateCycleCounters(m_curr_time.toCycles(m_core->getTile()->getFrequency()));
-   m_mcpat_core_interface->computeMcPATCoreEnergy();
+   m_mcpat_core_interface->computeEnergy();
 }
 
 double IOCOOMCoreModel::getDynamicEnergy()

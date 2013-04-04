@@ -4,6 +4,7 @@
 
 #include "mcpat_cache_interface.h"
 #include "simulator.h"
+#include "dvfs_manager.h"
 
 //---------------------------------------------------------------------------
 // McPAT Cache Interface Constructor
@@ -31,8 +32,13 @@ McPATCacheInterface::McPATCacheInterface(Cache* cache)
    // Fill the ParseXML's Core Params from McPATCacheInterface
    fillCacheParamsIntoXML(cache, technology_node, temperature);
 
-   // Make a Processor Object from the ParseXML
-   _cache_wrapper = new McPAT::CacheWrapper(_xml);
+   // Get nominal voltage from the DVFS Manager
+   _nominal_voltage = DVFSManager::getNominalVoltage();
+   _base_frequency = cache->_frequency;
+   // Create cache wrapper
+   _cache_wrapper = createCacheWrapper(_nominal_voltage, _base_frequency);
+   // Save for future use
+   _cache_wrapper_map[_nominal_voltage] = _cache_wrapper;
 
    // Initialize Static Power
    computeEnergy(cache);
@@ -43,8 +49,43 @@ McPATCacheInterface::McPATCacheInterface(Cache* cache)
 //---------------------------------------------------------------------------
 McPATCacheInterface::~McPATCacheInterface()
 {
-   delete _cache_wrapper;
+   for (map<double,McPAT::CacheWrapper*>::iterator it = _cache_wrapper_map.begin(); it != _cache_wrapper_map.end(); it++)
+      delete (*it).second;
    delete _xml;
+}
+
+//---------------------------------------------------------------------------
+// Create cache wrapper
+//---------------------------------------------------------------------------
+McPAT::CacheWrapper* McPATCacheInterface::createCacheWrapper(double voltage, double max_frequency_at_voltage)
+{
+   // Set frequency and voltage in XML object
+   _xml->sys.vdd = voltage;
+   // Frequency (in MHz)
+   _xml->sys.target_core_clockrate = max_frequency_at_voltage * 1000;
+   _xml->sys.L2[0].clockrate = max_frequency_at_voltage * 1000;
+
+   // Create McPAT cache object
+   return new McPAT::CacheWrapper(_xml);
+}
+
+//---------------------------------------------------------------------------
+// setDVFS (change voltage and frequency)
+//---------------------------------------------------------------------------
+void McPATCacheInterface::setDVFS(double voltage, double frequency)
+{
+   // Check if a McPATInterface object has already been created
+   _cache_wrapper = _cache_wrapper_map[voltage];
+   if (_cache_wrapper == NULL)
+   {
+      // Calculate max frequency at given voltage
+      double max_frequency_factor_at_voltage = DVFSManager::getMaxFrequencyFactorAtVoltage(voltage);
+      double max_frequency_at_voltage = max_frequency_factor_at_voltage * _base_frequency;
+      
+      _cache_wrapper = createCacheWrapper(voltage, max_frequency_at_voltage);
+      // Save for future use
+      _cache_wrapper_map[voltage] = _cache_wrapper;
+   }
 }
 
 //---------------------------------------------------------------------------
@@ -110,7 +151,6 @@ void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology
    _xml->sys.homogeneous_ccs = 1;
    _xml->sys.homogeneous_NoCs = 1;
    _xml->sys.core_tech_node = technology_node;
-   _xml->sys.target_core_clockrate = cache->_frequency * 1000;
    _xml->sys.temperature = temperature;                        // In Kelvin (K)
    _xml->sys.number_cache_levels = 2;
    _xml->sys.interconnect_projection_type = 0;
@@ -122,7 +162,6 @@ void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology
    _xml->sys.virtual_memory_page_size = 4096;
    _xml->sys.total_cycles = 100000;
 
-   _xml->sys.L2[0].clockrate = cache->_frequency * 1000;       // Frequency (in MHz)
    _xml->sys.L2[0].ports[0] = 1;                               // Number of read ports
    _xml->sys.L2[0].ports[1] = 1;                               // Number of write ports
    _xml->sys.L2[0].ports[2] = 1;                               // Number of read/write ports

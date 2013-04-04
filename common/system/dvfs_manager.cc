@@ -1,8 +1,11 @@
+#include <string.h>
+#include <utility>
+using std::make_pair;
 #include "dvfs_manager.h"
 #include "tile.h"
 #include "packetize.h"
-#include <string.h>
-#include <utility>
+
+DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
 
 DVFSManager::DVFSManager(UInt32 technology_node, Tile* tile):
    _tile(tile)
@@ -17,6 +20,13 @@ DVFSManager::~DVFSManager()
    // unregister callback
    _tile->getNetwork()->unregisterCallback(DVFS_SET_REQUEST);
    _tile->getNetwork()->unregisterCallback(DVFS_GET_REQUEST);
+}
+
+// Called to initialize DVFS Levels
+void
+DVFSManager::initializeDVFSLevels()
+{
+   _dvfs_levels.push_back(make_pair(0.9,1.0));
 }
 
 // Called from common/user/dvfs
@@ -124,7 +134,6 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, dvfs_option_t frequenc
       //_tile->getCore()->setFrequency(frequency);
       //_tile->getCore()->setVoltage(voltage);
    }
-
    if (module_mask & L1_ICACHE){
 //      _tile->getCore()->setFrequency(frequency);
 //      _tile->getCore()->setVoltage(voltage);
@@ -182,3 +191,21 @@ setDVFSCallback(void* obj, NetPacket packet)
    dvfs_manager->doSetDVFS(module_mask, frequency, frequency_flag, voltage_flag, packet.sender);
 }
 
+// Called from the McPAT interfaces
+double
+DVFSManager::getNominalVoltage()
+{
+   return _dvfs_levels.front().first;
+}
+
+double
+DVFSManager::getMaxFrequencyFactorAtVoltage(double voltage)
+{
+   for (DVFSLevels::iterator it = _dvfs_levels.begin(); it != _dvfs_levels.end(); it++)
+   {
+      if (voltage == (*it).first)
+         return (*it).second;
+   }
+   LOG_PRINT_ERROR("Could not find voltage(%g) in DVFS Levels list", voltage);
+   return 0.0;
+}

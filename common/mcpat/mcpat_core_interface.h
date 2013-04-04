@@ -4,9 +4,8 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <string.h>
-#include <iostream>
+#include <map>
+using std::map;
 #include "fixed_types.h"
 #include "instruction.h"
 #include "contrib/mcpat/mcpat.h"
@@ -101,23 +100,26 @@ public:
    typedef vector<ExecutionUnitType> ExecutionUnitList;
    
    // McPAT Core Interface Constructor
-   McPATCoreInterface(UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);
+   McPATCoreInterface(double core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);
    // McPAT Core Interface Destructor
    ~McPATCoreInterface();
+
+   // Set DVFS
+   void setDVFS(double voltage, double frequency);
 
    // Update Event Counters
    void updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 total_branch_misprediction_count);
    void updateCycleCounters(UInt64 cycle_count);
    
    // Compute Energy from McPat
-   void computeMcPATCoreEnergy();
+   void computeEnergy();
 
    // Collect Energy from McPAT
    double getDynamicEnergy();
    double getStaticPower();
 
    // Display Energy from McPat
-   void displayMcPATCoreEnergy(ostream& os);
+   void displayEnergy(ostream& os);
    // Display Architectural Parameters
    void displayParam(ostream& os);
    // Display Event Counters
@@ -125,14 +127,16 @@ public:
 
 private:
    // McPAT Objects
-   McPAT::ParseXML* _xml;
+   map<double,McPAT::CoreWrapper*> _core_wrapper_map;
    McPAT::CoreWrapper* _core_wrapper;
-   // McPAT Output Data Structure
+   McPAT::ParseXML* _xml;
+   // Output Data Structure
    mcpat_core_output _mcpat_core_out;
 
-   // System Parameters
-   // |---- General Parameters
-   int _clock_rate;
+   // Nominal voltage and max frequency at nominal voltage
+   double _nominal_voltage;
+   double _base_frequency;
+
    // Architectural Parameters
    // |---- General Parameters
    int _instruction_length;
@@ -222,7 +226,7 @@ private:
    bool _enable_area_and_power_modeling;
 
    // Initialize Architectural Parameters
-   void initializeArchitecturalParameters(UInt32 core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);
+   void initializeArchitecturalParameters(UInt32 load_buffer_size, UInt32 store_buffer_size);
    // Initialize Event Counters
    void initializeEventCounters();
    // Initialize Output Data Structure
@@ -233,6 +237,8 @@ private:
    void updateRegFileAccessCounters(Operand::Direction operand_direction, UInt32 reg_id);
    void updateExecutionUnitAccessCounters(ExecutionUnitType unit_type);
 
+   // Create core wrapper
+   McPAT::CoreWrapper* createCoreWrapper(double voltage, double max_frequency_at_voltage);
    // Initialize XML Object
    void fillCoreParamsIntoXML(UInt32 technology_node, UInt32 temperature);
    void fillCoreStatsIntoXML();

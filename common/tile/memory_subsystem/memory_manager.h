@@ -15,7 +15,7 @@ void MemoryManagerNetworkCallback(void* obj, NetPacket packet);
 class MemoryManager
 {
 public:
-   MemoryManager(Tile* tile);
+   MemoryManager(Tile* tile, float frequency, float voltage);
    virtual ~MemoryManager();
 
    bool __coreInitiateMemoryAccess(MemComponent::Type mem_component,
@@ -52,7 +52,7 @@ public:
    virtual bool isModeled(const void* pkt_data) = 0;
 
    static CachingProtocolType parseProtocolType(std::string& protocol_type);
-   static MemoryManager* createMMU(std::string protocol_type, Tile* tile);
+   static MemoryManager* createMMU(std::string protocol_type, Tile* tile, float frequency, float voltage);
    
    virtual void computeEnergy() = 0;
 

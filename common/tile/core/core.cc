@@ -14,12 +14,14 @@
 #include "config.h"
 #include "log.h"
 
-Core::Core(Tile *tile, core_type_t core_type)
+Core::Core(Tile *tile, core_type_t core_type, float frequency, float voltage)
    : _tile(tile)
    , _core_model(NULL)
    , _state(IDLE)
    , _pin_memory_manager(NULL)
    , _enabled(false)
+   , _frequency(frequency)
+   , _voltage(voltage)
 {
 
    _id = (core_id_t) {_tile->getId(), core_type};

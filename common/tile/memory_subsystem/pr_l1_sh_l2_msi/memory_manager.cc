@@ -10,8 +10,8 @@
 namespace PrL1ShL2MSI
 {
 
-MemoryManager::MemoryManager(Tile* tile)
-   : ::MemoryManager(tile)
+MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
+   : ::MemoryManager(tile, frequency, voltage)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
 {
@@ -122,8 +122,6 @@ MemoryManager::MemoryManager(Tile* tile)
    
    _cache_line_size = L1_icache_line_size;
 
-   float frequency = getTile()->getFrequency();
-   
    UInt32 dram_home_lookup_param = ceilLog2(_cache_line_size);
    std::vector<tile_id_t> tile_list_with_dram_controllers = getTileListWithMemoryControllers();
    _dram_home_lookup = new AddressHomeLookup(dram_home_lookup_param, tile_list_with_dram_controllers, getCacheLineSize());
@@ -168,7 +166,8 @@ MemoryManager::MemoryManager(Tile* tile)
          L1_dcache_replacement_policy,
          L1_dcache_data_access_time,
          L1_dcache_track_miss_types,
-         frequency);
+         frequency,
+         voltage);
    
    // Instantiate L2 cache cntlr
    _L2_cache_cntlr = new L2CacheCntlr(this,
@@ -180,7 +179,8 @@ MemoryManager::MemoryManager(Tile* tile)
          L2_cache_replacement_policy,
          L2_cache_data_access_time,
          L2_cache_track_miss_types,
-         frequency);
+         frequency,
+         voltage);
 
    // Create Cache Performance Models
    _L1_icache_perf_model = CachePerfModel::create(L1_icache_perf_model_type,

@@ -87,25 +87,19 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
    switch (module_type)
    {
       case CORE:
-      {
-         //*frequency = _tile->getCore()->getFrequency();
-         //*voltage = _tile->getCore()->getVoltage();
+         //_tile->getCore()->getDVFS(frequency, voltage);
          break;
-      }
 
       case L1_ICACHE:
-         //*frequency = _tile->getCore()->getFrequency();
-         //*voltage = _tile->getCore()->getVoltage();
+         //_tile->getMemoryManager()->getL1ICache()->getDVFS(frequency, voltage);
          break;
 
       case L1_DCACHE:
-         //*frequency = _tile->getCore()->getFrequency();
-         //*voltage = _tile->getCore()->getVoltage();
+         //_tile->getMemoryManager()->getL1DCache()->getDVFS(frequency, voltage);
          break;
 
       case L2_CACHE:
-         //*frequency = _tile->getCore()->getFrequency();
-         //*voltage = _tile->getCore()->getVoltage();
+         //_tile->getMemoryManager()->getL2Cache()->getDVFS(frequency, voltage);
          break;
 
 

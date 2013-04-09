@@ -22,7 +22,8 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
                            string L2_cache_replacement_policy,
                            UInt32 L2_cache_access_delay,
                            bool L2_cache_track_miss_types,
-                           float frequency)
+                           float frequency,
+                           float voltage)
    : _memory_manager(memory_manager)
    , _dram_home_lookup(dram_home_lookup)
    , _enabled(false)
@@ -45,6 +46,7 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
          _L2_cache_hash_fn_obj,
          L2_cache_access_delay,
          frequency,
+         voltage,
          L2_cache_track_miss_types);
 }
 
@@ -318,7 +320,7 @@ L2CacheCntlr::processNextReqFromL1Cache(IntPtr address)
    LOG_PRINT("Start processNextReqFromL1Cache(%#lx)", address);
    
    // Add 1 cycle to denote that we are moving to the next request
-   getShmemPerfModel()->incrCurrTime(Latency(1,_memory_manager->getTile()->getFrequency()));
+   getShmemPerfModel()->incrCurrTime(Latency(1,_L2_cache->getFrequency()));
 
    assert(_L2_cache_req_queue.count(address) >= 1);
    
@@ -824,7 +826,7 @@ void
 L2CacheCntlr::restartShmemReq(ShmemReq* shmem_req, ShL2CacheLineInfo* L2_cache_line_info, Byte* data_buf)
 {
    // Add 1 cycle to denote that we are restarting the request
-   getShmemPerfModel()->incrCurrTime(Latency(1,_memory_manager->getTile()->getFrequency()));
+   getShmemPerfModel()->incrCurrTime(Latency(1, _L2_cache->getFrequency()));
 
    // Update ShmemReq & ShmemPerfModel internal time
    shmem_req->updateTime(getShmemPerfModel()->getCurrTime());

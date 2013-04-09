@@ -23,6 +23,7 @@ Cache::Cache(string name,
              CacheHashFn* hash_fn,
              UInt32 access_delay,
              float frequency,
+             float voltage,
              bool track_miss_types)
    : _enabled(false)
    , _name(name)
@@ -33,6 +34,7 @@ Cache::Cache(string name,
    , _line_size(line_size)
    , _num_banks(num_banks)
    , _frequency(frequency)
+   , _voltage(voltage)
    , _access_delay(access_delay)
    , _replacement_policy(replacement_policy)
    , _hash_fn(hash_fn)

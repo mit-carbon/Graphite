@@ -22,7 +22,8 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            string L1_dcache_replacement_policy,
                            UInt32 L1_dcache_access_delay,
                            bool L1_dcache_track_miss_types,
-                           float frequency)
+                           float frequency,
+                           float voltage)
    : _memory_manager(memory_manager)
    , _L2_cache_home_lookup(L2_cache_home_lookup)
 {
@@ -46,6 +47,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          _L1_icache_hash_fn_obj,
          L1_icache_access_delay,
          frequency,
+         voltage,
          L1_icache_track_miss_types);
    _L1_dcache = new Cache("L1-D",
          PR_L1_SH_L2_MSI,
@@ -60,6 +62,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          _L1_dcache_hash_fn_obj,
          L1_dcache_access_delay,
          frequency,
+         voltage,
          L1_dcache_track_miss_types);
 }
 

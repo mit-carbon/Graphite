@@ -24,9 +24,10 @@ public:
    class TileParameters
    {
    public:
-      TileParameters(std::string core_type, volatile float frequency, std::string l1_icache_type, std::string l1_dcache_type, std::string l2_cache_type):
+      TileParameters(std::string core_type, volatile float frequency, volatile float voltage, std::string l1_icache_type, std::string l1_dcache_type, std::string l2_cache_type):
          m_core_type(core_type),
          m_frequency(frequency),
+         m_voltage(voltage),
          m_l1_icache_type(l1_icache_type),
          m_l1_dcache_type(l1_dcache_type),
          m_l2_cache_type(l2_cache_type)
@@ -35,6 +36,7 @@ public:
 
       std::string getCoreType() { return m_core_type; }
       volatile float getFrequency() { return m_frequency; }
+      volatile float getVoltage() { return m_voltage; }
       std::string getL1ICacheType() { return m_l1_icache_type; }
       std::string getL1DCacheType() { return m_l1_dcache_type; }
       std::string getL2CacheType() { return m_l2_cache_type; }
@@ -42,6 +44,7 @@ public:
    private:
       std::string m_core_type;
       volatile float m_frequency;
+      volatile float m_voltage;
       std::string m_l1_icache_type;
       std::string m_l1_dcache_type;
       std::string m_l2_cache_type;
@@ -152,6 +155,7 @@ public:
    // Tile & Network Parameters
    std::string getCoreType(tile_id_t tile_id);
    volatile float getTileFrequency(tile_id_t tile_id);
+   volatile float getTileVoltage(tile_id_t tile_id);
    std::string getL1ICacheType(tile_id_t tile_id);
    std::string getL1DCacheType(tile_id_t tile_id);
    std::string getL2CacheType(tile_id_t tile_id);

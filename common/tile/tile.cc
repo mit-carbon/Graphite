@@ -16,12 +16,14 @@ Tile::Tile(tile_id_t id)
 {
    LOG_PRINT("Tile ctor for (%i)", _id);
 
-   _frequency = Config::getSingleton()->getTileFrequency(_id);
+   float frequency = Config::getSingleton()->getTileFrequency(_id);
+   float voltage = Config::getSingleton()->getTileVoltage(_id);
+
    _network = new Network(this);
-   _core = new MainCore(this);
+   _core = new MainCore(this, frequency, voltage);
    
    if (Config::getSingleton()->isSimulatingSharedMemory())
-      _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this);
+      _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this, frequency, voltage);
 
    if (Config::getSingleton()->getEnablePowerModeling())
       _tile_energy_monitor = new TileEnergyMonitor(this);
@@ -32,6 +34,8 @@ Tile::Tile(tile_id_t id)
    // Create DVFS manager
    UInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node");
    _dvfs_manager = new DVFSManager(technology_node, this);
+   
+   _frequency = frequency;
 }
 
 Tile::~Tile()

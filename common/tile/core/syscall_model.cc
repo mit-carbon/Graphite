@@ -1160,7 +1160,7 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
    Core* core = Sim()->getTileManager()->getCurrentCore();
    // compute the elapsed time
    perf_model = core->getModel();
-   frequency = core->getTile()->getFrequency();
+   frequency = core->getFrequency();
    cycles = perf_model->getCurrTime().toCycles(frequency);
    elapsed_time = ((float) perf_model->getCurrTime().toNanosec())/1000000000.0;
 

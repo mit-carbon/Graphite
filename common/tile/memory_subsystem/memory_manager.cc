@@ -11,7 +11,7 @@
 // Static Members
 CachingProtocolType MemoryManager::_caching_protocol_type;
 
-MemoryManager::MemoryManager(Tile* tile)
+MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
    : _tile(tile)
    , _enabled(false)
 {
@@ -28,20 +28,20 @@ MemoryManager::~MemoryManager()
 }
 
 MemoryManager* 
-MemoryManager::createMMU(std::string protocol_type, Tile* tile)
+MemoryManager::createMMU(std::string protocol_type, Tile* tile, float frequency, float voltage)
 {
    _caching_protocol_type = parseProtocolType(protocol_type);
 
    switch (_caching_protocol_type)
    {
    case PR_L1_PR_L2_DRAM_DIRECTORY_MSI:
-      return new PrL1PrL2DramDirectoryMSI::MemoryManager(tile);
+      return new PrL1PrL2DramDirectoryMSI::MemoryManager(tile, frequency, voltage);
 
    case PR_L1_PR_L2_DRAM_DIRECTORY_MOSI:
-      return new PrL1PrL2DramDirectoryMOSI::MemoryManager(tile);
+      return new PrL1PrL2DramDirectoryMOSI::MemoryManager(tile, frequency, voltage);
 
    case PR_L1_SH_L2_MSI:
-      return new PrL1ShL2MSI::MemoryManager(tile);
+      return new PrL1ShL2MSI::MemoryManager(tile, frequency, voltage);
 
    default:
       LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);

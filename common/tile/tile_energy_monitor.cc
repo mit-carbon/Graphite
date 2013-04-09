@@ -64,7 +64,7 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
 
    // Initialize First Time Variable
    // Check Core Cycle Count
-   m_first_time = m_core_model->getCurrTime().toCycles(m_tile->getFrequency());
+   m_first_time = m_core_model->getCurrTime().toCycles(m_tile->getCore()->getFrequency());
 
    // Initialize Power Trace
    m_power_trace_enabled = Sim()->getCfg()->getBool("runtime_energy_modeling/power_trace/enabled");
@@ -106,7 +106,7 @@ TileEnergyMonitor::~TileEnergyMonitor()
 void TileEnergyMonitor::periodicallyCollectEnergy()
 {
    // Check Core Cycle Count
-   m_current_time = m_core_model->getCurrTime().toCycles(m_tile->getFrequency());
+   m_current_time = m_core_model->getCurrTime().toCycles(m_tile->getCore()->getFrequency());
 
    // Check if the Next Time has been reached
    if (m_current_time >= m_next_time)
@@ -476,7 +476,7 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
 {
    // Set Last Time Variable
    // Check Core Cycle Count
-   m_last_time = m_core_model->getCurrTime().toCycles(m_tile->getFrequency());
+   m_last_time = m_core_model->getCurrTime().toCycles(m_tile->getCore()->getFrequency());
 
    if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {

@@ -16,7 +16,9 @@ DirectoryCache::DirectoryCache(Tile* tile,
                                UInt32 max_hw_sharers,
                                UInt32 max_num_sharers,
                                UInt32 num_directory_slices,
-                               string directory_access_time_str)
+                               string directory_access_time_str,
+                               float frequency,
+                               float voltage)
    : _tile(tile)
    , _caching_protocol_type(caching_protocol_type)
    , _max_hw_sharers(max_hw_sharers)
@@ -28,6 +30,8 @@ DirectoryCache::DirectoryCache(Tile* tile,
    , _directory_access_time_str(directory_access_time_str)
    , _mcpat_cache_interface(NULL)
    , _enabled(false)
+   , _frequency(frequency)
+   , _voltage(voltage)
 {
    LOG_PRINT("Directory Cache ctor enter");
  
@@ -48,7 +52,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
 
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
    _directory_access_latency = computeDirectoryAccessTime();
-   _directory_access_time = Time(Latency(_directory_access_latency, _tile->getFrequency()));
+   _directory_access_time = Time(Latency(_directory_access_latency, _frequency));
   
    LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)", _total_entries, directory_entry_size, _directory_access_time.toNanosec());
 
@@ -110,7 +114,7 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
       if (directory_entry->getAddress() == address)
       {
          if (getShmemPerfModel())
-            getShmemPerfModel()->incrCurrTime(Latency(directory_entry->getLatency(),_tile->getFrequency()));
+            getShmemPerfModel()->incrCurrTime(Latency(directory_entry->getLatency(),_frequency));
          // Simple check for now. Make sophisticated later
          return directory_entry;
       }

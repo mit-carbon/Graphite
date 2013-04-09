@@ -34,7 +34,9 @@ namespace PrL1PrL2DramDirectoryMOSI
                          UInt32 dram_directory_max_hw_sharers,
                          string dram_directory_type_str,
                          UInt32 num_dram_cntlrs,
-                         string dram_directory_access_time_str);
+                         string dram_directory_access_time_str,
+                         float frequency,
+                         float voltage);
       ~DramDirectoryCntlr();
 
       void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);

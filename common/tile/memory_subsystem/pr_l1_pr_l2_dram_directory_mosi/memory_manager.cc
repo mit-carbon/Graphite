@@ -13,8 +13,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 // Static variables
 ofstream MemoryManager::_cache_line_replication_file;
 
-MemoryManager::MemoryManager(Tile* tile)
-   : ::MemoryManager(tile)
+MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
+   : ::MemoryManager(tile, frequency, voltage)
    , _dram_directory_cntlr(NULL)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
@@ -132,8 +132,6 @@ MemoryManager::MemoryManager(Tile* tile)
    _cache_line_size = L1_icache_line_size;
    dram_directory_home_lookup_param = ceilLog2(_cache_line_size);
 
-   float frequency = getTile()->getFrequency();
-   
    std::vector<tile_id_t> tile_list_with_memory_controllers = getTileListWithMemoryControllers();
    UInt32 num_memory_controllers = tile_list_with_memory_controllers.size();
    
@@ -158,7 +156,9 @@ MemoryManager::MemoryManager(Tile* tile)
             dram_directory_max_hw_sharers,
             dram_directory_type_str,
             num_memory_controllers,
-            dram_directory_access_time_str);
+            dram_directory_access_time_str,
+            frequency,
+            voltage);
    }
 
    _dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_memory_controllers, getCacheLineSize());
@@ -177,7 +177,8 @@ MemoryManager::MemoryManager(Tile* tile)
          L1_dcache_replacement_policy,
          L1_dcache_data_access_time,
          L1_dcache_track_miss_types,
-         frequency);
+         frequency,
+         voltage);
    
    _L2_cache_cntlr = new L2CacheCntlr(this,
          _L1_cache_cntlr,
@@ -189,7 +190,8 @@ MemoryManager::MemoryManager(Tile* tile)
          L2_cache_replacement_policy,
          L2_cache_data_access_time,
          L2_cache_track_miss_types,
-         frequency);
+         frequency,
+         voltage);
 
    _L1_cache_cntlr->setL2CacheCntlr(_L2_cache_cntlr);
 

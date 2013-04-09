@@ -18,7 +18,8 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
                            string L2_cache_replacement_policy,
                            UInt32 L2_cache_access_delay,
                            bool L2_cache_track_miss_types,
-                           float frequency)
+                           float frequency,
+                           float voltage)
    : _memory_manager(memory_manager)
    , _L1_cache_cntlr(L1_cache_cntlr)
    , _dram_directory_home_lookup(dram_directory_home_lookup)
@@ -41,6 +42,7 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
          _L2_cache_hash_fn_obj,
          L2_cache_access_delay,
          frequency,
+         voltage,
          L2_cache_track_miss_types);
 
    initializeEvictionCounters();

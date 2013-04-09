@@ -40,7 +40,7 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
    m_enable_area_and_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
 
    // For Power and Area Modeling
-   float frequency = m_core->getTile()->getFrequency();
+   float frequency = m_core->getFrequency();
    m_mcpat_core_interface = new McPATCoreInterface(frequency, num_load_buffer_entries, num_store_buffer_entries);
 
    initializePipelineStallCounters();
@@ -93,7 +93,7 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 
 void IOCOOMCoreModel::computeEnergy()
 {
-   m_mcpat_core_interface->updateCycleCounters(m_curr_time.toCycles(m_core->getTile()->getFrequency()));
+   m_mcpat_core_interface->updateCycleCounters(m_curr_time.toCycles(m_core->getFrequency()));
    m_mcpat_core_interface->computeEnergy();
 }
 
@@ -133,7 +133,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // abort further processing (via AbortInstructionException)
    Time cost = instruction->getCost(this);
 
-   Time one_cycle = Latency(1,m_core->getTile()->getFrequency());
+   Time one_cycle = Latency(1,m_core->getFrequency());
 
    // Model Instruction Fetch Stage
    Time instruction_ready = m_curr_time;
@@ -367,7 +367,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    m_total_branch_misprediction_count = getBranchPredictor()->getNumIncorrectPredictions();
 
    // Update Event Counters
-   m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getTile()->getFrequency()), m_total_branch_misprediction_count);
+   m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getFrequency()), m_total_branch_misprediction_count);
 }
 
 pair<Time,Time>

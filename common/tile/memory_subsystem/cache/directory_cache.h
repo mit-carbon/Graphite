@@ -27,7 +27,9 @@ public:
                   UInt32 max_hw_sharers,
                   UInt32 max_num_sharers,
                   UInt32 num_directory_slices,
-                  string directory_access_time_str);
+                  string directory_access_time_str,
+                  float frequency,
+                  float voltage);
    ~DirectoryCache();
 
    Directory* getDirectory() { return _directory; }
@@ -105,4 +107,7 @@ private:
    static void dummyPrintAutogenDirectorySizeAndAccessTime(ostream& out);
 
    ShmemPerfModel* getShmemPerfModel();
+
+   volatile float _frequency;
+   volatile float _voltage;
 };

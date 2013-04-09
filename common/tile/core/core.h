@@ -48,7 +48,7 @@ public:
       WRITE
    };
 
-   Core(Tile *tile, core_type_t core_type);
+   Core(Tile *tile, core_type_t core_type, float frequency, float voltage);
    virtual ~Core();
 
    int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);
@@ -82,6 +82,8 @@ public:
    void enableModels();
    void disableModels();
 
+   float getFrequency() const                { return _frequency; }
+
 private:
    core_id_t _id;
    Tile *_tile;
@@ -101,6 +103,9 @@ private:
    void initializeMemoryAccessLatencyCounters();
    void incrTotalMemoryAccessLatency(MemComponent::Type mem_component, Time memory_access_latency);
    PacketType getPacketTypeFromUserNetType(carbon_network_t net_type);
+
+   volatile float _frequency;
+   volatile float _voltage;
 };
 
 #endif

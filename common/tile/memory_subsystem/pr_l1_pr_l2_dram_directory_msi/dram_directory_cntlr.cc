@@ -16,7 +16,9 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
       UInt32 dram_directory_max_hw_sharers,
       string dram_directory_type_str,
       string dram_directory_access_time_str,
-      UInt32 num_dram_cntlrs)
+      UInt32 num_dram_cntlrs,
+      float frequency,
+      float voltage)
    : _memory_manager(memory_manager)
    , _dram_cntlr(dram_cntlr)
 {
@@ -29,7 +31,9 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
                                               dram_directory_max_hw_sharers,
                                               dram_directory_max_num_sharers,
                                               num_dram_cntlrs,
-                                              dram_directory_access_time_str);
+                                              dram_directory_access_time_str,
+                                              frequency,
+                                              voltage);
 
    LOG_PRINT("Instantiated Dram Directory Cache");
 }

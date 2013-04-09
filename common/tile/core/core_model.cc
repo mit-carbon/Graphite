@@ -47,7 +47,7 @@ CoreModel::CoreModel(Core *core)
    initializePipelineStallCounters();
 
    // Initialize instruction costs
-   initializeCoreStaticInstructionModel(core->getTile()->getFrequency());
+   initializeCoreStaticInstructionModel(core->getFrequency());
    LOG_PRINT("Initialized CoreModel.");
 }
 

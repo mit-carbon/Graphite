@@ -411,3 +411,11 @@ DirectoryCache::getShmemPerfModel()
    return _tile->getMemoryManager()->getShmemPerfModel();
 }
 
+int
+DirectoryCache::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}
+

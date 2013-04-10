@@ -45,6 +45,7 @@ public:
    void disable() { _enabled = false; }
 
    void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+   int getDVFS(double &frequency, double &voltage);
 
 private:
    Tile* _tile;

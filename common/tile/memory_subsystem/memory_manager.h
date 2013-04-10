@@ -64,6 +64,8 @@ public:
    static void closeCacheLineReplicationTraceFiles();
    static void outputCacheLineReplicationSummary();
 
+   virtual int getDVFS(module_t module, double &frequency, double &voltage) = 0;
+
 protected:
    Network* getNetwork() { return _network; }
 

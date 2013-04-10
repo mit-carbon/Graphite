@@ -489,3 +489,11 @@ Cache::parseMissType(string miss_type)
       return INVALID_MISS_TYPE;
    }
 }
+
+int
+Cache::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}

@@ -61,6 +61,8 @@ namespace PrL1ShL2MSI
 
       void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
 
+      int getDVFS(module_t module, double &frequency, double &voltage);
+
    private:
       // L1/L2 cache cntlrs and DRAM_CNTLR cntlr
       L1CacheCntlr* _L1_cache_cntlr;

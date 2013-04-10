@@ -82,7 +82,9 @@ public:
    void enableModels();
    void disableModels();
 
-   float getFrequency() const                { return _frequency; }
+   double getFrequency() const                { return _frequency; }
+
+   int getDVFS(double &frequency, double &voltage);
 
 private:
    core_id_t _id;
@@ -104,8 +106,8 @@ private:
    void incrTotalMemoryAccessLatency(MemComponent::Type mem_component, Time memory_access_latency);
    PacketType getPacketTypeFromUserNetType(carbon_network_t net_type);
 
-   volatile float _frequency;
-   volatile float _voltage;
+   double _frequency;
+   double _voltage;
 };
 
 #endif

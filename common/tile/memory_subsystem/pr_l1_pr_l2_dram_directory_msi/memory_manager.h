@@ -59,6 +59,8 @@ namespace PrL1PrL2DramDirectoryMSI
       double getStaticPower();
 
       void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
+
+      int getDVFS(module_t module, double &frequency, double &voltage);
    
    private:
       L1CacheCntlr* _L1_cache_cntlr;

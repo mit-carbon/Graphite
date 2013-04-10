@@ -335,3 +335,11 @@ Core::incrTotalMemoryAccessLatency(MemComponent::Type mem_component, Time memory
       LOG_PRINT_ERROR("Unrecognized mem component(%s)", SPELL_MEMCOMP(mem_component));
    }
 }
+
+int
+Core::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}

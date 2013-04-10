@@ -120,7 +120,9 @@ public:
    // Friend class
    friend class McPATCacheInterface;
 
-   float getFrequency() const {return _frequency;};
+   double getFrequency() const {return _frequency;};
+   int getDVFS(double &frequency, double &voltage);
+
 
 private:
    // Is enabled?
@@ -139,8 +141,8 @@ private:
    UInt32 _num_sets;
    UInt32 _num_banks;
    UInt32 _log_line_size;
-   volatile float _frequency;
-   volatile float _voltage;
+   double _frequency;
+   double _voltage;
    UInt32 _access_delay;
 
    // Computing replacement policy and hash function

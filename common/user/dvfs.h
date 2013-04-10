@@ -14,7 +14,8 @@ typedef enum
    L1_ICACHE = 0x2,
    L1_DCACHE = 0x4,
    L2_CACHE = 0x8,
-   TILE = 0xf
+   L2_DIRECTORY = 0x10,
+   TILE = 0x1f
 } module_t;
  
 typedef enum

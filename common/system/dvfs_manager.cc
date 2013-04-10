@@ -2,7 +2,9 @@
 #include <utility>
 using std::make_pair;
 #include "dvfs_manager.h"
+#include "memory_manager.h"
 #include "tile.h"
+#include "core.h"
 #include "packetize.h"
 
 DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
@@ -84,24 +86,28 @@ int
 DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
 {
    double frequency, voltage;
+   int rc = 0;
    switch (module_type)
    {
       case CORE:
-         //_tile->getCore()->getDVFS(frequency, voltage);
+         _tile->getCore()->getDVFS(frequency, voltage);
          break;
 
       case L1_ICACHE:
-         //_tile->getMemoryManager()->getL1ICache()->getDVFS(frequency, voltage);
+         rc = _tile->getMemoryManager()->getDVFS(L1_ICACHE, frequency, voltage);
          break;
 
       case L1_DCACHE:
-         //_tile->getMemoryManager()->getL1DCache()->getDVFS(frequency, voltage);
+         rc = _tile->getMemoryManager()->getDVFS(L1_DCACHE, frequency, voltage);
          break;
 
       case L2_CACHE:
-         //_tile->getMemoryManager()->getL2Cache()->getDVFS(frequency, voltage);
+         rc = _tile->getMemoryManager()->getDVFS(L2_CACHE, frequency, voltage);
          break;
 
+      case L2_DIRECTORY:
+         rc = _tile->getMemoryManager()->getDVFS(L2_DIRECTORY, frequency, voltage);
+         break;
 
       case TILE:
          LOG_PRINT_ERROR("You must specify a submodule within the tile.", module_type);
@@ -112,10 +118,10 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
          break;
    }
 
-   int rc = 0;
    UnstructuredBuffer send_buffer;
    send_buffer << rc << frequency << voltage;
    _tile->getNetwork()->netSend(requester, DVFS_GET_REPLY, send_buffer.getBuffer(), send_buffer.size());
+
 
    return rc;
 }

@@ -103,8 +103,8 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
 
    // For DVFS
    else if (name == "CarbonGetDVFS") msg_ptr = AFUNPTR(replacementCarbonGetDVFS);
-   else if (name == "CarbonGetFrequency") msg_ptr = AFUNPTR(replacementCarbonGetDVFS);
-   else if (name == "CarbonGetVoltage") msg_ptr = AFUNPTR(replacementCarbonGetDVFS);
+   else if (name == "CarbonGetFrequency") msg_ptr = AFUNPTR(replacementCarbonGetFrequency);
+   else if (name == "CarbonGetVoltage") msg_ptr = AFUNPTR(replacementCarbonGetVoltage);
    else if (name == "CarbonSetDVFS") msg_ptr = AFUNPTR(replacementCarbonSetDVFS);
 
    // Turn off performance modeling at _start()

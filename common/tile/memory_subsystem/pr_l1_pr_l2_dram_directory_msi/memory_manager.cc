@@ -494,4 +494,33 @@ MemoryManager::getStaticPower()
    return static_power;
 }
 
+int
+MemoryManager::getDVFS(module_t module_type, double &frequency, double &voltage)
+{
+   int rc = 0;
+   switch (module_type)
+   {
+      case L1_ICACHE:
+         getL1ICache()->getDVFS(frequency,voltage);
+         break;
+
+      case L1_DCACHE:
+         getL1DCache()->getDVFS(frequency,voltage);
+         break;
+
+      case L2_CACHE:
+         getL2Cache()->getDVFS(frequency,voltage);
+         break;
+
+      case L2_DIRECTORY:
+         getDramDirectoryCache()->getDVFS(frequency,voltage);
+         break;
+
+      default:
+         rc = -1;
+         break;
+   }
+   return rc;
+}
+
 }

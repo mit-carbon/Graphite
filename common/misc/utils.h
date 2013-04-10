@@ -132,16 +132,16 @@ UInt32 convertBitsToBytes(UInt32 num_bits);
 
 // Trim the beginning and ending spaces in a string
 
-string trimSpaces(string& str);
+string trimSpaces(const string& str);
 
 // Parse an arbitrary list separated by arbitrary delimiters
 // into a vector of strings
 
-void parseList(string& list, vector<string>& vec, string delim);
+void parseList(const string& list, vector<string>& vec, string delim);
 
 // Split a line into tokens separated by a list of delimiters
 
-void splitIntoTokens(string line, vector<string>& tokens, const char* delimiters);
+void splitIntoTokens(const string& line, vector<string>& tokens, const char* delimiters);
 
 // Compute different statistics
 double computeMean(const vector<UInt64>& vec);

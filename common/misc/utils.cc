@@ -53,7 +53,7 @@ UInt32 convertBitsToBytes(UInt32 num_bits)
 }
 
 // Trim the beginning and ending spaces in a string
-string trimSpaces(string& str)
+string trimSpaces(const string& str)
 {
    size_t startpos = str.find_first_not_of(" \t");
    size_t endpos = str.find_last_not_of(" \t");
@@ -70,10 +70,10 @@ string trimSpaces(string& str)
 
 // Parse an arbitrary list separated by arbitrary delimiters
 // into a vector of strings
-void parseList(string& list, vector<string>& vec, string delim)
+void parseList(const string& list, vector<string>& vec, string delim)
 {
-   list = trimSpaces(list);
-   if (list == "")
+   string llist = trimSpaces(list);
+   if (llist == "")
       return;
 
    size_t i = 0;
@@ -85,18 +85,18 @@ void parseList(string& list, vector<string>& vec, string delim)
       
       while(!end_reached)
       {
-         size_t position = list.find(separator, i);
+         size_t position = llist.find(separator, i);
          string value;
 
          if (position != string::npos)
          {
             // The end of the string has not been reached
-            value = list.substr(i, position-i);
+            value = llist.substr(i, position-i);
          }
          else
          {
             // The end of the string has been reached
-            value = list.substr(i);
+            value = llist.substr(i);
             end_reached = true;
          }
          
@@ -113,13 +113,13 @@ void parseList(string& list, vector<string>& vec, string delim)
 
       while(!end_reached)
       {
-         size_t start_position = list.find(start_delim, i);
+         size_t start_position = llist.find(start_delim, i);
          string value;
 
          if (start_position != string::npos)
          {
             // The end of the string has not been reached
-            size_t end_position = list.find(end_delim, i);
+            size_t end_position = llist.find(end_delim, i);
 
             if (end_position == string::npos)
             {
@@ -127,7 +127,7 @@ void parseList(string& list, vector<string>& vec, string delim)
                exit(EXIT_FAILURE);
             }
 
-            value = list.substr(start_position + 1, end_position - start_position - 1);
+            value = llist.substr(start_position + 1, end_position - start_position - 1);
          
             vec.push_back(value);
             i = end_position + 1;
@@ -146,7 +146,7 @@ void parseList(string& list, vector<string>& vec, string delim)
    }
 }
 
-void splitIntoTokens(string line, vector<string>& tokens, const char* delimiters)
+void splitIntoTokens(const string& line, vector<string>& tokens, const char* delimiters)
 {
    char character_set[line.length() + 1];
    strncpy(character_set, line.c_str(), line.length() + 1);

@@ -6,6 +6,7 @@
 #include "log.h"
 #include "mcpat_cache_interface.h"
 #include "utils.h"
+#include "dvfs_manager.h"
 
 DirectoryCache::DirectoryCache(Tile* tile,
                                CachingProtocolType caching_protocol_type,
@@ -17,8 +18,8 @@ DirectoryCache::DirectoryCache(Tile* tile,
                                UInt32 max_num_sharers,
                                UInt32 num_directory_slices,
                                string directory_access_time_str,
-                               float frequency,
-                               float voltage)
+                               double frequency,
+                               double voltage)
    : _tile(tile)
    , _caching_protocol_type(caching_protocol_type)
    , _max_hw_sharers(max_hw_sharers)
@@ -417,5 +418,15 @@ DirectoryCache::getDVFS(double &frequency, double &voltage)
    frequency = _frequency;
    voltage = _voltage;
    return 0;
+}
+
+int
+DirectoryCache::setDVFS(double frequency, voltage_option_t voltage_flag)
+{
+   int rc = DVFSManager::setVoltage(frequency, _voltage, voltage_flag);
+   if (rc==0)
+      _frequency = frequency;
+
+   return rc;
 }
 

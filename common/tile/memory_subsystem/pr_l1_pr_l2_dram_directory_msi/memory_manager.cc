@@ -523,4 +523,33 @@ MemoryManager::getDVFS(module_t module_type, double &frequency, double &voltage)
    return rc;
 }
 
+int
+MemoryManager::setDVFS(module_t module_type, double frequency, voltage_option_t voltage_flag)
+{
+   int rc = 0;
+   switch (module_type)
+   {
+      case L1_ICACHE:
+         rc = getL1ICache()->setDVFS(frequency,voltage_flag);
+         break;
+
+      case L1_DCACHE:
+         rc = getL1DCache()->setDVFS(frequency,voltage_flag);
+         break;
+
+      case L2_CACHE:
+         rc = getL2Cache()->setDVFS(frequency,voltage_flag);
+         break;
+
+      case L2_DIRECTORY:
+         rc = getDramDirectoryCache()->setDVFS(frequency,voltage_flag);
+         break;
+
+      default:
+         rc = -1;
+         break;
+   }
+   return rc;
+}
+
 }

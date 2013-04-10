@@ -15,13 +15,15 @@ typedef enum
    L1_DCACHE = 0x4,
    L2_CACHE = 0x8,
    L2_DIRECTORY = 0x10,
-   TILE = 0x1f
+   TILE = 0x1f,
+   MAX_MODULE_TYPES
 } module_t;
  
 typedef enum
 {
    AUTO,
-   HOLD
+   HOLD,
+   MAX_VOLTAGE_OPTIONS
 } voltage_option_t;
  
 // Get DVFS

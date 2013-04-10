@@ -129,32 +129,87 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
 int
 DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, core_id_t requester)
 {
-   // parse mask and set frequency and voltage
-   if (module_mask & CORE){
-      //_tile->getCore()->setFrequency(frequency);
-      //_tile->getCore()->setVoltage(voltage);
+
+   // FIXME: this should be removed after merge
+   double MAX_FREQUENCY=3.5;
+   
+   int rc = 0, rc_tmp = 0;
+
+   // Invalid module mask
+   if (module_mask>=MAX_MODULE_TYPES){ 
+      rc = -2;
    }
-   if (module_mask & L1_ICACHE){
-//      _tile->getCore()->setFrequency(frequency);
-//      _tile->getCore()->setVoltage(voltage);
+
+   // Invalid voltage option
+   else if (voltage_flag>=MAX_VOLTAGE_OPTIONS){ 
+      rc = -3;
    }
-   if (module_mask & L1_DCACHE){
-//      _tile->getCore()->setFrequency(frequency);
-//      _tile->getCore()->setVoltage(voltage);
+
+   // Invalid frequency
+   else if (frequency <= 0 || frequency > MAX_FREQUENCY){
+      rc = -4;
    }
-   if (module_mask & L2_CACHE){
-//      _tile->getCore()->setFrequency(frequency);
-//      _tile->getCore()->setVoltage(voltage);
+
+   // Parse mask and set frequency and voltage
+   else{
+      if (module_mask & CORE){
+         rc_tmp = _tile->getCore()->setDVFS(frequency, voltage_flag);
+         if (rc_tmp != 0) rc = rc_tmp;
+      }
+      if (module_mask & L1_ICACHE){
+         rc_tmp = _tile->getMemoryManager()->setDVFS(L1_ICACHE, frequency, voltage_flag);
+         if (rc_tmp != 0) rc = rc_tmp;
+      }
+      if (module_mask & L1_DCACHE){
+         rc_tmp = _tile->getMemoryManager()->setDVFS(L1_DCACHE, frequency, voltage_flag);
+         if (rc_tmp != 0) rc = rc_tmp;
+      }
+      if (module_mask & L2_CACHE){
+         rc_tmp = _tile->getMemoryManager()->setDVFS(L2_CACHE, frequency, voltage_flag);
+         if (rc_tmp != 0) rc = rc_tmp;
+      }
+      if (module_mask & L2_DIRECTORY){
+         rc_tmp = _tile->getMemoryManager()->setDVFS(L2_DIRECTORY, frequency, voltage_flag);
+         if (rc_tmp != 0) rc = rc_tmp;
+      }
    }
 
    UnstructuredBuffer send_buffer;
-   int rc = 0;
    send_buffer << rc;
 
    _tile->getNetwork()->netSend(requester, DVFS_SET_REPLY, send_buffer.getBuffer(), send_buffer.size());
 
    return rc;
 }
+
+int
+DVFSManager::setVoltage(double frequency, double &voltage, voltage_option_t voltage_flag)
+{
+   int rc = 0;
+
+   switch (voltage_flag)
+   {
+      case HOLD:
+      {
+         // above max frequency for current voltage
+         if (voltage > getMaxVoltage(frequency)){
+            rc = -5;
+         }
+         break;
+      }
+
+      case AUTO:
+         voltage = getMaxVoltage(frequency);
+         break;
+
+      default:
+         LOG_PRINT_ERROR("Unrecognized voltage flag %i.", voltage_flag);
+         break;
+   }
+   
+   return rc;
+}
+
 
 // Called over the network (callbacks)
 void

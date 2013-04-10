@@ -9,6 +9,7 @@ using namespace std;
 #include "mem_component.h"
 #include "caching_protocol_type.h"
 #include "shmem_perf_model.h"
+#include "dvfs.h"
 
 void MemoryManagerNetworkCallback(void* obj, NetPacket packet);
 
@@ -65,6 +66,7 @@ public:
    static void outputCacheLineReplicationSummary();
 
    virtual int getDVFS(module_t module, double &frequency, double &voltage) = 0;
+   virtual int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag) = 0;
 
 protected:
    Network* getNetwork() { return _network; }

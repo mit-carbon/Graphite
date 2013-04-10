@@ -16,6 +16,7 @@ using std::ofstream;
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "network.h"
+#include "dvfs.h"
 
 namespace PrL1ShL2MSI
 {
@@ -62,6 +63,7 @@ namespace PrL1ShL2MSI
       void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
 
       int getDVFS(module_t module, double &frequency, double &voltage);
+      int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag);
 
    private:
       // L1/L2 cache cntlrs and DRAM_CNTLR cntlr

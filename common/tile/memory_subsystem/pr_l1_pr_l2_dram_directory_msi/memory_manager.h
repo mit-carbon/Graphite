@@ -12,6 +12,8 @@
 #include "semaphore.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+#include "dvfs.h"
+
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -61,6 +63,7 @@ namespace PrL1PrL2DramDirectoryMSI
       void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
 
       int getDVFS(module_t module, double &frequency, double &voltage);
+      int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag);
    
    private:
       L1CacheCntlr* _L1_cache_cntlr;

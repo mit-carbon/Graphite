@@ -28,8 +28,8 @@ public:
                   UInt32 max_num_sharers,
                   UInt32 num_directory_slices,
                   string directory_access_time_str,
-                  float frequency,
-                  float voltage);
+                  double frequency,
+                  double voltage);
    ~DirectoryCache();
 
    Directory* getDirectory() { return _directory; }
@@ -46,6 +46,7 @@ public:
 
    void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag);
 
 private:
    Tile* _tile;
@@ -109,6 +110,6 @@ private:
 
    ShmemPerfModel* getShmemPerfModel();
 
-   volatile float _frequency;
-   volatile float _voltage;
+   double _frequency;
+   double _voltage;
 };

@@ -19,6 +19,7 @@ class PinMemoryManager;
 #include "packet_type.h"
 #include "lock.h"
 #include "time_types.h"
+#include "dvfs_manager.h"
 
 class Core
 {
@@ -85,6 +86,7 @@ public:
    double getFrequency() const                { return _frequency; }
 
    int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag);
 
 private:
    core_id_t _id;

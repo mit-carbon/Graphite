@@ -14,6 +14,7 @@ using std::set;
 #include "fixed_types.h"
 #include "caching_protocol_type.h"
 #include "constants.h"
+#include "dvfs_manager.h"
 
 // Forwards Decls
 class CacheSet;
@@ -122,6 +123,7 @@ public:
 
    double getFrequency() const {return _frequency;};
    int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag);
 
 
 private:

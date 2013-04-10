@@ -26,6 +26,7 @@ public:
    // Internal functions called after figuring out voltage/frequency
    int doGetDVFS(module_t module_type, core_id_t requester);
    int doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, core_id_t requester);
+   static int setVoltage(double frequency, double &voltage, voltage_option_t voltage_flag);
 
    // Called to initialize DVFS voltage-frequency levels
    static void initializeDVFSLevels();
@@ -39,4 +40,7 @@ private:
    typedef list<pair<volatile double,volatile double> > DVFSLevels;
    static DVFSLevels _dvfs_levels;
    Tile* _tile;
+
+   // FIXME: this should be removed after merge
+   static double getMaxVoltage(double frequency){ return 5.0; }
 };

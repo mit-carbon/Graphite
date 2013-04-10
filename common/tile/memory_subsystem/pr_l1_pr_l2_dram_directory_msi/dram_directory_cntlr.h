@@ -38,9 +38,6 @@ namespace PrL1PrL2DramDirectoryMSI
 
       void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
 
-      // Function to call when changing frequencies
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-      
       DirectoryCache* getDramDirectoryCache() { return _dram_directory_cache; }
    
    private:

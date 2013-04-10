@@ -31,11 +31,6 @@ void SimpleCoreModel::outputSummary(std::ostream &os)
    //os << "    Total L1-D Cache Write Stall Time (in ns): " << m_total_l1dcache_write_stall_time.toNanosec() << endl;
 }
 
-void SimpleCoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   CoreModel::updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-}
-
 void SimpleCoreModel::handleInstruction(Instruction *instruction)
 {
    // LOG_PRINT("Started processing instruction: Address(%#lx), Type(%u), Cost(%llu), Curr Time(%llu)",

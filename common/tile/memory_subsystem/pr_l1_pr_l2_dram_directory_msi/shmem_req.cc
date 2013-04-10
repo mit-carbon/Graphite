@@ -25,10 +25,4 @@ ShmemReq::updateTime(Time time)
       _time = time;
 }
 
-void
-ShmemReq::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   //_time = convertCycleCount(_time, old_frequency, new_frequency);
-}
-
 }

@@ -55,9 +55,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Output summary
       void outputSummary(ostream& out);
 
-      // Update internal variables when frequency is changed
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-      
       void enable() { _enabled = true; }
       void disable() { _enabled = false; }
 

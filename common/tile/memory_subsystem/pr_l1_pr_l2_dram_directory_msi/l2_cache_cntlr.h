@@ -54,9 +54,6 @@ namespace PrL1PrL2DramDirectoryMSI
       // Handle message from Dram Dir
       void handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg);
 
-      // Update internal variables when frequency is changed
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-
    private:
       // Data Members
       MemoryManager* _memory_manager;

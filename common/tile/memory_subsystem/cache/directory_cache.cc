@@ -374,7 +374,6 @@ DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
 void
 DirectoryCache::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   _directory_access_time = Time(Latency(_directory_access_latency, new_frequency));
 }
 
 void
@@ -423,9 +422,11 @@ DirectoryCache::getDVFS(double &frequency, double &voltage)
 int
 DirectoryCache::setDVFS(double frequency, voltage_option_t voltage_flag)
 {
-   int rc = DVFSManager::setVoltage(frequency, _voltage, voltage_flag);
-   if (rc==0)
+   int rc = DVFSManager::getVoltage(frequency, _voltage, voltage_flag);
+   if (rc==0){
       _frequency = frequency;
+      _directory_access_time = Time(Latency(_directory_access_latency, _frequency));
+   }
 
    return rc;
 }

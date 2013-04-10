@@ -28,20 +28,14 @@ Tile::Tile(tile_id_t id)
    if (Config::getSingleton()->getEnablePowerModeling())
       _tile_energy_monitor = new TileEnergyMonitor(this);
    
-   // Register callback for clock frequency change
-   getNetwork()->registerCallback(FREQ_CONTROL, TileFreqScalingCallback, this);
-
    // Create DVFS manager
    UInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node");
    _dvfs_manager = new DVFSManager(technology_node, this);
    
-   _frequency = frequency;
 }
 
 Tile::~Tile()
 {
-   getNetwork()->unregisterCallback(FREQ_CONTROL);
-
    delete _dvfs_manager;
    if (_memory_manager)
       delete _memory_manager;
@@ -49,20 +43,6 @@ Tile::~Tile()
    delete _network;
    if (_tile_energy_monitor)
       delete _tile_energy_monitor;
-}
-
-void TileFreqScalingCallback(void* obj, NetPacket packet)
-{
-   Tile *tile = (Tile*) obj;
-   assert(tile != NULL);
-
-   core_id_t sender = packet.sender;
-   volatile float new_frequency;
-   memcpy((void*) &new_frequency, packet.data, sizeof(float));
-
-   float old_frequency = tile->getFrequency();
-   tile->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   tile->setFrequency(new_frequency);
 }
 
 void Tile::outputSummary(ostream &os)
@@ -102,9 +82,3 @@ void Tile::disableModels()
    LOG_PRINT("disableModels(%i) end", _id);
 }
 
-void
-Tile::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   _core->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   _memory_manager->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-}

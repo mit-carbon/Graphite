@@ -18,7 +18,6 @@ public:
    IOCOOMCoreModel(Core* core);
    ~IOCOOMCoreModel();
 
-   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    void outputSummary(std::ostream &os);
 
    void computeEnergy();

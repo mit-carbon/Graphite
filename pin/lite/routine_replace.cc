@@ -461,36 +461,6 @@ void routineCallback(RTN rtn, void* v)
             IARG_END);
    }
 
-   // Frequency Scaling Functions
-   else if (rtn_name == "CarbonGetTileFrequency")
-   {
-      PROTO proto = PROTO_Allocate(PIN_PARG(void),
-            CALLINGSTD_DEFAULT,
-            "CarbonGetTileFrequency",
-            PIN_PARG(float*),
-            PIN_PARG_END());
-
-      RTN_ReplaceSignature(rtn,
-            AFUNPTR(CarbonGetTileFrequency),
-            IARG_PROTOTYPE, proto,
-            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-            IARG_END);
-   }
-   else if (rtn_name == "CarbonSetTileFrequency")
-   {
-      PROTO proto = PROTO_Allocate(PIN_PARG(void),
-            CALLINGSTD_DEFAULT,
-            "CarbonSetTileFrequency",
-            PIN_PARG(float*),
-            PIN_PARG_END());
-
-      RTN_ReplaceSignature(rtn,
-            AFUNPTR(CarbonSetTileFrequency),
-            IARG_PROTOTYPE, proto,
-            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
-            IARG_END);
-   }
-
    // Dynamic voltage frequency updating
    else if (rtn_name == "CarbonGetDVFS")
    {

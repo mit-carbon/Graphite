@@ -242,9 +242,6 @@ Core::getPacketTypeFromUserNetType(carbon_network_t net_type)
    case CARBON_NET_USER:
       return USER;
 
-   case CARBON_FREQ_CONTROL:
-      return FREQ_CONTROL;
-
    default:
       LOG_PRINT_ERROR("Unrecognized User Network(%u)", net_type);
       return (PacketType) -1;
@@ -299,13 +296,6 @@ Core::disableModels()
 }
 
 void
-Core::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   if (_core_model)
-      _core_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-}
-
-void
 Core::initializeMemoryAccessLatencyCounters()
 {
    _num_instruction_memory_accesses = 0;
@@ -347,9 +337,11 @@ Core::getDVFS(double &frequency, double &voltage)
 int
 Core::setDVFS(double frequency, voltage_option_t voltage_flag)
 {
-   int rc = DVFSManager::setVoltage(frequency, _voltage, voltage_flag);
-   if (rc==0)
+   int rc = DVFSManager::getVoltage(frequency, _voltage, voltage_flag);
+   if (rc==0){
+      _core_model->updateInternalVariablesOnFrequencyChange(_frequency, frequency);
       _frequency = frequency;
+   }
 
    return rc;
 }

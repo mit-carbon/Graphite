@@ -78,8 +78,6 @@ public:
   
    void outputSummary(ostream& os);
 
-   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-
    void enableModels();
    void disableModels();
 

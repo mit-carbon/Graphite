@@ -65,11 +65,6 @@ void replacementDisableCacheCounters(CONTEXT *ctxt);
 // Getting Simulated Time
 void replacementCarbonGetTime(CONTEXT *ctxt);
 
-// Dynamic Frequency Scaling
-void replacementCarbonGetTileFrequency(CONTEXT *ctxt);
-void replacementCarbonSetTileFrequency(CONTEXT *ctxt);
-void replacementCarbonSetRemoteTileFrequency(CONTEXT *ctxt);
-
 // DVFS
 void replacementCarbonGetDVFS(CONTEXT *ctxt);
 void replacementCarbonGetFrequency(CONTEXT *ctxt);

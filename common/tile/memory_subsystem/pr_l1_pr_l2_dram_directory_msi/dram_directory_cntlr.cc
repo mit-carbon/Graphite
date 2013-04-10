@@ -90,15 +90,6 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
    }
 }
 
-// Update internal variables when frequency is changed
-// Variables that need to be updated include all variables that are expressed in terms of cycles
-//  e.g., total memory access latency, packet arrival time, etc.
-void
-DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   _dram_directory_cache->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-}
-
 void
 DramDirectoryCntlr::processNextReqFromL2Cache(IntPtr address)
 {

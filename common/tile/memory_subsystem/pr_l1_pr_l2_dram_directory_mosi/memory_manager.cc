@@ -306,17 +306,6 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    delete shmem_msg;
 }
 
-// Update internal variables when frequency is changed
-void
-MemoryManager::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   // update cache performance models
-   _L1_icache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   _L1_dcache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   _L2_cache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   _dram_directory_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-}      
-
 void
 MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
 {

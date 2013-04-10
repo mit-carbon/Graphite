@@ -96,11 +96,6 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // For Getting the Simulated Time
    else if (name == "CarbonGetTime") msg_ptr = AFUNPTR(replacementCarbonGetTime);
 
-   // For Dynamic Frequency Scaling
-   else if (name == "CarbonGetTileFrequency") msg_ptr = AFUNPTR(replacementCarbonGetTileFrequency);
-   else if (name == "CarbonSetTileFrequency") msg_ptr = AFUNPTR(replacementCarbonSetTileFrequency);
-   else if (name == "CarbonSetRemoteTileFrequency") msg_ptr = AFUNPTR(replacementCarbonSetRemoteTileFrequency);
-
    // For DVFS
    else if (name == "CarbonGetDVFS") msg_ptr = AFUNPTR(replacementCarbonGetDVFS);
    else if (name == "CarbonGetFrequency") msg_ptr = AFUNPTR(replacementCarbonGetFrequency);
@@ -870,62 +865,6 @@ void replacementCarbonGetTime(CONTEXT *ctxt)
 {
    UInt64 ret_val = CarbonGetTime();
 
-   retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementCarbonGetTileFrequency(CONTEXT *ctxt)
-{
-   float* tile_frequency;
-
-   initialize_replacement_args(ctxt,
-         IARG_PTR, &tile_frequency,
-         CARBON_IARG_END);
-
-   volatile float tile_frequency_buf;
-   CarbonGetTileFrequency(&tile_frequency_buf);
-
-   Core* core = Sim()->getTileManager()->getCurrentCore();
-   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) tile_frequency, (char*) &tile_frequency_buf, sizeof(tile_frequency_buf));
-
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
-   retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementCarbonSetTileFrequency(CONTEXT *ctxt)
-{
-   float* tile_frequency;
-
-   initialize_replacement_args(ctxt,
-         IARG_PTR, &tile_frequency,
-         CARBON_IARG_END);
-
-   volatile float tile_frequency_buf;
-   Core* core = Sim()->getTileManager()->getCurrentCore();
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) tile_frequency, (char*) &tile_frequency_buf, sizeof(tile_frequency_buf));
-
-   CarbonSetTileFrequency(&tile_frequency_buf);
-
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
-   retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementCarbonSetRemoteTileFrequency(CONTEXT *ctxt)
-{
-   float* tile_frequency;
-   tile_id_t tile_id;
-
-   initialize_replacement_args (ctxt,
-         IARG_UINT32, &tile_id,
-         IARG_PTR, &tile_frequency,
-         CARBON_IARG_END);
-
-   volatile float tile_frequency_buf;
-   Core* core = Sim()->getTileManager()->getCurrentCore();
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) tile_frequency, (char*) &tile_frequency_buf, sizeof(tile_frequency_buf));
-
-   CarbonSetRemoteTileFrequency(tile_id, &tile_frequency_buf);
-
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
 }
 

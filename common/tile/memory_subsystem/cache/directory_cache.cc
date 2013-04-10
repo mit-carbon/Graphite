@@ -422,7 +422,7 @@ DirectoryCache::getDVFS(double &frequency, double &voltage)
 int
 DirectoryCache::setDVFS(double frequency, voltage_option_t voltage_flag)
 {
-   int rc = DVFSManager::getVoltage(frequency, _voltage, voltage_flag);
+   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
    if (rc==0){
       _frequency = frequency;
       _directory_access_time = Time(Latency(_directory_access_latency, _frequency));

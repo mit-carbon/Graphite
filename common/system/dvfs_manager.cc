@@ -206,7 +206,7 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
 }
 
 int
-DVFSManager::getVoltage(double frequency, double &voltage, voltage_option_t voltage_flag)
+DVFSManager::getVoltage(double &voltage, voltage_option_t voltage_flag, double frequency)
 {
    int rc = 0;
 

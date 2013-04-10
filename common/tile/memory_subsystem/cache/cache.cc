@@ -501,7 +501,7 @@ Cache::getDVFS(double &frequency, double &voltage)
 int
 Cache::setDVFS(double frequency, voltage_option_t voltage_flag)
 {
-   int rc = DVFSManager::getVoltage(frequency, _voltage, voltage_flag);
+   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
    if (rc==0)
       _frequency = frequency;
 

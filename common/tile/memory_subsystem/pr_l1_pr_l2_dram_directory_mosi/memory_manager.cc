@@ -13,7 +13,7 @@ namespace PrL1PrL2DramDirectoryMOSI
 // Static variables
 ofstream MemoryManager::_cache_line_replication_file;
 
-MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
+MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
    : ::MemoryManager(tile, frequency, voltage)
    , _dram_directory_cntlr(NULL)
    , _dram_cntlr(NULL)

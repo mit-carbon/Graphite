@@ -14,7 +14,7 @@
 #include "config.h"
 #include "log.h"
 
-Core::Core(Tile *tile, core_type_t core_type, float frequency, float voltage)
+Core::Core(Tile *tile, core_type_t core_type, double frequency, double voltage)
    : _tile(tile)
    , _core_model(NULL)
    , _state(IDLE)

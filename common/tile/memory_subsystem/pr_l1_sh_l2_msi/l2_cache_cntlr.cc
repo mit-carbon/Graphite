@@ -22,8 +22,8 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
                            string L2_cache_replacement_policy,
                            UInt32 L2_cache_access_delay,
                            bool L2_cache_track_miss_types,
-                           float frequency,
-                           float voltage)
+                           double frequency,
+                           double voltage)
    : _memory_manager(memory_manager)
    , _dram_home_lookup(dram_home_lookup)
    , _enabled(false)

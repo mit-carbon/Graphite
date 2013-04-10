@@ -4,7 +4,7 @@
 
 using namespace dsent_contrib;
 
-RouterPowerModel::RouterPowerModel(float frequency, UInt32 num_input_ports, UInt32 num_output_ports,
+RouterPowerModel::RouterPowerModel(double frequency, UInt32 num_input_ports, UInt32 num_output_ports,
                                    UInt32 num_flits_per_port_buffer, UInt32 flit_width)
    : _frequency(frequency)
    , _num_input_ports(num_input_ports)

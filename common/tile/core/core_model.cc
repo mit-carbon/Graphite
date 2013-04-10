@@ -57,7 +57,7 @@ CoreModel::~CoreModel()
 }
 
 
-void CoreModel::initializeCoreStaticInstructionModel(volatile float frequency)
+void CoreModel::initializeCoreStaticInstructionModel(volatile double frequency)
 {
    m_core_instruction_costs.resize(MAX_INSTRUCTION_COUNT);
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
@@ -69,7 +69,7 @@ void CoreModel::initializeCoreStaticInstructionModel(volatile float frequency)
    }
 }
 
-void CoreModel::updateCoreStaticInstructionModel(volatile float frequency)
+void CoreModel::updateCoreStaticInstructionModel(volatile double frequency)
 {
    Instruction::StaticInstructionCosts instruction_costs = Instruction::getStaticInstructionCosts();
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
@@ -118,7 +118,7 @@ void CoreModel::disable()
 
 // This function is called:
 // 1) Whenever frequency is changed
-void CoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+void CoreModel::updateInternalVariablesOnFrequencyChange(double old_frequency, double new_frequency)
 {
    recomputeAverageFrequency(old_frequency);
    updateCoreStaticInstructionModel(new_frequency);
@@ -133,7 +133,7 @@ void CoreModel::setCurrTime(Time time)
 // This function is called:
 // 1) On thread exit
 // 2) Whenever frequency is changed
-void CoreModel::recomputeAverageFrequency(float old_frequency)
+void CoreModel::recomputeAverageFrequency(double old_frequency)
 {
    m_total_cycles += (m_curr_time - m_checkpointed_time).toCycles(old_frequency);
    m_total_time += (m_curr_time - m_checkpointed_time);

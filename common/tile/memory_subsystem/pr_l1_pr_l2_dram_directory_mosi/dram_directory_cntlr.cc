@@ -20,8 +20,8 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
       string dram_directory_type_str,
       UInt32 num_dram_cntlrs,
       string dram_directory_access_time_str,
-      float frequency, 
-      float voltage)
+      double frequency, 
+      double voltage)
    : _memory_manager(memory_manager)
    , _dram_cntlr(dram_cntlr)
    , _enabled(false)

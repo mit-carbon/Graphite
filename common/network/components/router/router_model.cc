@@ -7,7 +7,7 @@
 #include "log.h"
 #include "time_types.h"
 
-RouterModel::RouterModel(NetworkModel* model, float frequency,
+RouterModel::RouterModel(NetworkModel* model, double frequency,
                          SInt32 num_input_ports, SInt32 num_output_ports,
                          SInt32 num_flits_per_port_buffer, UInt64 delay, SInt32 flit_width,
                          bool contention_model_enabled, string& contention_model_type)

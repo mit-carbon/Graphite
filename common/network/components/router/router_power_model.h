@@ -6,7 +6,7 @@
 class RouterPowerModel
 {
 public:
-   RouterPowerModel(float frequency, UInt32 num_input_ports, UInt32 num_output_ports, UInt32 num_flits_per_port_buffer, UInt32 flit_width);
+   RouterPowerModel(double frequency, UInt32 num_input_ports, UInt32 num_output_ports, UInt32 num_flits_per_port_buffer, UInt32 flit_width);
    ~RouterPowerModel();
 
    // Update Dynamic Energy
@@ -35,7 +35,7 @@ public:
    }
 
 private:
-   volatile float _frequency;
+   volatile double _frequency;
    UInt32 _num_input_ports;
    UInt32 _num_output_ports;
    UInt32 _num_flits_per_port_buffer;

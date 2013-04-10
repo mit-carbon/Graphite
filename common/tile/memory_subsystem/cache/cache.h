@@ -78,8 +78,8 @@ public:
          CacheReplacementPolicy* replacement_policy,
          CacheHashFn* hash_fn,
          UInt32 access_delay,
-         float frequency,
-         float voltage,
+         double frequency,
+         double voltage,
          bool track_miss_types = false);
    ~Cache();
 

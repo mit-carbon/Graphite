@@ -21,8 +21,8 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            string l1_dcache_replacement_policy,
                            UInt32 l1_dcache_access_delay,
                            bool l1_dcache_track_miss_types,
-                           float frequency,
-                           float voltage)
+                           double frequency,
+                           double voltage)
    : _memory_manager(memory_manager)
    , _l2_cache_cntlr(NULL)
 {

@@ -371,8 +371,8 @@ void Config::parseTileParameters()
    // 7) L2 Cache Type -> T1
 
    const UInt32 DEFAULT_NUM_TILES = getApplicationTiles();
-   const float DEFAULT_FREQUENCY = 1;
-   const float DEFAULT_VOLTAGE = 5;
+   const double DEFAULT_FREQUENCY = 1;
+   const double DEFAULT_VOLTAGE = 5;
    const string DEFAULT_CORE_TYPE = "simple";
    const string DEFAULT_CACHE_TYPE = "T1";
 
@@ -397,8 +397,8 @@ void Config::parseTileParameters()
    {
       // Initializing using default values
       UInt32 num_tiles = DEFAULT_NUM_TILES;
-      float frequency = DEFAULT_FREQUENCY;
-      float voltage = DEFAULT_VOLTAGE;
+      double frequency = DEFAULT_FREQUENCY;
+      double voltage = DEFAULT_VOLTAGE;
       string core_type = DEFAULT_CORE_TYPE;
       string l1_icache_type = DEFAULT_CACHE_TYPE;
       string l1_dcache_type = DEFAULT_CACHE_TYPE;
@@ -486,7 +486,7 @@ void Config::parseTileParameters()
 void Config::parseNetworkParameters()
 {
    const string DEFAULT_NETWORK_TYPE = "magic";
-   const float DEFAULT_FREQUENCY = 1;           // In GHz
+   const double DEFAULT_FREQUENCY = 1;           // In GHz
 
    string network_parameters_list[NUM_STATIC_NETWORKS];
    try
@@ -553,7 +553,7 @@ string Config::getL2CacheType(tile_id_t tile_id)
    return m_tile_parameters_vec[tile_id].getL2CacheType();
 }
 
-volatile float Config::getTileFrequency(tile_id_t tile_id)
+volatile double Config::getTileFrequency(tile_id_t tile_id)
 {
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
@@ -565,7 +565,7 @@ volatile float Config::getTileFrequency(tile_id_t tile_id)
    return m_tile_parameters_vec[tile_id].getFrequency();
 }
 
-volatile float Config::getTileVoltage(tile_id_t tile_id)
+volatile double Config::getTileVoltage(tile_id_t tile_id)
 {
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());

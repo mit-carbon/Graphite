@@ -38,8 +38,8 @@ namespace PrL1PrL2DramDirectoryMSI
                    string l2_cache_replacement_policy,
                    UInt32 l2_cache_access_delay,
                    bool l2_cache_track_miss_types,
-                   float frequency,
-                   float voltage);
+                   double frequency,
+                   double voltage);
       ~L2CacheCntlr();
 
       Cache* getL2Cache() { return _l2_cache; }

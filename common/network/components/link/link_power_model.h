@@ -5,7 +5,7 @@
 class LinkPowerModel
 {
 public:
-   LinkPowerModel(float frequency, double link_length, UInt32 link_width)
+   LinkPowerModel(double frequency, double link_length, UInt32 link_width)
       : _frequency(frequency)
       , _link_length(link_length)
       , _link_width(link_width)
@@ -19,7 +19,7 @@ public:
    
 protected:
    // Input parameters
-   volatile float _frequency;
+   volatile double _frequency;
    volatile double _link_length;
    UInt32 _link_width;
    

@@ -20,7 +20,7 @@ namespace PrL1PrL2DramDirectoryMSI
    class MemoryManager : public ::MemoryManager
    {
    public:
-      MemoryManager(Tile* tile, float frequency, float voltage);
+      MemoryManager(Tile* tile, double frequency, double voltage);
       ~MemoryManager();
 
       UInt32 getCacheLineSize() { return _cache_line_size; }

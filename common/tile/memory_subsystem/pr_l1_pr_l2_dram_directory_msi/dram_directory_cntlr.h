@@ -32,8 +32,8 @@ namespace PrL1PrL2DramDirectoryMSI
             string dram_directory_type_str,
             string dram_directory_access_time_str,
             UInt32 num_dram_cntlrs,
-            float frequency,
-            float voltage);
+            double frequency,
+            double voltage);
       ~DramDirectoryCntlr();
 
       void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);

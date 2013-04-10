@@ -39,8 +39,8 @@ namespace PrL1PrL2DramDirectoryMOSI
                    string L1_dcache_replacement_policy,
                    UInt32 L1_dcache_access_delay,
                    bool L1_dcache_track_miss_types,
-                   float frequency,
-                   float voltage);
+                   double frequency,
+                   double voltage);
       ~L1CacheCntlr();
 
       Cache* getL1ICache() { return _L1_icache; }

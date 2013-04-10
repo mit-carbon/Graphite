@@ -62,7 +62,7 @@ public:
 
    string getNetworkName() { return _network_name; }
    
-   volatile float getFrequency() { return _frequency; }
+   volatile double getFrequency() { return _frequency; }
    bool hasBroadcastCapability() { return _has_broadcast_capability; }
 
    bool isPacketReadyToBeReceived(const NetPacket& pkt);

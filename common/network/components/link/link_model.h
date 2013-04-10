@@ -7,7 +7,7 @@ class NetworkModel;
 class LinkModel
 {
 public:
-   LinkModel(NetworkModel* model, float frequency, double link_length, UInt32 link_width)
+   LinkModel(NetworkModel* model, double frequency, double link_length, UInt32 link_width)
       : _model(model)
       , _frequency(frequency)
       , _link_length(link_length)
@@ -21,7 +21,7 @@ public:
 protected:
    // Input parameters
    NetworkModel* _model;
-   volatile float _frequency;
+   volatile double _frequency;
    volatile double _link_length;
    UInt32 _link_width;
   

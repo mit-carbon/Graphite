@@ -1148,7 +1148,7 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
 
    struct timespec temp_ts;
    UInt64 cycles = 0;
-   float frequency = 0.0;
+   double frequency = 0.0;
    double elapsed_time = 0.0;
    CoreModel* perf_model = 0L;
 

@@ -28,8 +28,8 @@ public:
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 
-   virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-   void recomputeAverageFrequency(float frequency); 
+   virtual void updateInternalVariablesOnFrequencyChange(double old_frequency, double new_frequency);
+   void recomputeAverageFrequency(double frequency); 
 
    Time getCurrTime() {return m_curr_time; }
    void setCurrTime(Time time);
@@ -86,7 +86,7 @@ protected:
    
    void updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time);
 
-   void updateCoreStaticInstructionModel(volatile float frequency);
+   void updateCoreStaticInstructionModel(volatile double frequency);
 
 private:
 
@@ -97,7 +97,7 @@ private:
    // Pipeline Stall Counters
    void initializePipelineStallCounters();
 
-   volatile float m_average_frequency;
+   volatile double m_average_frequency;
    Time m_total_time;
    Time m_checkpointed_time;
    UInt64 m_total_cycles;
@@ -117,7 +117,7 @@ private:
    // Instruction costs
    typedef std::vector<Time> CoreStaticInstructionCosts;
    CoreStaticInstructionCosts m_core_instruction_costs;
-   void initializeCoreStaticInstructionModel(volatile float frequency);
+   void initializeCoreStaticInstructionModel(volatile double frequency);
 
    // Pipeline Stall Counters
    UInt64 m_total_recv_instructions;

@@ -16,8 +16,8 @@ Tile::Tile(tile_id_t id)
 {
    LOG_PRINT("Tile ctor for (%i)", _id);
 
-   float frequency = Config::getSingleton()->getTileFrequency(_id);
-   float voltage = Config::getSingleton()->getTileVoltage(_id);
+   double frequency = Config::getSingleton()->getTileFrequency(_id);
+   double voltage = Config::getSingleton()->getTileVoltage(_id);
 
    _network = new Network(this);
    _core = new MainCore(this, frequency, voltage);

@@ -11,7 +11,7 @@
 // Static Members
 CachingProtocolType MemoryManager::_caching_protocol_type;
 
-MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
+MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
    : _tile(tile)
    , _enabled(false)
 {
@@ -28,7 +28,7 @@ MemoryManager::~MemoryManager()
 }
 
 MemoryManager* 
-MemoryManager::createMMU(std::string protocol_type, Tile* tile, float frequency, float voltage)
+MemoryManager::createMMU(std::string protocol_type, Tile* tile, double frequency, double voltage)
 {
    _caching_protocol_type = parseProtocolType(protocol_type);
 

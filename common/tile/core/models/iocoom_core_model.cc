@@ -40,7 +40,7 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
    m_enable_area_and_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
 
    // For Power and Area Modeling
-   float frequency = m_core->getFrequency();
+   double frequency = m_core->getFrequency();
    m_mcpat_core_interface = new McPATCoreInterface(frequency, num_load_buffer_entries, num_store_buffer_entries);
 
    initializePipelineStallCounters();

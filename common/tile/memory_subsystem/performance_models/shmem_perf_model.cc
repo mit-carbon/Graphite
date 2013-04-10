@@ -9,10 +9,8 @@ ShmemPerfModel::ShmemPerfModel()
    , _enabled(false)
 {}
 
-
 ShmemPerfModel::~ShmemPerfModel()
 {}
-
 
 void 
 ShmemPerfModel::setCurrTime(Time time)
@@ -38,8 +36,7 @@ ShmemPerfModel::updateCurrTime(Time time)
 void
 ShmemPerfModel::incrCurrTime(Time time)
 {
+   LOG_PRINT("incrCurrTime: time(%llu ps)", time.getTime());
    if (_enabled)
       _curr_time += time;
 }
-
-

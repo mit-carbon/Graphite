@@ -68,7 +68,7 @@ namespace PrL1PrL2DramDirectoryMOSI
       static void closeCacheLineReplicationTraceFiles();
       static void outputCacheLineReplicationSummary();
 
-      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::AccessType access_type);
       
    private:
       L1CacheCntlr* _L1_cache_cntlr;
@@ -82,11 +82,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       bool _dram_cntlr_present;
 
       UInt32 _cache_line_size;
-
-      // Performance Models
-      CachePerfModel* _L1_icache_perf_model;
-      CachePerfModel* _L1_dcache_perf_model;
-      CachePerfModel* _L2_cache_perf_model;
 
       // Cache Line Replication
       static ofstream _cache_line_replication_file;

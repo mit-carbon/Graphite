@@ -36,7 +36,9 @@ namespace PrL1PrL2DramDirectoryMSI
                    UInt32 l2_cache_associativity,
                    UInt32 l2_cache_num_banks,
                    string l2_cache_replacement_policy,
-                   UInt32 l2_cache_access_delay,
+                   UInt32 l2_cache_data_access_cycles,
+                   UInt32 l2_cache_tags_access_cycles,
+                   string l2_cache_perf_model_type,
                    bool l2_cache_track_miss_types,
                    float frequency,
                    float voltage);

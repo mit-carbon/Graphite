@@ -30,7 +30,7 @@ namespace PrL1PrL2DramDirectoryMSI
             UInt32 dram_directory_max_num_sharers,
             UInt32 dram_directory_max_hw_sharers,
             string dram_directory_type_str,
-            string dram_directory_access_time_str,
+            string dram_directory_access_cycles_str,
             UInt32 num_dram_cntlrs,
             float frequency,
             float voltage);

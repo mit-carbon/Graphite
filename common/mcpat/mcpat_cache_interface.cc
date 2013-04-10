@@ -172,7 +172,7 @@ void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology
    _xml->sys.L2[0].L2_config[2] = cache->_associativity;       // Cache associativity
    _xml->sys.L2[0].L2_config[3] = cache->_num_banks;           // Number of banks
    _xml->sys.L2[0].L2_config[4] = 1;                           // Throughput = 1 access per cycle
-   _xml->sys.L2[0].L2_config[5] = cache->_access_delay;        // Cache access latency
+   _xml->sys.L2[0].L2_config[5] = cache->_perf_model->getLatency(CachePerfModel::ACCESS_DATA_AND_TAGS).toCycles(cache->_frequency);  // Cache access latency
    _xml->sys.L2[0].L2_config[6] = cache->_line_size;           // Output width
    _xml->sys.L2[0].L2_config[7] = 1;                           // Cache policy (initialized from Niagara1.xml)
 

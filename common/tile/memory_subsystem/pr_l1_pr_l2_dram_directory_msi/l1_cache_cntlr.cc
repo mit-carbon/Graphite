@@ -13,13 +13,17 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            UInt32 l1_icache_associativity,
                            UInt32 l1_icache_num_banks,
                            string l1_icache_replacement_policy,
-                           UInt32 l1_icache_access_delay,
+                           UInt32 l1_icache_data_access_cycles,
+                           UInt32 l1_icache_tags_access_cycles,
+                           string l1_icache_perf_model_type,
                            bool l1_icache_track_miss_types,
                            UInt32 l1_dcache_size,
                            UInt32 l1_dcache_associativity,
                            UInt32 l1_dcache_num_banks,
                            string l1_dcache_replacement_policy,
-                           UInt32 l1_dcache_access_delay,
+                           UInt32 l1_dcache_data_access_cycles,
+                           UInt32 l1_dcache_tags_access_cycles,
+                           string l1_dcache_perf_model_type,
                            bool l1_dcache_track_miss_types,
                            float frequency,
                            float voltage)
@@ -44,7 +48,9 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          l1_icache_num_banks,
          _l1_icache_replacement_policy_obj,
          _l1_icache_hash_fn_obj,
-         l1_icache_access_delay,
+         l1_icache_data_access_cycles,
+         l1_icache_tags_access_cycles,
+         l1_icache_perf_model_type,
          frequency,
          voltage,
          l1_icache_track_miss_types);
@@ -59,7 +65,9 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          l1_dcache_num_banks,
          _l1_dcache_replacement_policy_obj,
          _l1_dcache_hash_fn_obj,
-         l1_dcache_access_delay,
+         l1_dcache_data_access_cycles,
+         l1_dcache_tags_access_cycles,
+         l1_dcache_perf_model_type,
          frequency,
          voltage,
          l1_icache_track_miss_types);
@@ -111,14 +119,14 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       {
          // Increment Shared Mem Perf model curr time
          // L1 Cache
-         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
                  
          return l1_cache_hit;
       }
 
-      getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
      
       // Miss in the L1 cache 
       l1_cache_hit = false;
@@ -137,9 +145,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       {
          // Increment Shared Mem Perf model curr time
          // L2 Cache
-         getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
          // L1 Cache
-         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
@@ -147,7 +155,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       }
 
       // Increment shared mem perf model curr time
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
       
       // Is the miss type modeled? If yes, all the msgs' created by this miss are modeled 
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());

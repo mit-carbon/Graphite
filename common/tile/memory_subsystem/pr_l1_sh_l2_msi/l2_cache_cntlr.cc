@@ -20,7 +20,9 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
                            UInt32 L2_cache_associativity,
                            UInt32 L2_cache_num_banks,
                            string L2_cache_replacement_policy,
-                           UInt32 L2_cache_access_delay,
+                           UInt32 L2_cache_data_access_cycles,
+                           UInt32 L2_cache_tags_access_cycles,
+                           string L2_cache_perf_model_type,
                            bool L2_cache_track_miss_types,
                            float frequency,
                            float voltage)
@@ -44,7 +46,9 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
          L2_cache_num_banks,
          _L2_cache_replacement_policy_obj,
          _L2_cache_hash_fn_obj,
-         L2_cache_access_delay,
+         L2_cache_data_access_cycles,
+         L2_cache_tags_access_cycles,
+         L2_cache_perf_model_type,
          frequency,
          voltage,
          L2_cache_track_miss_types);
@@ -191,7 +195,7 @@ void
 L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    // Incr current time for every message that comes into the L2 cache
-   _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    Time msg_time = getShmemPerfModel()->getCurrTime();
@@ -270,7 +274,7 @@ void
 L2CacheCntlr::handleMsgFromDram(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    // Incr curr time for every message that comes into the L2 cache
-   _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+   _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
    IntPtr address = shmem_msg->getAddress();
 

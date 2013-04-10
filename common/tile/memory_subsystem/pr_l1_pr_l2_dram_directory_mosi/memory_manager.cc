@@ -26,8 +26,8 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
    UInt32 L1_icache_associativity = 0;
    UInt32 L1_icache_num_banks = 0;
    std::string L1_icache_replacement_policy;
-   UInt32 L1_icache_data_access_time = 0;
-   UInt32 L1_icache_tags_access_time = 0;
+   UInt32 L1_icache_data_access_cycles = 0;
+   UInt32 L1_icache_tags_access_cycles = 0;
    std::string L1_icache_perf_model_type;
    bool L1_icache_track_miss_types = false;
 
@@ -37,8 +37,8 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
    UInt32 L1_dcache_associativity = 0;
    UInt32 L1_dcache_num_banks = 0;
    std::string L1_dcache_replacement_policy;
-   UInt32 L1_dcache_data_access_time = 0;
-   UInt32 L1_dcache_tags_access_time = 0;
+   UInt32 L1_dcache_data_access_cycles = 0;
+   UInt32 L1_dcache_tags_access_cycles = 0;
    std::string L1_dcache_perf_model_type;
    bool L1_dcache_track_miss_types = false;
 
@@ -48,8 +48,8 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
    UInt32 L2_cache_associativity = 0;
    UInt32 L2_cache_num_banks = 0;
    std::string L2_cache_replacement_policy;
-   UInt32 L2_cache_data_access_time = 0;
-   UInt32 L2_cache_tags_access_time = 0;
+   UInt32 L2_cache_data_access_cycles = 0;
+   UInt32 L2_cache_tags_access_cycles = 0;
    std::string L2_cache_perf_model_type;
    bool L2_cache_track_miss_types = false;
 
@@ -59,7 +59,7 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
    UInt32 dram_directory_max_hw_sharers = 0;
    std::string dram_directory_type_str;
    UInt32 dram_directory_home_lookup_param = 0;
-   std::string dram_directory_access_time_str;
+   std::string dram_directory_access_cycles_str;
 
    volatile float dram_latency = 0.0;
    volatile float per_dram_controller_bandwidth = 0.0;
@@ -75,8 +75,8 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
       L1_icache_associativity = Sim()->getCfg()->getInt(L1_icache_type + "/associativity");
       L1_icache_num_banks = Sim()->getCfg()->getInt(L1_icache_type + "/num_banks");
       L1_icache_replacement_policy = Sim()->getCfg()->getString(L1_icache_type + "/replacement_policy");
-      L1_icache_data_access_time = Sim()->getCfg()->getInt(L1_icache_type + "/data_access_time");
-      L1_icache_tags_access_time = Sim()->getCfg()->getInt(L1_icache_type + "/tags_access_time");
+      L1_icache_data_access_cycles = Sim()->getCfg()->getInt(L1_icache_type + "/data_access_time");
+      L1_icache_tags_access_cycles = Sim()->getCfg()->getInt(L1_icache_type + "/tags_access_time");
       L1_icache_perf_model_type = Sim()->getCfg()->getString(L1_icache_type + "/perf_model_type");
       L1_icache_track_miss_types = Sim()->getCfg()->getBool(L1_icache_type + "/track_miss_types");
 
@@ -87,8 +87,8 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
       L1_dcache_associativity = Sim()->getCfg()->getInt(L1_dcache_type + "/associativity");
       L1_dcache_num_banks = Sim()->getCfg()->getInt(L1_dcache_type + "/num_banks");
       L1_dcache_replacement_policy = Sim()->getCfg()->getString(L1_dcache_type + "/replacement_policy");
-      L1_dcache_data_access_time = Sim()->getCfg()->getInt(L1_dcache_type + "/data_access_time");
-      L1_dcache_tags_access_time = Sim()->getCfg()->getInt(L1_dcache_type + "/tags_access_time");
+      L1_dcache_data_access_cycles = Sim()->getCfg()->getInt(L1_dcache_type + "/data_access_time");
+      L1_dcache_tags_access_cycles = Sim()->getCfg()->getInt(L1_dcache_type + "/tags_access_time");
       L1_dcache_perf_model_type = Sim()->getCfg()->getString(L1_dcache_type + "/perf_model_type");
       L1_dcache_track_miss_types = Sim()->getCfg()->getBool(L1_dcache_type + "/track_miss_types");
 
@@ -99,8 +99,8 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
       L2_cache_associativity = Sim()->getCfg()->getInt(L2_cache_type + "/associativity");
       L2_cache_num_banks = Sim()->getCfg()->getInt(L2_cache_type + "/num_banks");
       L2_cache_replacement_policy = Sim()->getCfg()->getString(L2_cache_type + "/replacement_policy");
-      L2_cache_data_access_time = Sim()->getCfg()->getInt(L2_cache_type + "/data_access_time");
-      L2_cache_tags_access_time = Sim()->getCfg()->getInt(L2_cache_type + "/tags_access_time");
+      L2_cache_data_access_cycles = Sim()->getCfg()->getInt(L2_cache_type + "/data_access_time");
+      L2_cache_tags_access_cycles = Sim()->getCfg()->getInt(L2_cache_type + "/tags_access_time");
       L2_cache_perf_model_type = Sim()->getCfg()->getString(L2_cache_type + "/perf_model_type");
       L2_cache_track_miss_types = Sim()->getCfg()->getBool(L2_cache_type + "/track_miss_types");
 
@@ -110,7 +110,7 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
       dram_directory_max_num_sharers = Sim()->getConfig()->getTotalTiles();
       dram_directory_max_hw_sharers = Sim()->getCfg()->getInt("dram_directory/max_hw_sharers");
       dram_directory_type_str = Sim()->getCfg()->getString("dram_directory/directory_type");
-      dram_directory_access_time_str = Sim()->getCfg()->getString("dram_directory/access_time");
+      dram_directory_access_cycles_str = Sim()->getCfg()->getString("dram_directory/access_time");
 
       // Dram Cntlr
       dram_latency = Sim()->getCfg()->getFloat("dram/latency");
@@ -156,7 +156,7 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
             dram_directory_max_hw_sharers,
             dram_directory_type_str,
             num_memory_controllers,
-            dram_directory_access_time_str,
+            dram_directory_access_cycles_str,
             frequency,
             voltage);
    }
@@ -169,13 +169,17 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
          L1_icache_associativity,
          L1_icache_num_banks,
          L1_icache_replacement_policy,
-         L1_icache_data_access_time,
+         L1_icache_data_access_cycles,
+         L1_icache_tags_access_cycles,
+         L1_icache_perf_model_type,
          L1_icache_track_miss_types,
          L1_dcache_size,
          L1_dcache_associativity,
          L1_dcache_num_banks,
          L1_dcache_replacement_policy,
-         L1_dcache_data_access_time,
+         L1_dcache_data_access_cycles,
+         L1_dcache_tags_access_cycles,
+         L1_dcache_perf_model_type,
          L1_dcache_track_miss_types,
          frequency,
          voltage);
@@ -188,29 +192,18 @@ MemoryManager::MemoryManager(Tile* tile, float frequency, float voltage)
          L2_cache_associativity,
          L2_cache_num_banks,
          L2_cache_replacement_policy,
-         L2_cache_data_access_time,
+         L2_cache_data_access_cycles,
+         L2_cache_tags_access_cycles,
+         L2_cache_perf_model_type,
          L2_cache_track_miss_types,
          frequency,
          voltage);
 
    _L1_cache_cntlr->setL2CacheCntlr(_L2_cache_cntlr);
-
-   // Create Cache Performance Models
-   _L1_icache_perf_model = CachePerfModel::create(L1_icache_perf_model_type,
-         L1_icache_data_access_time, L1_icache_tags_access_time, frequency);
-   _L1_dcache_perf_model = CachePerfModel::create(L1_dcache_perf_model_type,
-         L1_dcache_data_access_time, L1_dcache_tags_access_time, frequency);
-   _L2_cache_perf_model = CachePerfModel::create(L2_cache_perf_model_type,
-         L2_cache_data_access_time, L2_cache_tags_access_time, frequency);
 }
 
 MemoryManager::~MemoryManager()
 {
-   // Delete the Performance Models
-   delete _L1_icache_perf_model;
-   delete _L1_dcache_perf_model;
-   delete _L2_cache_perf_model;
-
    delete _dram_directory_home_lookup;
    delete _L1_cache_cntlr;
    delete _L2_cache_cntlr;
@@ -311,9 +304,6 @@ void
 MemoryManager::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
    // update cache performance models
-   _L1_icache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   _L1_dcache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   _L2_cache_perf_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
    _dram_directory_cntlr->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }      
 
@@ -364,33 +354,27 @@ MemoryManager::broadcastMsg(ShmemMsg& shmem_msg)
 }
 
 void
-MemoryManager::incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type)
+MemoryManager::incrCurrTime(MemComponent::Type mem_component, CachePerfModel::AccessType access_type)
 {
    switch (mem_component)
    {
    case MemComponent::L1_ICACHE:
-      {
-         getShmemPerfModel()->incrCurrTime(_L1_icache_perf_model->getLatency(access_type));
-         break;
-      }
+      getShmemPerfModel()->incrCurrTime(_L1_cache_cntlr->getL1ICache()->getPerfModel()->getLatency(access_type));
+      break;
 
    case MemComponent::L1_DCACHE:
-      {
-         getShmemPerfModel()->incrCurrTime(_L1_dcache_perf_model->getLatency(access_type));
-         break;
-      }
+      getShmemPerfModel()->incrCurrTime(_L1_cache_cntlr->getL1DCache()->getPerfModel()->getLatency(access_type));
+      break;
 
    case MemComponent::L2_CACHE:
-      {
-         getShmemPerfModel()->incrCurrTime(_L2_cache_perf_model->getLatency(access_type));
-         break;
-      }
+      getShmemPerfModel()->incrCurrTime(_L2_cache_cntlr->getL2Cache()->getPerfModel()->getLatency(access_type));
+      break;
 
    case MemComponent::INVALID:
       break;
 
    default:
-      LOG_PRINT_ERROR("Unrecognized mem component type(%u)", mem_component);
+      LOG_PRINT_ERROR("Unrecognized mem component type(%s)", SPELL_MEMCOMP(mem_component));
       break;
    }
 }
@@ -399,14 +383,9 @@ void
 MemoryManager::enableModels()
 {
    _L1_cache_cntlr->getL1ICache()->enable();
-   _L1_icache_perf_model->enable();
-   
    _L1_cache_cntlr->getL1DCache()->enable();
-   _L1_dcache_perf_model->enable();
-   
    _L2_cache_cntlr->getL2Cache()->enable();
-   _L2_cache_perf_model->enable();
-
+   
    _L2_cache_cntlr->enable();
 
    if (_dram_cntlr_present)
@@ -423,13 +402,8 @@ void
 MemoryManager::disableModels()
 {
    _L1_cache_cntlr->getL1ICache()->disable();
-   _L1_icache_perf_model->disable();
-
    _L1_cache_cntlr->getL1DCache()->disable();
-   _L1_dcache_perf_model->disable();
-
    _L2_cache_cntlr->getL2Cache()->disable();
-   _L2_cache_perf_model->disable();
 
    _L2_cache_cntlr->disable();
 

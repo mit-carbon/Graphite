@@ -58,7 +58,7 @@ namespace PrL1PrL2DramDirectoryMSI
       double getDynamicEnergy();
       double getStaticPower();
 
-      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::AccessType access_type);
    
    private:
       L1CacheCntlr* _L1_cache_cntlr;
@@ -73,11 +73,6 @@ namespace PrL1PrL2DramDirectoryMSI
 
       UInt32 _cache_line_size;
 
-      // Performance Models
-      CachePerfModel* _L1_icache_perf_model;
-      CachePerfModel* _L1_dcache_perf_model;
-      CachePerfModel* _L2_cache_perf_model;
-      
       bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                     Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
                                     IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,

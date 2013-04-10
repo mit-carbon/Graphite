@@ -34,7 +34,9 @@ namespace PrL1ShL2MSI
                    UInt32 L2_cache_associativity,
                    UInt32 L2_cache_num_banks,
                    string L2_cache_replacement_policy,
-                   UInt32 L2_cache_access_delay,
+                   UInt32 L2_cache_data_access_cycles,
+                   UInt32 L2_cache_tags_access_cycles,
+                   string L2_cache_perf_model_type,
                    bool L2_cache_track_miss_types,
                    float frequency,
                    float voltage);

@@ -16,7 +16,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
                                UInt32 max_hw_sharers,
                                UInt32 max_num_sharers,
                                UInt32 num_directory_slices,
-                               string directory_access_time_str,
+                               string directory_access_cycles_str,
                                float frequency,
                                float voltage)
    : _tile(tile)
@@ -27,7 +27,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    , _associativity(associativity)
    , _cache_line_size(cache_line_size)
    , _num_directory_slices(num_directory_slices)
-   , _directory_access_time_str(directory_access_time_str)
+   , _directory_access_cycles_str(directory_access_cycles_str)
    , _mcpat_cache_interface(NULL)
    , _enabled(false)
    , _frequency(frequency)
@@ -51,10 +51,11 @@ DirectoryCache::DirectoryCache(Tile* tile,
    _directory_size = _total_entries * directory_entry_size;
 
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
-   _directory_access_latency = computeDirectoryAccessTime();
-   _directory_access_time = Time(Latency(_directory_access_latency, _frequency));
+   _directory_access_cycles = computeDirectoryAccessCycles();
+   _directory_access_latency = Time(Latency(_directory_access_cycles, _frequency));
   
-   LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)", _total_entries, directory_entry_size, _directory_access_time.toNanosec());
+   LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)",
+         _total_entries, directory_entry_size, _directory_access_latency.toNanosec());
 
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
@@ -95,7 +96,7 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
    if (_enabled)
    {
       // Update Performance Model
-      getShmemPerfModel()->incrCurrTime(_directory_access_time);
+      getShmemPerfModel()->incrCurrTime(_directory_access_latency);
       // Update event & dynamic energy counters
       updateCounters();
    }
@@ -188,7 +189,7 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
    if (_enabled)
    {
       // Update Performance Model
-      getShmemPerfModel()->incrCurrTime(_directory_access_time);
+      getShmemPerfModel()->incrCurrTime(_directory_access_latency);
       // Update event & dynamic energy counters
       updateCounters();
       // Increment number of evictions
@@ -280,14 +281,14 @@ DirectoryCache::getMaxL2CacheSize()  // In KB
 }
 
 UInt64
-DirectoryCache::computeDirectoryAccessTime()
+DirectoryCache::computeDirectoryAccessCycles()
 {
    // directory_entry_size is specified in bytes
    // access_time should be computed in cycles
    // access_time is dependent on technology node and frequency
    //   (but these two factors will hopefully cancel each other out to a certain extent)
    
-   if (_directory_access_time_str == "auto")
+   if (_directory_access_cycles_str == "auto")
    {
       UInt32 directory_size_in_KB = (UInt32) ceil(1.0 * _directory_size / 1024);
       
@@ -310,11 +311,12 @@ DirectoryCache::computeDirectoryAccessTime()
       else // (directory_size_in_KB > 2048)
          return 20;
    }
-   else // (_directory_access_time_str != "auto")
+   else // (_directory_access_cycles_str != "auto")
    {
-      UInt64 directory_access_time = convertFromString<UInt64>(_directory_access_time_str);
-      LOG_ASSERT_ERROR(directory_access_time != 0, "Could not parse [dram_directory/access_time] = %s", _directory_access_time_str.c_str());
-      return directory_access_time;
+      UInt64 directory_access_cycles = convertFromString<UInt64>(_directory_access_cycles_str);
+      LOG_ASSERT_ERROR(directory_access_cycles != 0, "Could not parse [dram_directory/access_time] = %s",
+            _directory_access_cycles_str.c_str());
+      return directory_access_cycles;
    }
 }
 
@@ -339,7 +341,7 @@ DirectoryCache::computeSetIndex(IntPtr address)
 void
 DirectoryCache::outputSummary(ostream& out)
 {
-   printAutogenDirectorySizeAndAccessTime(out);
+   printAutogenDirectorySizeAndAccessCycles(out);
    out << "    Total Accesses: " << _total_directory_accesses << endl;
    out << "    Total Evictions: " << _total_evictions << endl;
    out << "    Total Back-Invalidations: " << _total_back_invalidations << endl;
@@ -356,7 +358,7 @@ DirectoryCache::outputSummary(ostream& out)
 void
 DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
 {
-   dummyPrintAutogenDirectorySizeAndAccessTime(out);
+   dummyPrintAutogenDirectorySizeAndAccessCycles(out);
    out << "    Total Accesses: " << endl;
    out << "    Total Evictions: " << endl;
    out << "    Total Back-Invalidations: " << endl;
@@ -373,11 +375,11 @@ DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
 void
 DirectoryCache::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
 {
-   _directory_access_time = Time(Latency(_directory_access_latency, new_frequency));
+   _directory_access_latency = Time(Latency(_directory_access_cycles, new_frequency));
 }
 
 void
-DirectoryCache::printAutogenDirectorySizeAndAccessTime(ostream& out)
+DirectoryCache::printAutogenDirectorySizeAndAccessCycles(ostream& out)
 {
    if (_total_entries_str == "auto")
    {
@@ -385,14 +387,14 @@ DirectoryCache::printAutogenDirectorySizeAndAccessTime(ostream& out)
       UInt32 directory_size_in_KB = (UInt32) ceil(1.0 * _directory_size / 1024);
       out << "    Size (in KB) [auto-generated]: " << directory_size_in_KB << endl;
    }
-   if (_directory_access_time_str == "auto")
+   if (_directory_access_cycles_str == "auto")
    {
-      out << "    Access Time (in clock cycles) [auto-generated]: " << _directory_access_latency << endl;
+      out << "    Access Time (in clock cycles) [auto-generated]: " << _directory_access_cycles << endl;
    }
 }
 
 void
-DirectoryCache::dummyPrintAutogenDirectorySizeAndAccessTime(ostream& out)
+DirectoryCache::dummyPrintAutogenDirectorySizeAndAccessCycles(ostream& out)
 {
    if (Sim()->getCfg()->getString("dram_directory/total_entries") == "auto")
    {

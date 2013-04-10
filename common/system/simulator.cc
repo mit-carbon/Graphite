@@ -102,7 +102,8 @@ void Simulator::start()
    m_transport = Transport::create();
 
    // Initialize the DVFS levels
-   DVFSManager::initializeDVFSLevels();
+   if (Config::getSingleton()->getEnablePowerModeling())
+      DVFSManager::initializeDVFSLevels();
 
    m_tile_manager = new TileManager();
    m_thread_manager = new ThreadManager(m_tile_manager);

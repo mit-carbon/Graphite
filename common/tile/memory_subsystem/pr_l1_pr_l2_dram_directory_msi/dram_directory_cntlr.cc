@@ -15,7 +15,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
       UInt32 dram_directory_max_num_sharers,
       UInt32 dram_directory_max_hw_sharers,
       string dram_directory_type_str,
-      string dram_directory_access_time_str,
+      string dram_directory_access_cycles_str,
       UInt32 num_dram_cntlrs,
       double frequency,
       double voltage)
@@ -31,7 +31,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
                                               dram_directory_max_hw_sharers,
                                               dram_directory_max_num_sharers,
                                               num_dram_cntlrs,
-                                              dram_directory_access_time_str,
+                                              dram_directory_access_cycles_str,
                                               frequency,
                                               voltage);
 

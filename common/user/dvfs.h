@@ -22,8 +22,7 @@ typedef enum
 typedef enum
 {
    AUTO,
-   HOLD,
-   MAX_VOLTAGE_OPTIONS
+   HOLD
 } voltage_option_t;
  
 // Get DVFS

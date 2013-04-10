@@ -55,7 +55,7 @@ namespace PrL1ShL2MSI
       double getDynamicEnergy();
       double getStaticPower();
 
-      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::AccessType access_type);
 
       int getDVFS(module_t module, double &frequency, double &voltage);
       int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag);
@@ -70,11 +70,6 @@ namespace PrL1ShL2MSI
       // Home Lookups
       AddressHomeLookup* _L2_cache_home_lookup;
       AddressHomeLookup* _dram_home_lookup;
-
-      // Performance Models
-      CachePerfModel* _L1_icache_perf_model;
-      CachePerfModel* _L1_dcache_perf_model;
-      CachePerfModel* _L2_cache_perf_model;
 
       UInt32 _cache_line_size;
 

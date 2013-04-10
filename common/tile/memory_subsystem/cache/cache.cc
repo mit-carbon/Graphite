@@ -21,7 +21,9 @@ Cache::Cache(string name,
              UInt32 num_banks,
              CacheReplacementPolicy* replacement_policy,
              CacheHashFn* hash_fn,
-             UInt32 access_delay,
+             UInt32 data_access_latency,
+             UInt32 tags_access_latency,
+             string perf_model_type,
              double frequency,
              double voltage,
              bool track_miss_types)
@@ -35,7 +37,6 @@ Cache::Cache(string name,
    , _num_banks(num_banks)
    , _frequency(frequency)
    , _voltage(voltage)
-   , _access_delay(access_delay)
    , _replacement_policy(replacement_policy)
    , _hash_fn(hash_fn)
    , _track_miss_types(track_miss_types)
@@ -43,13 +44,18 @@ Cache::Cache(string name,
 {
    _num_sets = _cache_size / (_associativity * _line_size);
    _log_line_size = floorLog2(_line_size);
-   
+  
+   // Instantiate cache sets 
    _sets = new CacheSet*[_num_sets];
    for (UInt32 i = 0; i < _num_sets; i++)
    {
       _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, _replacement_policy, _associativity, _line_size);
    }
 
+   // Instantiate performance model
+   _perf_model = CachePerfModel::create(perf_model_type, data_access_latency, tags_access_latency, frequency);
+
+   // Instantiate area/power model
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
       _mcpat_cache_interface = new McPATCacheInterface(this);

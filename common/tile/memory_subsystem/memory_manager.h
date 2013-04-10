@@ -5,6 +5,7 @@ using namespace std;
 #include "tile.h"
 #include "core.h"
 #include "cache.h"
+#include "directory_cache.h"
 #include "network.h"
 #include "mem_component.h"
 #include "caching_protocol_type.h"

@@ -77,9 +77,9 @@ private:
    UInt32 _log_num_application_tiles;
    UInt32 _log_num_directory_slices;
 
-   string _directory_access_time_str;
-   UInt64 _directory_access_latency;
-   Time _directory_access_time;
+   string _directory_access_cycles_str;
+   UInt64 _directory_access_cycles;
+   Time _directory_access_latency;
 
    // Dram Directory Cache Power and Area Models (through McPAT)
    McPATCacheInterface* _mcpat_cache_interface;
@@ -96,7 +96,7 @@ private:
    // Get the max L2 cache size (in KB)
    UInt32 getMaxL2CacheSize();
    // Auto(-matically) determine directory access time
-   UInt64 computeDirectoryAccessTime();
+   UInt64 computeDirectoryAccessCycles();
 
    void initializeEventCounters();
    void splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index);
@@ -105,11 +105,11 @@ private:
    IntPtr computeSetIndex(IntPtr address);
   
    // Output auto-generated directory size and access time
-   void printAutogenDirectorySizeAndAccessTime(ostream& out);
-   static void dummyPrintAutogenDirectorySizeAndAccessTime(ostream& out);
+   void printAutogenDirectorySizeAndAccessCycles(ostream& out);
+   static void dummyPrintAutogenDirectorySizeAndAccessCycles(ostream& out);
 
    ShmemPerfModel* getShmemPerfModel();
 
-   double _frequency;
-   double _voltage;
+   volatile double _frequency;
+   volatile double _voltage;
 };

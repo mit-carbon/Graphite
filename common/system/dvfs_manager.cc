@@ -27,33 +27,6 @@ DVFSManager::~DVFSManager()
    _tile->getNetwork()->unregisterCallback(DVFS_GET_REQUEST);
 }
 
-// Called to initialize DVFS Levels
-void
-DVFSManager::initializeDVFSLevels()
-{
-   UInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node");
-   string input_filename = Sim()->getGraphiteHome() + "/technology/dvfs_levels_" + convertToString<UInt32>(technology_node) + "nm.cfg";
-   ifstream input_file(input_filename.c_str());
-   while (1)
-   {
-      char line_c[1024];
-      input_file.getline(line_c, 1024);
-      string line(line_c);
-      if (input_file.gcount() == 0)
-         break;
-      line = trimSpaces(line);
-      if (line == "")
-         continue;
-      if (line[0] == '#')  // Comment
-         continue;
-      vector<string> tokens;
-      splitIntoTokens(line, tokens, " ");
-      double voltage = convertFromString<double>(tokens[0]);
-      double frequency_factor = convertFromString<double>(tokens[1]);
-      _dvfs_levels.push_back(make_pair(voltage, frequency_factor));
-   }
-}
-
 // Called from common/user/dvfs
 int
 DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage)
@@ -81,11 +54,6 @@ DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency,
 int
 DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, voltage_option_t voltage_flag)
 {
-   // TODO:
-   // 1. figure out voltage. Currently just passing zero.
-   // 2. make sure that flag combination is valid.
-   // 3. send return code.
-   
    // send request
    UnstructuredBuffer send_buffer;
    send_buffer << module_mask << frequency << voltage_flag;
@@ -153,9 +121,6 @@ int
 DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, core_id_t requester)
 {
 
-   // FIXME: this should be removed after merge
-   double MAX_FREQUENCY=3.5;
-   
    int rc = 0, rc_tmp = 0;
 
    // Invalid module mask
@@ -164,7 +129,7 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
    }
 
    // Invalid voltage option
-   else if (voltage_flag>=MAX_VOLTAGE_OPTIONS){ 
+   else if (voltage_flag != HOLD && voltage_flag != AUTO){ 
       rc = -3;
    }
 
@@ -205,33 +170,6 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
    return rc;
 }
 
-int
-DVFSManager::getVoltage(double &voltage, voltage_option_t voltage_flag, double frequency)
-{
-   int rc = 0;
-
-   switch (voltage_flag)
-   {
-      case HOLD:
-      {
-         // above max frequency for current voltage
-         if (voltage > getMaxVoltage(frequency)){
-            rc = -5;
-         }
-         break;
-      }
-
-      case AUTO:
-         voltage = getMaxVoltage(frequency);
-         break;
-
-      default:
-         LOG_PRINT_ERROR("Unrecognized voltage flag %i.", voltage_flag);
-         break;
-   }
-   
-   return rc;
-}
 
 
 // Called over the network (callbacks)
@@ -267,17 +205,70 @@ setDVFSCallback(void* obj, NetPacket packet)
    dvfs_manager->doSetDVFS(module_mask, frequency, voltage_flag, packet.sender);
 }
 
+// Called to initialize DVFS Levels
+void
+DVFSManager::initializeDVFSLevels()
+{
+   UInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node");
+   string input_filename = Sim()->getGraphiteHome() + "/technology/dvfs_levels_" + convertToString<UInt32>(technology_node) + "nm.cfg";
+   ifstream input_file(input_filename.c_str());
+   while (1)
+   {
+      char line_c[1024];
+      input_file.getline(line_c, 1024);
+      string line(line_c);
+      if (input_file.gcount() == 0)
+         break;
+      line = trimSpaces(line);
+      if (line == "")
+         continue;
+      if (line[0] == '#')  // Comment
+         continue;
+      vector<string> tokens;
+      splitIntoTokens(line, tokens, " ");
+      double voltage = convertFromString<double>(tokens[0]);
+      double frequency_factor = convertFromString<double>(tokens[1]);
+      _dvfs_levels.push_back(make_pair(voltage, frequency_factor));
+   }
+}
+
+int
+DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency) const
+{
+   int rc = 0;
+
+   switch (voltage_flag)
+   {
+      case HOLD:
+         // above max frequency for current voltage
+         if (voltage < getMinVoltage(frequency)){
+            rc = -5;
+         }
+         break;
+
+      case AUTO:
+         voltage = getMinVoltage(frequency);
+         break;
+
+      default:
+         LOG_PRINT_ERROR("Unrecognized voltage flag %i.", voltage_flag);
+         break;
+   }
+   
+   return rc;
+}
+
 // Called from the McPAT interfaces
 double
-DVFSManager::getNominalVoltage()
+DVFSManager::getNominalVoltage() const
 {
    return _dvfs_levels.front().first;
 }
 
 double
-DVFSManager::getMaxFrequencyFactorAtVoltage(double voltage)
+DVFSManager::getMaxFrequencyFactorAtVoltage(double voltage) const
 {
-   for (DVFSLevels::iterator it = _dvfs_levels.begin(); it != _dvfs_levels.end(); it++)
+   for (DVFSLevels::const_iterator it = _dvfs_levels.begin(); it != _dvfs_levels.end(); it++)
    {
       if (voltage == (*it).first)
          return (*it).second;
@@ -285,3 +276,4 @@ DVFSManager::getMaxFrequencyFactorAtVoltage(double voltage)
    LOG_PRINT_ERROR("Could not find voltage(%g) in DVFS Levels list", voltage);
    return 0.0;
 }
+

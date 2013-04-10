@@ -77,7 +77,9 @@ public:
          UInt32 num_banks,
          CacheReplacementPolicy* replacement_policy,
          CacheHashFn* hash_fn,
-         UInt32 access_delay,
+         UInt32 data_access_latency,
+         UInt32 tags_access_latency,
+         string perf_model_type,
          double frequency,
          double voltage,
          bool track_miss_types = false);
@@ -103,6 +105,10 @@ public:
    MissType updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache_miss);
    // Get cache line state counters
    void getCacheLineStateCounters(vector<UInt64>& cache_line_state_counters) const;
+
+   // Get performance model
+   CachePerfModel* getPerfModel() const
+   { return _perf_model; }
 
    // Parse Miss Type
    static MissType parseMissType(string miss_type);
@@ -143,9 +149,8 @@ private:
    UInt32 _num_sets;
    UInt32 _num_banks;
    UInt32 _log_line_size;
-   double _frequency;
-   double _voltage;
-   UInt32 _access_delay;
+   volatile double _frequency;
+   volatile double _voltage;
 
    // Computing replacement policy and hash function
    CacheReplacementPolicy* _replacement_policy;
@@ -180,7 +185,10 @@ private:
 
    // Track miss types ?
    bool _track_miss_types;
-  
+ 
+   // Performance model
+   CachePerfModel* _perf_model;
+
    // McPAT interface for modeling area and power
    McPATCacheInterface* _mcpat_cache_interface;
    

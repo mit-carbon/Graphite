@@ -26,21 +26,18 @@ public:
    // Internal functions called after figuring out voltage/frequency
    int doGetDVFS(module_t module_type, core_id_t requester);
    int doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, core_id_t requester);
-   static int getVoltage(double &voltage, voltage_option_t voltage_flag, double frequency);
+   static int getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency) cost;
 
    // Called to initialize DVFS voltage-frequency levels
    static void initializeDVFSLevels();
 
    // Called from the McPAT interfaces
-   static double getNominalVoltage();
-   static double getMaxFrequencyFactorAtVoltage(double voltage);
+   static double getNominalVoltage() const;
+   static double getMaxFrequencyFactorAtVoltage(double voltage) const;
  
 private:
    // Voltage, Frequency Multiplier
    typedef list<pair<volatile double,volatile double> > DVFSLevels;
    static DVFSLevels _dvfs_levels;
    Tile* _tile;
-
-   // FIXME: this should be removed after merge
-   static double getMaxVoltage(double frequency){ return 5.0; }
 };

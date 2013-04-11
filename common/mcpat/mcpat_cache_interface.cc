@@ -79,8 +79,7 @@ void McPATCacheInterface::setDVFS(double voltage, double frequency)
    if (_cache_wrapper == NULL)
    {
       // Calculate max frequency at given voltage
-      double max_frequency_factor_at_voltage = DVFSManager::getMaxFrequencyFactorAtVoltage(voltage);
-      double max_frequency_at_voltage = max_frequency_factor_at_voltage * _base_frequency;
+      double max_frequency_at_voltage = DVFSManager::getMaxFrequency(voltage);
       
       _cache_wrapper = createCacheWrapper(voltage, max_frequency_at_voltage);
       // Save for future use

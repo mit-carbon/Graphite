@@ -11,6 +11,7 @@ using std::make_pair;
 #include "utils.h"
 
 DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
+volatile double DVFSManager::_max_frequency;
 
 DVFSManager::DVFSManager(UInt32 technology_node, Tile* tile):
    _tile(tile)
@@ -134,7 +135,7 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
    }
 
    // Invalid frequency
-   else if (frequency <= 0 || frequency > MAX_FREQUENCY){
+   else if (frequency <= 0 || frequency > _max_frequency){
       rc = -4;
    }
 
@@ -212,6 +213,9 @@ DVFSManager::initializeDVFSLevels()
    UInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node");
    string input_filename = Sim()->getGraphiteHome() + "/technology/dvfs_levels_" + convertToString<UInt32>(technology_node) + "nm.cfg";
    ifstream input_file(input_filename.c_str());
+   bool first_line = true;
+   double  nominal_voltage = 0;
+   double max_frequency_at_nominal_voltage = 0;
    while (1)
    {
       char line_c[1024];
@@ -226,14 +230,22 @@ DVFSManager::initializeDVFSLevels()
          continue;
       vector<string> tokens;
       splitIntoTokens(line, tokens, " ");
-      double voltage = convertFromString<double>(tokens[0]);
-      double frequency_factor = convertFromString<double>(tokens[1]);
-      _dvfs_levels.push_back(make_pair(voltage, frequency_factor));
+      if (first_line){
+         nominal_voltage = convertFromString<double>(tokens[0]); 
+         max_frequency_at_nominal_voltage = convertFromString<double>(tokens[1]);
+         first_line = false;
+      }
+      else{
+         double voltage = convertFromString<double>(tokens[0]);
+         double frequency_factor = convertFromString<double>(tokens[1]);
+         _dvfs_levels.push_back(make_pair(voltage, frequency_factor*max_frequency_at_nominal_voltage));
+      }
    }
+   _max_frequency = _dvfs_levels.front().second;
 }
 
 int
-DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency) const
+DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency) 
 {
    int rc = 0;
 
@@ -260,13 +272,13 @@ DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag,
 
 // Called from the McPAT interfaces
 double
-DVFSManager::getNominalVoltage() const
+DVFSManager::getNominalVoltage() 
 {
    return _dvfs_levels.front().first;
 }
 
 double
-DVFSManager::getMaxFrequencyFactorAtVoltage(double voltage) const
+DVFSManager::getMaxFrequency(double voltage) 
 {
    for (DVFSLevels::const_iterator it = _dvfs_levels.begin(); it != _dvfs_levels.end(); it++)
    {
@@ -274,6 +286,18 @@ DVFSManager::getMaxFrequencyFactorAtVoltage(double voltage) const
          return (*it).second;
    }
    LOG_PRINT_ERROR("Could not find voltage(%g) in DVFS Levels list", voltage);
+   return 0.0;
+}
+
+double
+DVFSManager::getMinVoltage(double frequency) 
+{
+   for (DVFSLevels::const_reverse_iterator it = _dvfs_levels.rbegin(); it != _dvfs_levels.rend(); it++)
+   {
+      if (frequency <= (*it).second)
+         return (*it).first;
+   }
+   LOG_PRINT_ERROR("Could not determine voltage for frequency(%g)", frequency);
    return 0.0;
 }
 

@@ -17,7 +17,9 @@ Tile::Tile(tile_id_t id)
    LOG_PRINT("Tile ctor for (%i)", _id);
 
    double frequency = Config::getSingleton()->getTileFrequency(_id);
-   double voltage = Config::getSingleton()->getTileVoltage(_id);
+   double voltage = 0.0;
+   int rc = DVFSManager::getVoltage(voltage, AUTO, frequency);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", frequency);
 
    _network = new Network(this);
    _core = new MainCore(this, frequency, voltage);

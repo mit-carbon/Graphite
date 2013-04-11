@@ -364,15 +364,13 @@ void Config::parseTileParameters()
    // Default values are as follows:
    // 1) Number of tiles -> Number of application tiles
    // 2) Frequency -> 1 GHz
-   // 3) Voltage -> 5 V
-   // 4) Core Type -> simple
-   // 5) L1-I Cache Type -> T1
-   // 6) L1-D Cache Type -> T1
-   // 7) L2 Cache Type -> T1
+   // 3) Core Type -> simple
+   // 4) L1-I Cache Type -> T1
+   // 5) L1-D Cache Type -> T1
+   // 6) L2 Cache Type -> T1
 
    const UInt32 DEFAULT_NUM_TILES = getApplicationTiles();
    const double DEFAULT_FREQUENCY = 1;
-   const double DEFAULT_VOLTAGE = 5;
    const string DEFAULT_CORE_TYPE = "simple";
    const string DEFAULT_CACHE_TYPE = "T1";
 
@@ -398,7 +396,6 @@ void Config::parseTileParameters()
       // Initializing using default values
       UInt32 num_tiles = DEFAULT_NUM_TILES;
       double frequency = DEFAULT_FREQUENCY;
-      double voltage = DEFAULT_VOLTAGE;
       string core_type = DEFAULT_CORE_TYPE;
       string l1_icache_type = DEFAULT_CACHE_TYPE;
       string l1_dcache_type = DEFAULT_CACHE_TYPE;
@@ -424,22 +421,18 @@ void Config::parseTileParameters()
                break;
 
             case 2:
-               voltage = convertFromString<float>(*param_it);
-               break;
-
-            case 3:
                core_type = trimSpaces(*param_it);
                break;
 
-            case 4:
+            case 3:
                l1_icache_type = trimSpaces(*param_it);
                break;
 
-            case 5:
+            case 4:
                l1_dcache_type = trimSpaces(*param_it);
                break;
 
-            case 6:
+            case 5:
                l2_cache_type = trimSpaces(*param_it);
                break;
 
@@ -455,7 +448,7 @@ void Config::parseTileParameters()
       // Append these values to an internal list
       for (UInt32 i = num_initialized_tiles; i < num_initialized_tiles + num_tiles; i++)
       {
-         m_tile_parameters_vec.push_back(TileParameters(core_type, frequency, voltage,
+         m_tile_parameters_vec.push_back(TileParameters(core_type, frequency, 
                   l1_icache_type, l1_dcache_type, l2_cache_type));
       }
       num_initialized_tiles += num_tiles;
@@ -479,7 +472,7 @@ void Config::parseTileParameters()
    for (UInt32 i = getApplicationTiles(); i < getTotalTiles(); i++)
    {
       m_tile_parameters_vec.push_back(TileParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY,
-               DEFAULT_VOLTAGE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE));
+               DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE));
    }
 }
 
@@ -563,18 +556,6 @@ volatile double Config::getTileFrequency(tile_id_t tile_id)
          m_tile_parameters_vec.size(), getTotalTiles());
 
    return m_tile_parameters_vec[tile_id].getFrequency();
-}
-
-volatile double Config::getTileVoltage(tile_id_t tile_id)
-{
-   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
-         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-
-   LOG_ASSERT_ERROR(m_tile_parameters_vec.size() == getTotalTiles(),
-         "m_tile_parameters_vec.size(%u), total tiles(%u)",
-         m_tile_parameters_vec.size(), getTotalTiles());
-
-   return m_tile_parameters_vec[tile_id].getVoltage();
 }
 
 string Config::getNetworkType(SInt32 network_id)

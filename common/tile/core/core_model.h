@@ -24,7 +24,6 @@ public:
    virtual ~CoreModel();
 
    void processDynamicInstruction(Instruction* i);
-   bool queueDynamicInstruction(Instruction *i);
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 

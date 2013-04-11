@@ -1138,8 +1138,6 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
       (1) CoreModel is keeping a frequency re-normalized
           cycle count, so just using current cycle count and 
           frequency works fine to compute elapsed time.
-          To convince yourself, read the code in:
-          CoreModel::updateInternalVariablesOnFrequencyChange
       (2) if the core gets reset then 'time' also gets reset
    */
 

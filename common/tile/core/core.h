@@ -81,7 +81,8 @@ public:
    void enableModels();
    void disableModels();
 
-   double getFrequency() const                { return _frequency; }
+   double getFrequency() const               { return _frequency; }
+   double getVoltage() const                 { return _voltage; }
 
    int getDVFS(double &frequency, double &voltage);
    int setDVFS(double frequency, voltage_option_t voltage_flag);

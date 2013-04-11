@@ -100,7 +100,7 @@ public:
    typedef vector<ExecutionUnitType> ExecutionUnitList;
    
    // McPAT Core Interface Constructor
-   McPATCoreInterface(double core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size);
+   McPATCoreInterface(double frequency, double voltage, UInt32 load_buffer_size, UInt32 store_buffer_size);
    // McPAT Core Interface Destructor
    ~McPATCoreInterface();
 
@@ -133,10 +133,6 @@ private:
    McPAT::ParseXML* _xml;
    // Output Data Structure
    mcpat_core_output _mcpat_core_out;
-
-   // Nominal voltage and max frequency at nominal voltage
-   volatile double _nominal_voltage;
-   volatile double _base_frequency;
 
    // Architectural Parameters
    // |---- General Parameters

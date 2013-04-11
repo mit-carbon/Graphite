@@ -38,10 +38,10 @@ CachePerfModel::create(string perf_model_type, UInt64 data_access_cycles, UInt64
 }
 
 void
-CachePerfModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+CachePerfModel::setDVFS(double frequency)
 {
-   _data_access_latency = Time(Latency(_data_access_cycles, new_frequency));
-   _tags_access_latency = Time(Latency(_tags_access_cycles, new_frequency));
+   _data_access_latency = Time(Latency(_data_access_cycles, frequency));
+   _tags_access_latency = Time(Latency(_tags_access_cycles, frequency));
 }
 
 CachePerfModel::ModelType 

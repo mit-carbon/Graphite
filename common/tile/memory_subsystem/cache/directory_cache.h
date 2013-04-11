@@ -44,7 +44,6 @@ public:
    void enable() { _enabled = true; }
    void disable() { _enabled = false; }
 
-   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
    int getDVFS(double &frequency, double &voltage);
    int setDVFS(double frequency, voltage_option_t voltage_flag);
 

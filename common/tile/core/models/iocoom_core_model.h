@@ -20,6 +20,9 @@ public:
 
    void outputSummary(std::ostream &os);
 
+   // Change voltage, frequency
+   void setDVFS(double old_frequency, double new_voltage, double new_frequency);
+
    void computeEnergy();
 
    double getDynamicEnergy();

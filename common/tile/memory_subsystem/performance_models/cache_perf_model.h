@@ -33,7 +33,7 @@ public:
 
    virtual Time getLatency(AccessType access_type) = 0;
 
-   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+   void setDVFS(double frequency);
 
 protected:
    UInt64 _data_access_cycles;

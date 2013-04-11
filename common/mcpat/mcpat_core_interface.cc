@@ -9,7 +9,7 @@
 //---------------------------------------------------------------------------
 // McPAT Core Interface Constructor
 //---------------------------------------------------------------------------
-McPATCoreInterface::McPATCoreInterface(double core_frequency, UInt32 load_buffer_size, UInt32 store_buffer_size)
+McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 load_buffer_size, UInt32 store_buffer_size)
 {
    UInt32 technology_node = 0;
    UInt32 temperature = 0;
@@ -44,13 +44,12 @@ McPATCoreInterface::McPATCoreInterface(double core_frequency, UInt32 load_buffer
       // Fill the ParseXML's Core Params from McPATCoreInterface
       fillCoreParamsIntoXML(technology_node, temperature);
 
-      // Get nominal voltage from the DVFS Manager
-      _nominal_voltage = DVFSManager::getNominalVoltage();
-      _base_frequency = core_frequency; // in GHz
+      // Calculate max frequency at given voltage
+      double max_frequency_at_voltage = DVFSManager::getMaxFrequency(voltage);
       // Create cache wrapper
-      _core_wrapper = createCoreWrapper(_nominal_voltage, _base_frequency);
+      _core_wrapper = createCoreWrapper(voltage, max_frequency_at_voltage);
       // Save for future use
-      _core_wrapper_map[_nominal_voltage] = _core_wrapper;
+      _core_wrapper_map[voltage] = _core_wrapper;
 
       // Initialize Static Power
       computeEnergy();

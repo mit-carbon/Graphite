@@ -28,7 +28,7 @@ public:
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 
-   virtual void updateInternalVariablesOnFrequencyChange(double old_frequency, double new_frequency);
+   virtual void setDVFS(double old_frequency, double new_voltage, double new_frequency);
    void recomputeAverageFrequency(double frequency); 
 
    Time getCurrTime() {return m_curr_time; }

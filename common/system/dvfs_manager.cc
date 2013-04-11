@@ -32,6 +32,14 @@ DVFSManager::~DVFSManager()
 int
 DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage)
 {
+
+   // Invalid tile error
+   if (tile_id < 0 || (unsigned int) tile_id >= Config::getSingleton()->getApplicationTiles()){
+      *frequency = 0;
+      *voltage = 0;
+      return -1;
+   }
+
    // send request
    UnstructuredBuffer send_buffer;
    send_buffer << module_type;
@@ -55,6 +63,10 @@ DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency,
 int
 DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, voltage_option_t voltage_flag)
 {
+   // Invalid tile error
+   if (tile_id < 0 || (unsigned int) tile_id >= Config::getSingleton()->getApplicationTiles())
+      return -1;
+
    // send request
    UnstructuredBuffer send_buffer;
    send_buffer << module_mask << frequency << voltage_flag;
@@ -101,12 +113,10 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
          rc = _tile->getMemoryManager()->getDVFS(L2_DIRECTORY, frequency, voltage);
          break;
 
-      case TILE:
-         LOG_PRINT_ERROR("You must specify a submodule within the tile.", module_type);
-         break;
-
       default:
-         LOG_PRINT_ERROR("Unrecognized module type %i.", module_type);
+         rc = -2;
+         frequency = 0;
+         voltage = 0;
          break;
    }
 
@@ -125,7 +135,7 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
    int rc = 0, rc_tmp = 0;
 
    // Invalid module mask
-   if (module_mask>=MAX_MODULE_TYPES){ 
+   if (module_mask <= 0 || module_mask>=MAX_MODULE_TYPES){ 
       rc = -2;
    }
 
@@ -270,13 +280,6 @@ DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag,
    return rc;
 }
 
-// Called from the McPAT interfaces
-double
-DVFSManager::getNominalVoltage() 
-{
-   return _dvfs_levels.front().first;
-}
-
 double
 DVFSManager::getMaxFrequency(double voltage) 
 {
@@ -285,7 +288,7 @@ DVFSManager::getMaxFrequency(double voltage)
       if (voltage == (*it).first)
          return (*it).second;
    }
-   LOG_PRINT_ERROR("Could not find voltage(%g) in DVFS Levels list", voltage);
+   LOG_PRINT_ERROR("Could not find voltage(%g V) in DVFS Levels list", voltage);
    return 0.0;
 }
 
@@ -297,7 +300,7 @@ DVFSManager::getMinVoltage(double frequency)
       if (frequency <= (*it).second)
          return (*it).first;
    }
-   LOG_PRINT_ERROR("Could not determine voltage for frequency(%g)", frequency);
+   LOG_PRINT_ERROR("Could not determine voltage for frequency(%g GHz)", frequency);
    return 0.0;
 }
 

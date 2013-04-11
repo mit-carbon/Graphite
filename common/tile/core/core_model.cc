@@ -118,7 +118,7 @@ void CoreModel::disable()
 
 // This function is called:
 // 1) Whenever frequency is changed
-void CoreModel::updateInternalVariablesOnFrequencyChange(double old_frequency, double new_frequency)
+void CoreModel::setDVFS(double old_frequency, double new_voltage, double new_frequency)
 {
    recomputeAverageFrequency(old_frequency);
    updateCoreStaticInstructionModel(new_frequency);

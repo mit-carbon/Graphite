@@ -7,6 +7,15 @@
 extern "C"
 {
 #endif
+/*
+Return codes for all DVFS API functions:
+0  : success
+-1 : invalid tile id error
+-2 : invalid module type/mask error
+-3 : invalid voltage option error
+-4 : invalid frequency error
+-5 : above max frequency for current voltage error
+*/
 
 typedef enum
 {

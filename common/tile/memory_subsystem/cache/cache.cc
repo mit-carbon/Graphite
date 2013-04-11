@@ -509,7 +509,10 @@ Cache::setDVFS(double frequency, voltage_option_t voltage_flag)
 {
    int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
    if (rc==0)
+   {
       _frequency = frequency;
-
+      _perf_model->setDVFS(_frequency);
+      _mcpat_cache_interface->setDVFS(_voltage, _frequency);
+   }
    return rc;
 }

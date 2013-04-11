@@ -49,10 +49,6 @@ private:
    // McPAT Output Data Structure
    mcpat_cache_output _mcpat_cache_out;
    
-   // Nominal voltage and max frequency at nominal voltage
-   volatile double _nominal_voltage;
-   volatile double _base_frequency;
-
    // Create core wrapper
    McPAT::CacheWrapper* createCacheWrapper(double voltage, double max_frequency_at_voltage);
    // Initialize XML Object

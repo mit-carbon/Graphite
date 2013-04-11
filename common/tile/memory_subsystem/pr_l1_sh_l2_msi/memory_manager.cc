@@ -474,7 +474,7 @@ MemoryManager::getDVFS(module_t module_type, double &frequency, double &voltage)
          break;
 
       default:
-         rc = -1;
+         rc = -2;
          break;
    }
    return rc;
@@ -499,7 +499,7 @@ MemoryManager::setDVFS(module_t module_type, double frequency, voltage_option_t 
          break;
 
       default:
-         rc = -1;
+         rc = -2;
          break;
    }
    return rc;

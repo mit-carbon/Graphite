@@ -41,7 +41,8 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
 
    // For Power and Area Modeling
    double frequency = m_core->getFrequency();
-   m_mcpat_core_interface = new McPATCoreInterface(frequency, num_load_buffer_entries, num_store_buffer_entries);
+   double voltage = m_core->getVoltage();
+   m_mcpat_core_interface = new McPATCoreInterface(frequency, voltage, num_load_buffer_entries, num_store_buffer_entries);
 
    initializePipelineStallCounters();
 }
@@ -51,6 +52,12 @@ IOCOOMCoreModel::~IOCOOMCoreModel()
    delete m_mcpat_core_interface;
    delete m_load_buffer;
    delete m_store_buffer;
+}
+
+void IOCOOMCoreModel::setDVFS(double old_frequency, double new_voltage, double new_frequency)
+{
+   CoreModel::setDVFS(old_frequency, new_voltage, new_frequency);
+   m_mcpat_core_interface->setDVFS(new_voltage, new_frequency);
 }
 
 void IOCOOMCoreModel::initializePipelineStallCounters()

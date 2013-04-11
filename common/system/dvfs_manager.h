@@ -32,9 +32,7 @@ public:
    static void initializeDVFSLevels();
 
    // Called from the McPAT interfaces
-   static double getNominalVoltage();
    static double getMaxFrequency(double voltage);
-   static double getMinVoltage(double frequency);
  
 private:
    // Voltage, Frequency Multiplier
@@ -42,4 +40,6 @@ private:
    static DVFSLevels _dvfs_levels;
    static volatile double _max_frequency;
    Tile* _tile;
+   
+   static double getMinVoltage(double frequency);
 };

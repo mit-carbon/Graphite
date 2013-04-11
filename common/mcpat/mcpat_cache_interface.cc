@@ -33,12 +33,11 @@ McPATCacheInterface::McPATCacheInterface(Cache* cache)
    fillCacheParamsIntoXML(cache, technology_node, temperature);
 
    // Get nominal voltage from the DVFS Manager
-   _nominal_voltage = DVFSManager::getNominalVoltage();
-   _base_frequency = cache->_frequency;
+   double max_frequency_at_voltage = DVFSManager::getMaxFrequency(cache->_voltage);
    // Create cache wrapper
-   _cache_wrapper = createCacheWrapper(_nominal_voltage, _base_frequency);
+   _cache_wrapper = createCacheWrapper(cache->_voltage, max_frequency_at_voltage);
    // Save for future use
-   _cache_wrapper_map[_nominal_voltage] = _cache_wrapper;
+   _cache_wrapper_map[cache->_voltage] = _cache_wrapper;
 
    // Initialize Static Power
    computeEnergy(cache);

@@ -418,6 +418,10 @@ void Config::parseTileParameters()
 
             case 1:
                frequency = convertFromString<float>(*param_it);
+               if (frequency <= 0){
+                  fprintf(stderr,"Error: Invalid initial frequency(%g GHz). Frequency must be greater than zero.\n", frequency);
+                  exit(EXIT_FAILURE);
+               }
                break;
 
             case 2:

@@ -374,12 +374,6 @@ DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
 }
 
 void
-DirectoryCache::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   _directory_access_latency = Time(Latency(_directory_access_cycles, new_frequency));
-}
-
-void
 DirectoryCache::printAutogenDirectorySizeAndAccessCycles(ostream& out)
 {
    if (_total_entries_str == "auto")

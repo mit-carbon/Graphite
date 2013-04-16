@@ -169,7 +169,7 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
       }
       if (module_mask & L2_DIRECTORY){
          rc_tmp = _tile->getMemoryManager()->setDVFS(L2_DIRECTORY, frequency, voltage_flag);
-         if (rc_tmp != 0) rc = rc_tmp;
+         if (rc_tmp != 0 && module_mask != TILE) rc = rc_tmp;
       }
    }
 

@@ -16,7 +16,7 @@ using std::ostream;
 class NetworkModelEMeshHopByHop : public NetworkModel
 {
 public:
-   NetworkModelEMeshHopByHop(Network* net, SInt32 network_id);
+   NetworkModelEMeshHopByHop(Network* net, SInt32 network_id, double frequency, double voltage);
    ~NetworkModelEMeshHopByHop();
 
    static bool isTileCountPermissible(SInt32 tile_count);

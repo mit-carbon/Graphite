@@ -21,7 +21,7 @@ Tile::Tile(tile_id_t id)
    int rc = DVFSManager::getVoltage(voltage, AUTO, frequency);
    LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", frequency);
 
-   _network = new Network(this);
+   _network = new Network(this, frequency, voltage);
    _core = new MainCore(this, frequency, voltage);
    
    if (Config::getSingleton()->isSimulatingSharedMemory())

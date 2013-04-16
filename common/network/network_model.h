@@ -77,7 +77,7 @@ public:
    void enable() { _enabled = true; }
    void disable() { _enabled = false; }
 
-   static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type);
+   static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type, double frequency, double voltage);
    static UInt32 parseNetworkType(string str);
 
    static bool isTileCountPermissible(UInt32 network_type, SInt32 tile_count);
@@ -114,7 +114,9 @@ protected:
    };
 
    // Frequency
-   volatile float _frequency;
+   volatile double _frequency;
+   // Voltage
+   volatile double _voltage;
    // Flit Width
    SInt32 _flit_width;
    // Has Broadcast Capability

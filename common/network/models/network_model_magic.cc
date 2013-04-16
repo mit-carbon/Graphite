@@ -2,10 +2,11 @@
 #include "network_model_magic.h"
 #include "log.h"
 
-NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id)
+NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id, double frequency, double voltage)
    : NetworkModel(net, network_id)
 {
-   _frequency = 1.0;
+   _frequency = frequency;
+   _voltage = voltage;
    _flit_width = -1;
    _has_broadcast_capability = false;
 }

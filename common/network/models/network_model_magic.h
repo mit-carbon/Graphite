@@ -6,7 +6,7 @@
 class NetworkModelMagic : public NetworkModel
 {
 public:
-   NetworkModelMagic(Network *net, SInt32 network_id);
+   NetworkModelMagic(Network *net, SInt32 network_id, double frequency, double voltage);
    ~NetworkModelMagic();
 
    void routePacket(const NetPacket &pkt, queue<Hop>& next_hops);

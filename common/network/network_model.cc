@@ -41,21 +41,21 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id):
 }
 
 NetworkModel*
-NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
+NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type, double frequency, double voltage)
 {
    switch (model_type)
    {
    case NETWORK_MAGIC:
-      return new NetworkModelMagic(net, network_id);
+      return new NetworkModelMagic(net, network_id, frequency, voltage);
 
    case NETWORK_EMESH_HOP_COUNTER:
-      return new NetworkModelEMeshHopCounter(net, network_id);
+      return new NetworkModelEMeshHopCounter(net, network_id, frequency, voltage);
 
    case NETWORK_EMESH_HOP_BY_HOP:
-      return new NetworkModelEMeshHopByHop(net, network_id);
+      return new NetworkModelEMeshHopByHop(net, network_id, frequency, voltage);
 
    case NETWORK_ATAC:
-      return new NetworkModelAtac(net, network_id);
+      return new NetworkModelAtac(net, network_id, frequency, voltage);
 
    default:
       LOG_PRINT_ERROR("Unrecognized Network Model(%u)", model_type);

@@ -474,6 +474,26 @@ NetworkModel::popCurrentUtilizationStatistics(UInt64& flits_sent, UInt64& flits_
    initializeCurrentUtilizationStatistics();
 }
 
+int
+NetworkModel::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}
+
+int
+NetworkModel::setDVFS(double frequency, voltage_option_t voltage_flag)
+{
+   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
+   if (rc==0)
+   {
+      _frequency = frequency;
+      //_mcpat_cache_interface->setDVFS(_voltage, _frequency);
+   }
+   return rc;
+}
+
 NetworkModel::Hop::Hop(const NetPacket& pkt, tile_id_t next_tile_id, SInt32 next_node_type,
                        Time zero_load_delay, Time contention_delay)
    : _next_tile_id(next_tile_id)

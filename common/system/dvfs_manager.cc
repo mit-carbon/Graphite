@@ -9,6 +9,7 @@ using std::make_pair;
 #include "core.h"
 #include "packetize.h"
 #include "utils.h"
+#include "network_model.h"
 
 DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
 volatile double DVFSManager::_max_frequency;
@@ -113,6 +114,20 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
          rc = _tile->getMemoryManager()->getDVFS(L2_DIRECTORY, frequency, voltage);
          break;
 
+      case NETWORK_USER:
+      {
+         NetworkModel* user_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(USER);
+         rc = user_network_model->getDVFS(frequency, voltage);
+         break;
+      }
+
+      case NETWORK_MEMORY:
+      {
+         NetworkModel* mem_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(SHARED_MEM);
+         rc = mem_network_model->getDVFS(frequency, voltage);
+         break;
+      }
+      
       default:
          rc = -2;
          frequency = 0;
@@ -170,6 +185,16 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
       if (module_mask & L2_DIRECTORY){
          rc_tmp = _tile->getMemoryManager()->setDVFS(L2_DIRECTORY, frequency, voltage_flag);
          if (rc_tmp != 0 && module_mask != TILE) rc = rc_tmp;
+      }
+      if (module_mask & NETWORK_USER){
+         NetworkModel* user_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(USER);
+         rc_tmp = user_network_model->setDVFS(frequency, voltage_flag);
+         if (rc_tmp != 0) rc = rc_tmp;
+      }
+      if (module_mask & NETWORK_MEMORY){
+         NetworkModel* mem_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(SHARED_MEM);
+         rc_tmp = mem_network_model->setDVFS(frequency, voltage_flag);
+         if (rc_tmp != 0) rc = rc_tmp;
       }
    }
 

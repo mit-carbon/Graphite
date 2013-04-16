@@ -18,6 +18,8 @@ using std::pair;
 #include "fixed_types.h"
 #include "time_types.h"
 #include "constants.h"
+#include "dvfs.h"
+#include "mcpat_cache_interface.h"
 
 #define CORE_ID(x)         ((core_id_t) {x, MAIN_CORE_TYPE})
 #define TILE_ID(x)         (x.tile_id)
@@ -62,7 +64,6 @@ public:
 
    string getNetworkName() { return _network_name; }
    
-   volatile double getFrequency() { return _frequency; }
    bool hasBroadcastCapability() { return _has_broadcast_capability; }
 
    bool isPacketReadyToBeReceived(const NetPacket& pkt);
@@ -97,6 +98,11 @@ public:
 
    // Tracing Network Injection/Ejection Rate
    void popCurrentUtilizationStatistics(UInt64& total_flits_sent, UInt64& total_flits_broadcasted, UInt64& total_flits_received);
+
+   // dvfs
+   volatile double getFrequency() { return _frequency; }
+   int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag);
 
 protected:
    class NextDest
@@ -179,6 +185,9 @@ private:
    void initializeEventCounters();
    // Trace of Injection/Ejection Rate
    void initializeCurrentUtilizationStatistics();
+
+   // McPAT interface for modeling area and power
+   McPATCacheInterface* _mcpat_cache_interface;
 };
 
 #endif // NETWORK_MODEL_H

@@ -370,7 +370,7 @@ void Config::parseTileParameters()
    // 6) L2 Cache Type -> T1
 
    const UInt32 DEFAULT_NUM_TILES = getApplicationTiles();
-   const double DEFAULT_FREQUENCY = 1;
+   const double DEFAULT_FREQUENCY = 1.0;
    const string DEFAULT_CORE_TYPE = "simple";
    const string DEFAULT_CACHE_TYPE = "T1";
 
@@ -417,9 +417,10 @@ void Config::parseTileParameters()
                break;
 
             case 1:
-               frequency = convertFromString<float>(*param_it);
-               if (frequency <= 0){
-                  fprintf(stderr,"Error: Invalid initial frequency(%g GHz). Frequency must be greater than zero.\n", frequency);
+               frequency = convertFromString<double>(*param_it);
+               if (frequency <= 0)
+               {
+                  fprintf(stderr, "Error: Invalid frequency(%g GHz), must be greater than zero\n", frequency);
                   exit(EXIT_FAILURE);
                }
                break;
@@ -452,7 +453,7 @@ void Config::parseTileParameters()
       // Append these values to an internal list
       for (UInt32 i = num_initialized_tiles; i < num_initialized_tiles + num_tiles; i++)
       {
-         m_tile_parameters_vec.push_back(TileParameters(core_type, frequency, 
+         m_tile_parameters_vec.push_back(TileParameters(core_type, frequency,
                   l1_icache_type, l1_dcache_type, l2_cache_type));
       }
       num_initialized_tiles += num_tiles;
@@ -550,7 +551,7 @@ string Config::getL2CacheType(tile_id_t tile_id)
    return m_tile_parameters_vec[tile_id].getL2CacheType();
 }
 
-volatile double Config::getTileFrequency(tile_id_t tile_id)
+double Config::getTileFrequency(tile_id_t tile_id)
 {
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());

@@ -9,14 +9,13 @@
 // Forward Decls
 class Core;
 class BranchPredictor;
+class McPATCoreInterface;
 
 #include "instruction.h"
 #include "basic_block.h"
 #include "fixed_types.h"
 #include "lock.h"
 #include "dynamic_instruction_info.h"
-#include "time_types.h"
-#include "mcpat_core_interface.h"
 
 class CoreModel
 {

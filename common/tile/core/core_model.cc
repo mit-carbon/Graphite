@@ -11,6 +11,7 @@
 #include "clock_converter.h"
 #include "utils.h"
 #include "time_types.h"
+#include "mcpat_core_interface.h"
 
 CoreModel* CoreModel::create(Core* core)
 {

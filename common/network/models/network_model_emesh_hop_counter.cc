@@ -8,11 +8,15 @@
 #include "tile.h"
 #include "constants.h"
 
-NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 network_id)
+NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 network_id, double frequency, double voltage)
    : NetworkModel(net, network_id)
    , _router_power_model(NULL)
    , _electrical_link_power_model(NULL)
 {
+
+   _frequency = frequency;
+   _voltage = voltage;
+
    SInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
 
    _mesh_width = (SInt32) floor (sqrt(num_application_tiles));
@@ -24,7 +28,6 @@ NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 ne
    
    try
    {
-      _frequency = Sim()->getCfg()->getFloat("network/emesh_hop_counter/frequency");
       _flit_width = Sim()->getCfg()->getInt("network/emesh_hop_counter/flit_width");
    }
    catch (...)

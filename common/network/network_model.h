@@ -18,6 +18,8 @@ using std::pair;
 #include "fixed_types.h"
 #include "time_types.h"
 #include "constants.h"
+#include "dvfs.h"
+#include "mcpat_cache_interface.h"
 
 #define CORE_ID(x)         ((core_id_t) {x, MAIN_CORE_TYPE})
 #define TILE_ID(x)         (x.tile_id)
@@ -62,7 +64,6 @@ public:
 
    string getNetworkName() { return _network_name; }
    
-   volatile double getFrequency() { return _frequency; }
    bool hasBroadcastCapability() { return _has_broadcast_capability; }
 
    bool isPacketReadyToBeReceived(const NetPacket& pkt);
@@ -77,7 +78,7 @@ public:
    void enable() { _enabled = true; }
    void disable() { _enabled = false; }
 
-   static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type);
+   static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type, double frequency, double voltage);
    static UInt32 parseNetworkType(string str);
 
    static bool isTileCountPermissible(UInt32 network_type, SInt32 tile_count);
@@ -98,6 +99,11 @@ public:
    // Tracing Network Injection/Ejection Rate
    void popCurrentUtilizationStatistics(UInt64& total_flits_sent, UInt64& total_flits_broadcasted, UInt64& total_flits_received);
 
+   // dvfs
+   volatile double getFrequency() { return _frequency; }
+   int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag);
+
 protected:
    class NextDest
    {
@@ -114,7 +120,9 @@ protected:
    };
 
    // Frequency
-   volatile float _frequency;
+   volatile double _frequency;
+   // Voltage
+   volatile double _voltage;
    // Flit Width
    SInt32 _flit_width;
    // Has Broadcast Capability
@@ -177,6 +185,9 @@ private:
    void initializeEventCounters();
    // Trace of Injection/Ejection Rate
    void initializeCurrentUtilizationStatistics();
+
+   // McPAT interface for modeling area and power
+   McPATCacheInterface* _mcpat_cache_interface;
 };
 
 #endif // NETWORK_MODEL_H

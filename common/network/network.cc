@@ -20,7 +20,7 @@ using namespace std;
 bool* Network::_utilizationTraceEnabled;
 ofstream* Network::_utilizationTraceFiles;
 
-Network::Network(Tile *tile)
+Network::Network(Tile *tile, double frequency, double voltage)
       : _tile(tile)
 {
    LOG_ASSERT_ERROR(sizeof(g_type_to_static_network_map) / sizeof(EStaticNetwork) == NUM_PACKET_TYPES,
@@ -39,7 +39,7 @@ Network::Network(Tile *tile)
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
       UInt32 network_model = NetworkModel::parseNetworkType(Config::getSingleton()->getNetworkType(i));
-      _models[i] = NetworkModel::createModel(this, i, network_model);
+      _models[i] = NetworkModel::createModel(this, i, network_model, frequency, voltage);
    }
 
    // Shared Memory Shortcut enabled

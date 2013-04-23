@@ -41,21 +41,21 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id):
 }
 
 NetworkModel*
-NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
+NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type, double frequency, double voltage)
 {
    switch (model_type)
    {
    case NETWORK_MAGIC:
-      return new NetworkModelMagic(net, network_id);
+      return new NetworkModelMagic(net, network_id, frequency, voltage);
 
    case NETWORK_EMESH_HOP_COUNTER:
-      return new NetworkModelEMeshHopCounter(net, network_id);
+      return new NetworkModelEMeshHopCounter(net, network_id, frequency, voltage);
 
    case NETWORK_EMESH_HOP_BY_HOP:
-      return new NetworkModelEMeshHopByHop(net, network_id);
+      return new NetworkModelEMeshHopByHop(net, network_id, frequency, voltage);
 
    case NETWORK_ATAC:
-      return new NetworkModelAtac(net, network_id);
+      return new NetworkModelAtac(net, network_id, frequency, voltage);
 
    default:
       LOG_PRINT_ERROR("Unrecognized Network Model(%u)", model_type);
@@ -472,6 +472,26 @@ NetworkModel::popCurrentUtilizationStatistics(UInt64& flits_sent, UInt64& flits_
    flits_received = _total_flits_received_in_current_interval;
    
    initializeCurrentUtilizationStatistics();
+}
+
+int
+NetworkModel::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}
+
+int
+NetworkModel::setDVFS(double frequency, voltage_option_t voltage_flag)
+{
+   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
+   if (rc==0)
+   {
+      _frequency = frequency;
+      //_mcpat_cache_interface->setDVFS(_voltage, _frequency);
+   }
+   return rc;
 }
 
 NetworkModel::Hop::Hop(const NetPacket& pkt, tile_id_t next_tile_id, SInt32 next_node_type,

@@ -13,13 +13,14 @@ SInt32 NetworkModelEMeshHopByHop::_mesh_width;
 SInt32 NetworkModelEMeshHopByHop::_mesh_height;
 bool NetworkModelEMeshHopByHop::_contention_model_enabled;
 
-NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id)
+NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id, double frequency, double voltage)
    : NetworkModel(net, network_id)
 {
+   _frequency = frequency;
+   _voltage = voltage;
+
    try
    {
-      // Network Frequency is specified in GHz
-      _frequency = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/frequency");
       // Flit Width is specified in bits
       _flit_width = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/flit_width");
 

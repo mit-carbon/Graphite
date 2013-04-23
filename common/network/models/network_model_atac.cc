@@ -42,12 +42,14 @@ SInt32 NetworkModelAtac::_unicast_distance_threshold;
 // Is contention model enabled?
 bool NetworkModelAtac::_contention_model_enabled;
 
-NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id):
-   NetworkModel(net, network_id)
+NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id, double frequency, double voltage)
+   : NetworkModel(net, network_id)
 {
+   _frequency = frequency;
+   _voltage = voltage;
+
    try
    {
-      _frequency = Sim()->getCfg()->getFloat("network/atac/frequency");
       _flit_width = Sim()->getCfg()->getInt("network/atac/flit_width");
    }
    catch (...)

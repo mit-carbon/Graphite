@@ -29,6 +29,7 @@ CoreWrapper::CoreWrapper(ParseXML *XML_interface)
    */
   InputParameter interface_ip;
   set_proc_param(interface_ip);
+  interface_ip.vdd = XML->sys.vdd;
   core = new Core(XML, 0, &interface_ip);
 }
 

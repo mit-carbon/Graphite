@@ -33,7 +33,6 @@ DVFSManager::~DVFSManager()
 int
 DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage)
 {
-
    // Invalid tile error
    if (tile_id < 0 || (unsigned int) tile_id >= Config::getSingleton()->getApplicationTiles()){
       *frequency = 0;
@@ -139,14 +138,12 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
    send_buffer << rc << frequency << voltage;
    _tile->getNetwork()->netSend(requester, DVFS_GET_REPLY, send_buffer.getBuffer(), send_buffer.size());
 
-
    return rc;
 }
 
 int
 DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, core_id_t requester)
 {
-
    int rc = 0, rc_tmp = 0;
 
    // Invalid module mask
@@ -205,8 +202,6 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
 
    return rc;
 }
-
-
 
 // Called over the network (callbacks)
 void

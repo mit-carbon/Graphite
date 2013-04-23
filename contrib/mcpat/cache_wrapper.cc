@@ -26,6 +26,7 @@ CacheWrapper::CacheWrapper(ParseXML *XML_interface)
    */
   InputParameter interface_ip;
   set_proc_param(interface_ip);
+  interface_ip.vdd = XML->sys.vdd;
   cache = new SharedCache(XML, 0, &interface_ip);
   //placement and routing overhead is 10%, l2 scales worse than cache 40% is accumulated from 90 to 22nm
 }

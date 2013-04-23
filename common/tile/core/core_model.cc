@@ -48,11 +48,16 @@ CoreModel::CoreModel(Core *core)
 
    // Initialize instruction costs
    initializeCoreStaticInstructionModel(core->getFrequency());
+   
+   // For Power/Area Modeling
+   m_enable_area_or_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
+   
    LOG_PRINT("Initialized CoreModel.");
 }
 
 CoreModel::~CoreModel()
 {
+   delete m_mcpat_core_interface;
    delete m_bp; m_bp = 0;
 }
 
@@ -69,7 +74,7 @@ void CoreModel::initializeCoreStaticInstructionModel(volatile double frequency)
    }
 }
 
-void CoreModel::updateCoreStaticInstructionModel(volatile double frequency)
+void CoreModel::updateCoreStaticInstructionModel(double frequency)
 {
    Instruction::StaticInstructionCosts instruction_costs = Instruction::getStaticInstructionCosts();
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
@@ -100,6 +105,53 @@ void CoreModel::outputSummary(ostream& os)
    // Branch Predictor Summary
    if (m_bp)
       m_bp->outputSummary(os);
+   
+   // McPAT summary
+   m_mcpat_core_interface->displayStats(os);
+   m_mcpat_core_interface->displayParam(os);
+   
+   if (m_enable_area_or_power_modeling)
+   {
+      os << "  Area and Power Model Summary:" << endl;
+      // Compute Energy for Total Run
+      m_mcpat_core_interface->computeEnergy();
+      m_mcpat_core_interface->displayEnergy(os);
+   }
+}
+
+void CoreModel::initializeMcPATInterface(UInt32 num_load_buffer_entries, UInt32 num_store_buffer_entries)
+{
+   // For Power/Area Modeling
+   double frequency = m_core->getFrequency();
+   double voltage = m_core->getVoltage();
+   m_mcpat_core_interface = new McPATCoreInterface(frequency, voltage, num_load_buffer_entries, num_store_buffer_entries);
+}
+
+void CoreModel::updateMcPATCounters(Instruction* instruction)
+{
+   // Get Branch Misprediction Count
+   UInt64 total_branch_misprediction_count = m_bp->getNumIncorrectPredictions();
+
+   // Update Event Counters
+   m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getFrequency()), total_branch_misprediction_count);
+}
+
+void CoreModel::computeEnergy()
+{
+   m_mcpat_core_interface->updateCycleCounters(m_curr_time.toCycles(m_core->getFrequency()));
+   m_mcpat_core_interface->computeEnergy();
+}
+
+double CoreModel::getDynamicEnergy()
+{
+   double dynamic_energy = m_mcpat_core_interface->getDynamicEnergy();
+   return dynamic_energy;
+}
+
+double CoreModel::getStaticPower()
+{
+   double static_power = m_mcpat_core_interface->getStaticPower();
+   return static_power;
 }
 
 void CoreModel::enable()
@@ -122,6 +174,7 @@ void CoreModel::setDVFS(double old_frequency, double new_voltage, double new_fre
 {
    recomputeAverageFrequency(old_frequency);
    updateCoreStaticInstructionModel(new_frequency);
+   m_mcpat_core_interface->setDVFS(new_voltage, new_frequency);
 }
 
 void CoreModel::setCurrTime(Time time)

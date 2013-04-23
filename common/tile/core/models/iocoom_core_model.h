@@ -6,7 +6,6 @@
 using std::string;
 
 #include "core_model.h"
-#include "mcpat_core_interface.h"
 /*
   In-order core, out-of-order memory model.
   We use a simple scoreboard to keep track of registers.
@@ -19,14 +18,6 @@ public:
    ~IOCOOMCoreModel();
 
    void outputSummary(std::ostream &os);
-
-   // Change voltage, frequency
-   void setDVFS(double old_frequency, double new_voltage, double new_frequency);
-
-   void computeEnergy();
-
-   double getDynamicEnergy();
-   double getStaticPower();
 
 private:
 
@@ -113,9 +104,6 @@ private:
    Time m_total_intra_ins_execution_unit_stall_time;
    Time m_total_inter_ins_execution_unit_stall_time;
    void initializePipelineStallCounters();
-
-   bool m_enable_area_and_power_modeling;
-   McPATCoreInterface* m_mcpat_core_interface;
 };
 
 #endif // IOCOOM_CORE_MODEL_H

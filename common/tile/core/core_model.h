@@ -16,6 +16,7 @@ class BranchPredictor;
 #include "lock.h"
 #include "dynamic_instruction_info.h"
 #include "time_types.h"
+#include "mcpat_core_interface.h"
 
 class CoreModel
 {
@@ -28,7 +29,7 @@ public:
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 
-   virtual void setDVFS(double old_frequency, double new_voltage, double new_frequency);
+   void setDVFS(double old_frequency, double new_voltage, double new_frequency);
    void recomputeAverageFrequency(double frequency); 
 
    Time getCurrTime() {return m_curr_time; }
@@ -48,10 +49,9 @@ public:
 
    virtual void outputSummary(std::ostream &os) = 0;
 
-   virtual void computeEnergy() = 0;
-
-   virtual double getDynamicEnergy() { return 0; }
-   virtual double getStaticPower()   { return 0; }
+   void computeEnergy();
+   double getDynamicEnergy();
+   double getStaticPower();
 
    class AbortInstructionException { };
 
@@ -86,7 +86,9 @@ protected:
    
    void updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time);
 
-   void updateCoreStaticInstructionModel(volatile double frequency);
+   // Power/Area modeling
+   void initializeMcPATInterface(UInt32 num_load_buffer_entries, UInt32 num_store_buffer_entries);
+   void updateMcPATCounters(Instruction* instruction);
 
 private:
 
@@ -117,7 +119,8 @@ private:
    // Instruction costs
    typedef std::vector<Time> CoreStaticInstructionCosts;
    CoreStaticInstructionCosts m_core_instruction_costs;
-   void initializeCoreStaticInstructionModel(volatile double frequency);
+   void initializeCoreStaticInstructionModel(double frequency);
+   void updateCoreStaticInstructionModel(double frequency);
 
    // Pipeline Stall Counters
    UInt64 m_total_recv_instructions;
@@ -126,6 +129,10 @@ private:
    Time m_total_sync_instruction_stall_time;
    Time m_total_memory_stall_time;
    Time m_total_execution_unit_stall_time;
+
+   // Power/Area modeling
+   bool m_enable_area_or_power_modeling;
+   McPATCoreInterface* m_mcpat_core_interface;
 };
 
 #endif

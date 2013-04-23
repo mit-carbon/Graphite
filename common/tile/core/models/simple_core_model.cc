@@ -10,6 +10,9 @@ SimpleCoreModel::SimpleCoreModel(Core *core)
     : CoreModel(core)
 {
    initializePipelineStallCounters();
+
+   // Power/Area modeling
+   initializeMcPATInterface(1,1);
 }
 
 SimpleCoreModel::~SimpleCoreModel()
@@ -99,8 +102,8 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
    // Update Common Counters
    updatePipelineStallCounters(instruction, memory_stall_time, execution_unit_stall_time);
 
-   // LOG_PRINT("Finished processing instruction: Address(%#lx), Type(%u), Cost(%llu), Curr Time(%llu)",
-   //       instruction->getAddress(), instruction->getType(), instruction->getCost(this).toNanosec(), m_curr_time.toNanosec());
+   // Power/Area modeling
+   updateMcPATCounters(instruction);
 }
 
 Time SimpleCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)

@@ -36,28 +36,17 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
    
    initializeRegisterScoreboard();
    initializeRegisterWaitUnitList();
-   
-   m_enable_area_and_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
-
-   // For Power and Area Modeling
-   double frequency = m_core->getFrequency();
-   double voltage = m_core->getVoltage();
-   m_mcpat_core_interface = new McPATCoreInterface(frequency, voltage, num_load_buffer_entries, num_store_buffer_entries);
 
    initializePipelineStallCounters();
+
+   // Initialize McPAT
+   initializeMcPATInterface(num_load_buffer_entries, num_store_buffer_entries);
 }
 
 IOCOOMCoreModel::~IOCOOMCoreModel()
 {
-   delete m_mcpat_core_interface;
    delete m_load_buffer;
    delete m_store_buffer;
-}
-
-void IOCOOMCoreModel::setDVFS(double old_frequency, double new_voltage, double new_frequency)
-{
-   CoreModel::setDVFS(old_frequency, new_voltage, new_frequency);
-   m_mcpat_core_interface->setDVFS(new_voltage, new_frequency);
 }
 
 void IOCOOMCoreModel::initializePipelineStallCounters()
@@ -76,17 +65,6 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 {
    CoreModel::outputSummary(os);
   
-   m_mcpat_core_interface->displayStats(os);
-   m_mcpat_core_interface->displayParam(os);
-   
-   if (m_enable_area_and_power_modeling)
-   {
-      os << "  Area and Power Model Summary:" << endl;
-      // Compute Energy for Total Run
-      m_mcpat_core_interface->computeEnergy();
-      m_mcpat_core_interface->displayEnergy(os);
-   }
-
 //   os << "    Total Load Buffer Stall Time (in ns): " << m_total_load_buffer_stall_time.toNanosec() << endl;
 //   os << "    Total Store Buffer Stall Time (in ns): " << m_total_store_buffer_stall_time.toNanosec() << endl;
 //   os << "    Total L1-I Cache Stall Time (in ns): " << m_total_l1icache_stall_time.toNanosec() << endl;
@@ -96,25 +74,6 @@ void IOCOOMCoreModel::outputSummary(std::ostream &os)
 //   os << "    Total Intra Ins Execution Unit Stall Time (in ns): " << m_total_intra_ins_execution_unit_stall_time.toNanosec() << endl;
 //   os << "    Total Inter Ins Execution Unit Stall Time (in ns): " << m_total_inter_ins_execution_unit_stall_time.toNanosec() << endl;
 //   os << "    Total Cycle Count: " << m_cycle_count << endl;
-}
-
-void IOCOOMCoreModel::computeEnergy()
-{
-   m_mcpat_core_interface->updateCycleCounters(m_curr_time.toCycles(m_core->getFrequency()));
-   m_mcpat_core_interface->computeEnergy();
-}
-
-double IOCOOMCoreModel::getDynamicEnergy()
-{
-   double dynamic_energy = m_mcpat_core_interface->getDynamicEnergy();
-
-   return dynamic_energy;
-}
-double IOCOOMCoreModel::getStaticPower()
-{
-   double static_power = m_mcpat_core_interface->getStaticPower();
-
-   return static_power;
 }
 
 void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
@@ -352,12 +311,8 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // Update Common Pipeline Stall Counters
    updatePipelineStallCounters(instruction, memory_stall_time, execution_unit_stall_time);
 
-   // Get Branch Misprediction Count
-   UInt64 m_total_branch_misprediction_count;
-   m_total_branch_misprediction_count = getBranchPredictor()->getNumIncorrectPredictions();
-
-   // Update Event Counters
-   m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getFrequency()), m_total_branch_misprediction_count);
+   // Update McPAT counters
+   updateMcPATCounters(instruction);
 }
 
 pair<Time,Time>

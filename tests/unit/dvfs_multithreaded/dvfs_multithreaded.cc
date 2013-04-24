@@ -13,13 +13,17 @@ double memory_low_frequency;
 double memory_high_frequency;
 double compute_low_frequency;
 double compute_high_frequency;
-pthread_barrier_t global_barrier;
+//pthread_barrier_t global_barrier;
+carbon_barrier_t global_barrier;
 
 void doMemoryWork(int current_iteration)
 {
    volatile int a;
-   for (int i=0; i<iteration_size; i++){
-      a += array[(current_iteration*iteration_size + i)*cache_line_size];
+   int num_memory_iterations = 1;
+   for (int j=0; j<num_memory_iterations; j++){
+      for (int i=0; i<iteration_size; i++){
+         a += array[(current_iteration*iteration_size + i)*cache_line_size];
+      }
    }
 }
 
@@ -27,7 +31,7 @@ void doComputeWork(int current_iteration)
 {
    volatile int i;
    volatile double j;
-   int num_compute_iterations = 10;
+   int num_compute_iterations = 1;
    for (int k=0; k<num_compute_iterations; k++){
       for (i=0; i<iteration_size; i++){
          int a = array[(current_iteration*iteration_size + i)*cache_line_size];
@@ -42,11 +46,10 @@ void* doWork(void*)
    double frequency;
    int rc;
 
-   pthread_barrier_wait(&global_barrier);
+   //pthread_barrier_wait(&global_barrier);
+   CarbonBarrierWait(&global_barrier);
 
    for (int i= 0; i<num_iterations; i++){
-
-      //if (tile_id == 0) printf("Iteration: %i (memory)\n", i);
 
       // set memory dvfs
       rc = CarbonSetDVFS(tile_id, CORE | L1_ICACHE | L1_DCACHE, &memory_low_frequency, AUTO);
@@ -54,11 +57,10 @@ void* doWork(void*)
       rc = CarbonSetDVFS(tile_id, L2_CACHE | NETWORK_MEMORY, &memory_high_frequency, AUTO);
       assert(rc == 0);
 
-      //doMemoryWork(i);
+      doMemoryWork(i);
 
-      pthread_barrier_wait(&global_barrier);
-
-      //if (tile_id == 0) printf("Iteration: %i (compute)\n", i);
+      //pthread_barrier_wait(&global_barrier);
+      CarbonBarrierWait(&global_barrier);
 
       // set compute dvfs
       rc = CarbonSetDVFS(tile_id, CORE | L1_ICACHE | L1_DCACHE, &compute_high_frequency, AUTO);
@@ -66,11 +68,16 @@ void* doWork(void*)
       rc = CarbonSetDVFS(tile_id, L2_CACHE | NETWORK_MEMORY, &compute_low_frequency, AUTO);
       assert(rc == 0);
 
-      //doComputeWork(i);
+      doComputeWork(i);
 
       // Wait for all threads to be spawned
-      pthread_barrier_wait(&global_barrier);
+      //pthread_barrier_wait(&global_barrier);
+      CarbonBarrierWait(&global_barrier);
+       
    }
+
+   double default_frequency = 1.0;
+   rc = CarbonSetDVFS(tile_id, TILE, &default_frequency, AUTO);
 
    return NULL;
 }
@@ -98,7 +105,8 @@ int main(int argc, char *argv[])
 	pthread_t worker[num_threads];
 
    // Initialize barrier
-   pthread_barrier_init(&global_barrier, NULL, num_threads);
+   //pthread_barrier_init(&global_barrier, NULL, num_threads);
+   CarbonBarrierInit(&global_barrier, num_threads);
 
    CarbonEnableModels();
 
@@ -122,7 +130,7 @@ int main(int argc, char *argv[])
    CarbonDisableModels();
 
    // Destroy barrier
-   pthread_barrier_destroy(&global_barrier);
+   //pthread_barrier_destroy(&global_barrier);
 
    free(array);
    

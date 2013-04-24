@@ -338,6 +338,7 @@ int
 Core::setDVFS(double frequency, voltage_option_t voltage_flag)
 {
    int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
+
    if (rc==0){
       _core_model->setDVFS(_frequency, _voltage, frequency);
       _frequency = frequency;

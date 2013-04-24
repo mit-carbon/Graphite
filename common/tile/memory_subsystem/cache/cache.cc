@@ -512,7 +512,9 @@ Cache::setDVFS(double frequency, voltage_option_t voltage_flag)
    {
       _frequency = frequency;
       _perf_model->setDVFS(_frequency);
-      _mcpat_cache_interface->setDVFS(_voltage, _frequency);
+
+      if (Config::getSingleton()->getEnablePowerModeling())
+         _mcpat_cache_interface->setDVFS(_voltage, _frequency);
    }
    return rc;
 }

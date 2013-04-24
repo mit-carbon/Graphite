@@ -89,14 +89,19 @@ McPAT::CoreWrapper* McPATCoreInterface::createCoreWrapper(double voltage, double
 //---------------------------------------------------------------------------
 void McPATCoreInterface::setDVFS(double voltage, double frequency)
 {
+   if (!_enable_area_and_power_modeling)
+      return;
+
    // Check if a McPATInterface object has already been created
    _core_wrapper = _core_wrapper_map[voltage];
    if (_core_wrapper == NULL)
    {
+
       // Calculate max frequency at given voltage
       double max_frequency_at_voltage = DVFSManager::getMaxFrequency(voltage);
-      
+
       _core_wrapper = createCoreWrapper(voltage, max_frequency_at_voltage);
+
       // Save for future use
       _core_wrapper_map[voltage] = _core_wrapper;
    }

@@ -44,12 +44,18 @@ McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 
       // Fill the ParseXML's Core Params from McPATCoreInterface
       fillCoreParamsIntoXML(technology_node, temperature);
 
-      // Calculate max frequency at given voltage
-      double max_frequency_at_voltage = DVFSManager::getMaxFrequency(voltage);
-      // Create cache wrapper
-      _core_wrapper = createCoreWrapper(voltage, max_frequency_at_voltage);
-      // Save for future use
-      _core_wrapper_map[voltage] = _core_wrapper;
+      // Create the core wrappers
+      const DVFSManager::DVFSLevels& dvfs_levels = DVFSManager::getDVFSLevels();
+      for (DVFSManager::DVFSLevels::const_iterator it = dvfs_levels.begin(); it != dvfs_levels.end(); it++)
+      {
+         double current_voltage = (*it).first;
+         double current_frequency = (*it).second;
+         // Create core wrapper (and) save for future use
+         _core_wrapper_map[current_voltage] = createCoreWrapper(current_voltage, current_frequency);
+      }
+
+      // Initialize current core wrapper
+      _core_wrapper = _core_wrapper_map[voltage];
 
       // Initialize Static Power
       computeEnergy();
@@ -94,17 +100,7 @@ void McPATCoreInterface::setDVFS(double voltage, double frequency)
 
    // Check if a McPATInterface object has already been created
    _core_wrapper = _core_wrapper_map[voltage];
-   if (_core_wrapper == NULL)
-   {
-
-      // Calculate max frequency at given voltage
-      double max_frequency_at_voltage = DVFSManager::getMaxFrequency(voltage);
-
-      _core_wrapper = createCoreWrapper(voltage, max_frequency_at_voltage);
-
-      // Save for future use
-      _core_wrapper_map[voltage] = _core_wrapper;
-   }
+   assert(_core_wrapper);
 }
 //---------------------------------------------------------------------------
 // Initialize Architectural Parameters

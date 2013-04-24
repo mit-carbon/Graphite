@@ -298,6 +298,12 @@ DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag,
    return rc;
 }
 
+const DVFSManager::DVFSLevels&
+DVFSManager::getDVFSLevels()
+{
+   return _dvfs_levels;
+}
+
 double
 DVFSManager::getMaxFrequency(double voltage) 
 {

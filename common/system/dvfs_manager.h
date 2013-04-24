@@ -15,6 +15,9 @@ void setDVFSCallback(void* obj, NetPacket packet);
 class DVFSManager
 {
 public:
+   // DVFS Levels type
+   typedef list<pair<volatile double,volatile double> > DVFSLevels;
+   
    // Parse the cfg file to get DVFS voltage levels and frequency of operation
    DVFSManager(UInt32 technology_node, Tile* tile);
    ~DVFSManager();
@@ -31,12 +34,14 @@ public:
    // Called to initialize DVFS voltage-frequency levels
    static void initializeDVFSLevels();
 
+   // Get DVFS Levels
+   static const DVFSLevels& getDVFSLevels();
+
    // Called from the McPAT interfaces
    static double getMaxFrequency(double voltage);
  
 private:
    // Voltage, Frequency Multiplier
-   typedef list<pair<volatile double,volatile double> > DVFSLevels;
    static DVFSLevels _dvfs_levels;
    static volatile double _max_frequency;
    Tile* _tile;

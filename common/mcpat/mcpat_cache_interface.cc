@@ -32,12 +32,18 @@ McPATCacheInterface::McPATCacheInterface(Cache* cache)
    // Fill the ParseXML's Core Params from McPATCacheInterface
    fillCacheParamsIntoXML(cache, technology_node, temperature);
 
-   // Get nominal voltage from the DVFS Manager
-   double max_frequency_at_voltage = DVFSManager::getMaxFrequency(cache->_voltage);
-   // Create cache wrapper
-   _cache_wrapper = createCacheWrapper(cache->_voltage, max_frequency_at_voltage);
-   // Save for future use
-   _cache_wrapper_map[cache->_voltage] = _cache_wrapper;
+   // Create the cache wrappers
+   const DVFSManager::DVFSLevels& dvfs_levels = DVFSManager::getDVFSLevels();
+   for (DVFSManager::DVFSLevels::const_iterator it = dvfs_levels.begin(); it != dvfs_levels.end(); it++)
+   {
+      double current_voltage = (*it).first;
+      double current_frequency = (*it).second;
+      // Create core wrapper (and) save for future use
+      _cache_wrapper_map[current_voltage] = createCacheWrapper(current_voltage, current_frequency);
+   }
+   
+   // Initialize current cache wrapper
+   _cache_wrapper = _cache_wrapper_map[cache->_voltage];
 
    // Initialize Static Power
    computeEnergy(cache);
@@ -75,15 +81,7 @@ void McPATCacheInterface::setDVFS(double voltage, double frequency)
 {
    // Check if a McPATInterface object has already been created
    _cache_wrapper = _cache_wrapper_map[voltage];
-   if (_cache_wrapper == NULL)
-   {
-      // Calculate max frequency at given voltage
-      double max_frequency_at_voltage = DVFSManager::getMaxFrequency(voltage);
-      
-      _cache_wrapper = createCacheWrapper(voltage, max_frequency_at_voltage);
-      // Save for future use
-      _cache_wrapper_map[voltage] = _cache_wrapper;
-   }
+   assert(_cache_wrapper);
 }
 
 //---------------------------------------------------------------------------

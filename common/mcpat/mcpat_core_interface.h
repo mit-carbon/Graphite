@@ -220,7 +220,7 @@ private:
    double _function_calls;
    double _context_switches;
    
-   bool _enable_area_and_power_modeling;
+   bool _enable_area_or_power_modeling;
 
    // Initialize Architectural Parameters
    void initializeArchitecturalParameters(UInt32 load_buffer_size, UInt32 store_buffer_size);

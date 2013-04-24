@@ -31,8 +31,8 @@ McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 
    // Initialize Output Data Structure
    initializeOutputDataStructure();
 
-   _enable_area_and_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
-   if (_enable_area_and_power_modeling)
+   _enable_area_or_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
+   if (_enable_area_or_power_modeling)
    {
       // Make a ParseXML Object and Initialize it
       _xml = new McPAT::ParseXML();
@@ -67,7 +67,7 @@ McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 
 //---------------------------------------------------------------------------
 McPATCoreInterface::~McPATCoreInterface()
 {
-   if (_enable_area_and_power_modeling)
+   if (_enable_area_or_power_modeling)
    {
       for (CoreWrapperMap::iterator it = _core_wrapper_map.begin(); it != _core_wrapper_map.end(); it++)
          delete (*it).second;
@@ -95,13 +95,14 @@ McPAT::CoreWrapper* McPATCoreInterface::createCoreWrapper(double voltage, double
 //---------------------------------------------------------------------------
 void McPATCoreInterface::setDVFS(double voltage, double frequency)
 {
-   if (!_enable_area_and_power_modeling)
+   if (!_enable_area_or_power_modeling)
       return;
 
    // Check if a McPATInterface object has already been created
    _core_wrapper = _core_wrapper_map[voltage];
    assert(_core_wrapper);
 }
+
 //---------------------------------------------------------------------------
 // Initialize Architectural Parameters
 //---------------------------------------------------------------------------

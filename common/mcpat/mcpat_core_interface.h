@@ -22,6 +22,7 @@ typedef struct
    double longer_channel_leakage;         // Subthreshold Leakage
    double gate_leakage;                   // Gate Leakage
    double dynamic;                        // Runtime Dynamic
+   double leakage_energy;                 // Leakage Energy
 } mcpat_component_out;
 typedef struct
 {
@@ -116,10 +117,10 @@ public:
 
    // Collect Energy from McPAT
    double getDynamicEnergy();
-   double getStaticPower();
+   double getLeakagePower();
 
    // Display Energy from McPat
-   void displayEnergy(ostream& os);
+   void displayEnergy(ostream& os, CoreModel* core_model);
    // Display Architectural Parameters
    void displayParam(ostream& os);
    // Display Event Counters
@@ -133,6 +134,8 @@ private:
    McPAT::ParseXML* _xml;
    // Output Data Structure
    mcpat_core_output _mcpat_core_out;
+   // Last Frequency Change Time
+   Time _last_frequency_change_time;
 
    // Architectural Parameters
    // |---- General Parameters
@@ -239,6 +242,9 @@ private:
    // Initialize XML Object
    void fillCoreParamsIntoXML(UInt32 technology_node, UInt32 temperature);
    void fillCoreStatsIntoXML();
+
+   // Compute Leakage Energy in Last Time Interval
+   void computeLeakageEnergyForTimeInterval(double time_interval);
 };
 
 McPATCoreInterface::McPATInstructionType getMcPATInstructionType(InstructionType type);

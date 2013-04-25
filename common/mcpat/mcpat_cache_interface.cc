@@ -10,6 +10,7 @@
 // McPAT Cache Interface Constructor
 //---------------------------------------------------------------------------
 McPATCacheInterface::McPATCacheInterface(Cache* cache)
+   : _cache(cache)
 {
    UInt32 technology_node = 0;
    UInt32 temperature = 0;
@@ -30,7 +31,7 @@ McPATCacheInterface::McPATCacheInterface(Cache* cache)
    _xml->initialize();
 
    // Fill the ParseXML's Core Params from McPATCacheInterface
-   fillCacheParamsIntoXML(cache, technology_node, temperature);
+   fillCacheParamsIntoXML(technology_node, temperature);
 
    // Create the cache wrappers
    const DVFSManager::DVFSLevels& dvfs_levels = DVFSManager::getDVFSLevels();
@@ -43,10 +44,10 @@ McPATCacheInterface::McPATCacheInterface(Cache* cache)
    }
    
    // Initialize current cache wrapper
-   _cache_wrapper = _cache_wrapper_map[cache->_voltage];
+   _cache_wrapper = _cache_wrapper_map[_cache->_voltage];
 
    // Initialize Static Power
-   computeEnergy(cache);
+   computeEnergy();
 }
 
 //---------------------------------------------------------------------------
@@ -77,26 +78,33 @@ McPAT::CacheWrapper* McPATCacheInterface::createCacheWrapper(double voltage, dou
 //---------------------------------------------------------------------------
 // setDVFS (change voltage and frequency)
 //---------------------------------------------------------------------------
-void McPATCacheInterface::setDVFS(double voltage, double frequency)
+void McPATCacheInterface::setDVFS(double voltage, double frequency, Time curr_time)
 {
+   // Compute the total leakage energy upto this point
+   Time time_interval = curr_time - _last_frequency_change_time;
+   _mcpat_cache_out.leakage_energy += (_mcpat_cache_out.leakage_power * time_interval.toSec());
+   
    // Check if a McPATInterface object has already been created
    _cache_wrapper = _cache_wrapper_map[voltage];
    assert(_cache_wrapper);
+
+   // Compute new leakage power
+   computeEnergy();
+   _last_frequency_change_time = curr_time;
 }
 
 //---------------------------------------------------------------------------
 // Compute Energy from McPAT
 //---------------------------------------------------------------------------
-void McPATCacheInterface::computeEnergy(Cache* cache)
+void McPATCacheInterface::computeEnergy()
 {
    // Fill the ParseXML's Core Event Stats from McPATCacheInterface
-   fillCacheStatsIntoXML(cache);
+   fillCacheStatsIntoXML();
 
    // Compute Energy from Processor
    _cache_wrapper->computeEnergy();
 
    // Store Energy into Data Structure
-   // Core
    _mcpat_cache_out.area               = _cache_wrapper->cache->area.get_area() * 1e-6;
 	bool long_channel                   = _xml->sys.longer_channel_device;
    double subthreshold_leakage_power   = long_channel ? _cache_wrapper->cache->power.readOp.longer_channel_leakage : _cache_wrapper->cache->power.readOp.leakage;
@@ -113,7 +121,7 @@ double McPATCacheInterface::getDynamicEnergy()
    double dynamic_energy = _mcpat_cache_out.dynamic_energy;
    return dynamic_energy;
 }
-double McPATCacheInterface::getStaticPower()
+double McPATCacheInterface::getLeakagePower()
 {
    double static_power = _mcpat_cache_out.leakage_power;
    return static_power;
@@ -124,10 +132,17 @@ double McPATCacheInterface::getStaticPower()
 //---------------------------------------------------------------------------
 void McPATCacheInterface::outputSummary(ostream& os)
 {
+   Time target_completion_time = _cache->getMemoryManager()->getTile()->getCoreTime(0);
+   // Compute leakage energy for the last time interval
+   Time time_interval = target_completion_time - _last_frequency_change_time;
+   _mcpat_cache_out.leakage_energy += (_mcpat_cache_out.leakage_power * time_interval.toSec());
+
    string indent4(4, ' ');
-   os << indent4 << "Area (in mm^2): "         << _mcpat_cache_out.area << endl;
-   os << indent4 << "Static Power (in W): "   << _mcpat_cache_out.leakage_power << endl;
-   os << indent4 << "Dynamic Energy (in J): "  << _mcpat_cache_out.dynamic_energy << endl;
+   os << indent4 << "Area (in mm^2): " << _mcpat_cache_out.area << endl;
+   os << indent4 << "Average Static Power (in W): " << _mcpat_cache_out.leakage_energy / target_completion_time << endl;
+   os << indent4 << "Average Dynamic Power (in W): " << _mcpat_cache_out.dynamic_energy << endl;
+   os << indent4 << "Total Leakage Energy (in J): " << _mcpat_cache_out.leakage_energy << endl;
+   os << indent4 << "Total Dynamic Energy (in J): " << _mcpat_cache_out.dynamic_energy << endl;
 }
 
 void McPATCacheInterface::fillCacheParamsIntoXML(Cache* cache, UInt32 technology_node, UInt32 temperature)

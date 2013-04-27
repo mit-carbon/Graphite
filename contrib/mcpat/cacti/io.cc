@@ -2199,7 +2199,7 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
   if (dbp == NULL)
   {
     char filename[1024];
-    snprintf(filename, 1024, "%s/mcpat-%s.db", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp", getenv("USER"));
+    snprintf(filename, 1024, "%s/contrib/mcpat/mcpat.db", getenv("GRAPHITE_HOME") ? getenv("GRAPHITE_HOME") : ".");
     db_create(&dbp, NULL, 0);
     dbp->open(dbp, NULL, filename, NULL, DB_HASH, DB_CREATE, 0);
   }

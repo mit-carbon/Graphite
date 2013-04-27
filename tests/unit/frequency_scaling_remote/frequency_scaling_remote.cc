@@ -6,8 +6,8 @@
 
 int num_threads;
 int num_iterations;
-float min_frequency;
-float max_frequency;
+double min_frequency;
+double max_frequency;
 pthread_barrier_t global_barrier;
 
 void *do_work(void*)
@@ -25,7 +25,7 @@ void *do_work(void*)
    {
       double res;
       drand48_r(&rand_buf, &res);
-      float frequency = min_frequency + (max_frequency - min_frequency) * res;
+      double frequency = min_frequency + (max_frequency - min_frequency) * res;
 
       drand48_r(&rand_buf, &res);
       remote_tile_id = (SInt32) (num_threads * res);
@@ -34,7 +34,7 @@ void *do_work(void*)
       int b = (int) floor( (frequency - floor(frequency)) * 100 );
       printf("Setting frequency to (%i.%i) on tile (%i) from tile (%i) iteration (%i)\n", a, b,remote_tile_id, tile_id, i);
 
-      CarbonSetRemoteTileFrequency(remote_tile_id, &frequency);
+      CarbonSetDVFS(remote_tile_id, TILE, &frequency, AUTO);
 
       // Do some work
 		for (int j = 0; j < 10000; j++);

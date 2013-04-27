@@ -147,7 +147,7 @@ private:
    int _fp_pipeline_depth;
    int _ALU_per_core;
    int _MUL_per_core;
-   double _FPU_per_core;
+   int _FPU_per_core;
    int _instruction_buffer_size;
    int _decoded_stream_buffer_size;
    // |---- Register File

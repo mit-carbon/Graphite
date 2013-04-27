@@ -61,9 +61,9 @@ void IOCOOMCoreModel::initializePipelineStallCounters()
    m_total_inter_ins_execution_unit_stall_time = Time(0);
 }
 
-void IOCOOMCoreModel::outputSummary(std::ostream &os)
+void IOCOOMCoreModel::outputSummary(std::ostream &os, const Time& target_completion_time)
 {
-   CoreModel::outputSummary(os);
+   CoreModel::outputSummary(os, target_completion_time);
   
 //   os << "    Total Load Buffer Stall Time (in ns): " << m_total_load_buffer_stall_time.toNanosec() << endl;
 //   os << "    Total Store Buffer Stall Time (in ns): " << m_total_store_buffer_stall_time.toNanosec() << endl;

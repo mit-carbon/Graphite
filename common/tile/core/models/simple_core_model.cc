@@ -25,9 +25,9 @@ void SimpleCoreModel::initializePipelineStallCounters()
    m_total_l1dcache_write_stall_time = Time(0);
 }
 
-void SimpleCoreModel::outputSummary(std::ostream &os)
+void SimpleCoreModel::outputSummary(std::ostream &os, const Time& target_completion_time)
 {
-   CoreModel::outputSummary(os);
+   CoreModel::outputSummary(os, target_completion_time);
   
    //os << "    Total L1-I Cache Stall Time (in ns): " << m_total_l1icache_stall_time.toNanosec()<< endl;
    //os << "    Total L1-D Cache Read Stall Time (in ns): " << m_total_l1dcache_read_stall_time.toNanosec()<< endl;

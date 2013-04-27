@@ -18,11 +18,8 @@ using namespace std;
 typedef struct
 {
    double area;                           // Area
-   double leakage;                        // Subthreshold Leakage
-   double longer_channel_leakage;         // Subthreshold Leakage
-   double gate_leakage;                   // Gate Leakage
-   double dynamic;                        // Runtime Dynamic
-   double leakage_energy;                 // Leakage Energy
+   double leakage_energy;                 // (Subthreshold + Gate) Leakage Energy
+   double dynamic_energy;                 // Runtime Dynamic Energy
 } mcpat_component_out;
 typedef struct
 {
@@ -105,26 +102,22 @@ public:
    // McPAT Core Interface Destructor
    ~McPATCoreInterface();
 
+   // Output summary
+   void outputSummary(ostream& os, const Time& target_completion_time);
+
    // Set DVFS
-   void setDVFS(double voltage, double frequency);
+   void setDVFS(double voltage, double frequency, const Time& curr_time);
 
    // Update Event Counters
    void updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 total_branch_misprediction_count);
    void updateCycleCounters(UInt64 cycle_count);
    
    // Compute Energy from McPat
-   void computeEnergy();
+   void computeEnergy(const Time& curr_time);
 
    // Collect Energy from McPAT
    double getDynamicEnergy();
-   double getLeakagePower();
-
-   // Display Energy from McPat
-   void displayEnergy(ostream& os, CoreModel* core_model);
-   // Display Architectural Parameters
-   void displayParam(ostream& os);
-   // Display Event Counters
-   void displayStats(ostream& os);
+   double getLeakageEnergy();
 
 private:
    // McPAT Objects
@@ -134,8 +127,8 @@ private:
    McPAT::ParseXML* _xml;
    // Output Data Structure
    mcpat_core_output _mcpat_core_out;
-   // Last Frequency Change Time
-   Time _last_frequency_change_time;
+   // Last Energy Compute Time
+   Time _last_energy_compute_time;
 
    // Architectural Parameters
    // |---- General Parameters
@@ -177,60 +170,99 @@ private:
    // |---- Register Windows (specific to Sun processors)
    int _register_windows_size;
 
-   // Event Counters
+   // Current Event Counters
    // |-- Used Event Counters
-   // |---- Instruction Counters
-   double _total_instructions;
-   double _generic_instructions;
-   double _int_instructions;
-   double _fp_instructions;
-   double _branch_instructions;
-   double _branch_mispredictions;
-   double _load_instructions;
-   double _store_instructions;
-   double _committed_instructions;
-   double _committed_int_instructions;
-   double _committed_fp_instructions;
    // |---- Cycle Counters
-   double _total_cycles;
-   double _idle_cycles;
-   double _busy_cycles;
+   UInt64 _total_cycles;
+   UInt64 _idle_cycles;
+   UInt64 _busy_cycles;
+   // |---- Instruction Counters
+   UInt64 _total_instructions;
+   UInt64 _generic_instructions;
+   UInt64 _int_instructions;
+   UInt64 _fp_instructions;
+   UInt64 _branch_instructions;
+   UInt64 _branch_mispredictions;
+   UInt64 _load_instructions;
+   UInt64 _store_instructions;
+   UInt64 _committed_instructions;
+   UInt64 _committed_int_instructions;
+   UInt64 _committed_fp_instructions;
    // |---- Reg File Access Counters
-   double _int_regfile_reads;
-   double _int_regfile_writes;
-   double _fp_regfile_reads;
-   double _fp_regfile_writes;
+   UInt64 _int_regfile_reads;
+   UInt64 _int_regfile_writes;
+   UInt64 _fp_regfile_reads;
+   UInt64 _fp_regfile_writes;
    // |---- Execution Unit Access Counters
-   double _ialu_accesses;
-   double _mul_accesses;
-   double _fpu_accesses;
-   double _cdb_alu_accesses;
-   double _cdb_mul_accesses;
-   double _cdb_fpu_accesses;
+   UInt64 _ialu_accesses;
+   UInt64 _mul_accesses;
+   UInt64 _fpu_accesses;
+   UInt64 _cdb_alu_accesses;
+   UInt64 _cdb_mul_accesses;
+   UInt64 _cdb_fpu_accesses;
    // |-- Unused Event Counters
    // |---- OoO Core Event Counters
-   double _inst_window_reads;
-   double _inst_window_writes;
-   double _inst_window_wakeup_accesses;
-   double _fp_inst_window_reads;
-   double _fp_inst_window_writes;
-   double _fp_inst_window_wakeup_accesses;
-   double _ROB_reads;
-   double _ROB_writes;
-   double _rename_accesses;
-   double _fp_rename_accesses;
+   UInt64 _inst_window_reads;
+   UInt64 _inst_window_writes;
+   UInt64 _inst_window_wakeup_accesses;
+   UInt64 _fp_inst_window_reads;
+   UInt64 _fp_inst_window_writes;
+   UInt64 _fp_inst_window_wakeup_accesses;
+   UInt64 _ROB_reads;
+   UInt64 _ROB_writes;
+   UInt64 _rename_accesses;
+   UInt64 _fp_rename_accesses;
    // |---- Function Calls and Context Switches
-   double _function_calls;
-   double _context_switches;
+   UInt64 _function_calls;
+   UInt64 _context_switches;
+
+   // Prev Event Counters
+   // |-- Used Event Counters
+   // |---- Cycle Counters
+   UInt64 _prev_cycles;
+   UInt64 _prev_idle_cycles;
+   UInt64 _prev_busy_cycles;
+   // |---- Instruction Counters
+   UInt64 _prev_instructions;
+   UInt64 _prev_generic_instructions;
+   UInt64 _prev_int_instructions;
+   UInt64 _prev_fp_instructions;
+   UInt64 _prev_branch_instructions;
+   UInt64 _prev_branch_mispredictions;
+   UInt64 _prev_load_instructions;
+   UInt64 _prev_store_instructions;
+   UInt64 _prev_committed_instructions;
+   UInt64 _prev_committed_int_instructions;
+   UInt64 _prev_committed_fp_instructions;
+   // |---- Reg File Access Counters
+   UInt64 _prev_int_regfile_reads;
+   UInt64 _prev_int_regfile_writes;
+   UInt64 _prev_fp_regfile_reads;
+   UInt64 _prev_fp_regfile_writes;
+   // |---- Execution Unit Access Counters
+   UInt64 _prev_ialu_accesses;
+   UInt64 _prev_mul_accesses;
+   UInt64 _prev_fpu_accesses;
+   UInt64 _prev_cdb_alu_accesses;
+   UInt64 _prev_cdb_mul_accesses;
+   UInt64 _prev_cdb_fpu_accesses;
+   // |-- Unused Event Counters
+   // |---- OoO Core Event Counters
+   UInt64 _prev_inst_window_reads;
+   UInt64 _prev_inst_window_writes;
+   UInt64 _prev_inst_window_wakeup_accesses;
+   UInt64 _prev_fp_inst_window_reads;
+   UInt64 _prev_fp_inst_window_writes;
+   UInt64 _prev_fp_inst_window_wakeup_accesses;
+   UInt64 _prev_ROB_reads;
+   UInt64 _prev_ROB_writes;
+   UInt64 _prev_rename_accesses;
+   UInt64 _prev_fp_rename_accesses;
+   // |---- Function Calls and Context Switches
+   UInt64 _prev_function_calls;
+   UInt64 _prev_context_switches;
    
    bool _enable_area_or_power_modeling;
-
-   // Initialize Architectural Parameters
-   void initializeArchitecturalParameters(UInt32 load_buffer_size, UInt32 store_buffer_size);
-   // Initialize Event Counters
-   void initializeEventCounters();
-   // Initialize Output Data Structure
-   void initializeOutputDataStructure();
 
    // Update Event Counters
    void updateInstructionCounters(McPATInstructionType instruction_type, UInt64 total_branch_misprediction_count);
@@ -242,9 +274,21 @@ private:
    // Initialize XML Object
    void fillCoreParamsIntoXML(UInt32 technology_node, UInt32 temperature);
    void fillCoreStatsIntoXML();
-
-   // Compute Leakage Energy in Last Time Interval
-   void computeLeakageEnergyForTimeInterval(double time_interval);
+   
+   // Initialize Architectural Parameters
+   void initializeArchitecturalParameters(UInt32 load_buffer_size, UInt32 store_buffer_size);
+   // Initialize Event Counters
+   void initializeEventCounters();
+   // Initialize/update Output Data Structure
+   void initializeOutputDataStructure();
+   void updateOutputDataStructure(double time_interval);
+   
+   // Display Energy from McPAT
+   void displayEnergy(ostream& os, const Time& target_completion_time);
+   // Display Architectural Parameters
+   void displayParam(ostream& os);
+   // Display Event Counters
+   void displayStats(ostream& os);
 };
 
 McPATCoreInterface::McPATInstructionType getMcPATInstructionType(InstructionType type);

@@ -12,6 +12,7 @@
 #include "utils.h"
 #include "time_types.h"
 #include "mcpat_core_interface.h"
+#include "remote_query_helper.h"
 
 CoreModel* CoreModel::create(Core* core)
 {
@@ -50,9 +51,6 @@ CoreModel::CoreModel(Core *core)
    // Initialize instruction costs
    initializeCoreStaticInstructionModel(core->getFrequency());
    
-   // For Power/Area Modeling
-   m_enable_area_or_power_modeling = Config::getSingleton()->getEnableAreaModeling() || Config::getSingleton()->getEnablePowerModeling();
-   
    LOG_PRINT("Initialized CoreModel.");
 }
 
@@ -89,7 +87,7 @@ Time CoreModel::getCost(InstructionType type)
    return m_core_instruction_costs[type];
 }
 
-void CoreModel::outputSummary(ostream& os)
+void CoreModel::outputSummary(ostream& os, const Time& target_completion_time)
 {
    os << "Core Summary:" << endl;
    os << "    Total Instructions: " << m_instruction_count << endl;
@@ -106,18 +104,8 @@ void CoreModel::outputSummary(ostream& os)
    // Branch Predictor Summary
    if (m_bp)
       m_bp->outputSummary(os);
-   
-   // McPAT summary
-   m_mcpat_core_interface->displayStats(os);
-   m_mcpat_core_interface->displayParam(os);
-   
-   if (m_enable_area_or_power_modeling)
-   {
-      os << "  Area and Power Model Summary:" << endl;
-      // Compute Energy for Total Run
-      m_mcpat_core_interface->computeEnergy();
-      m_mcpat_core_interface->displayEnergy(os);
-   }
+
+   m_mcpat_core_interface->outputSummary(os, target_completion_time); 
 }
 
 void CoreModel::initializeMcPATInterface(UInt32 num_load_buffer_entries, UInt32 num_store_buffer_entries)
@@ -137,22 +125,21 @@ void CoreModel::updateMcPATCounters(Instruction* instruction)
    m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getFrequency()), total_branch_misprediction_count);
 }
 
-void CoreModel::computeEnergy()
+void CoreModel::computeEnergy(const Time& curr_time)
 {
-   m_mcpat_core_interface->updateCycleCounters(m_curr_time.toCycles(m_core->getFrequency()));
-   m_mcpat_core_interface->computeEnergy();
+   UInt64 curr_cycles = m_curr_time.toCycles(m_core->getFrequency());
+   m_mcpat_core_interface->updateCycleCounters(curr_cycles);
+   m_mcpat_core_interface->computeEnergy(m_curr_time);
 }
 
 double CoreModel::getDynamicEnergy()
 {
-   double dynamic_energy = m_mcpat_core_interface->getDynamicEnergy();
-   return dynamic_energy;
+   return m_mcpat_core_interface->getDynamicEnergy();
 }
 
-double CoreModel::getStaticPower()
+double CoreModel::getLeakageEnergy()
 {
-   double static_power = m_mcpat_core_interface->getStaticPower();
-   return static_power;
+   return m_mcpat_core_interface->getLeakageEnergy();
 }
 
 void CoreModel::enable()
@@ -171,11 +158,11 @@ void CoreModel::disable()
 
 // This function is called:
 // 1) Whenever frequency is changed
-void CoreModel::setDVFS(double old_frequency, double new_voltage, double new_frequency)
+void CoreModel::setDVFS(double old_frequency, double new_voltage, double new_frequency, const Time& curr_time)
 {
    recomputeAverageFrequency(old_frequency);
    updateCoreStaticInstructionModel(new_frequency);
-   m_mcpat_core_interface->setDVFS(new_voltage, new_frequency);
+   m_mcpat_core_interface->setDVFS(new_voltage, new_frequency, curr_time);
 }
 
 void CoreModel::setCurrTime(Time time)

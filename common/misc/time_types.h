@@ -72,11 +72,11 @@ class Time
       Time operator=(const Time& time)
             { _picosec = time._picosec; return *this; }
 
-      UInt64 getTime() const {return _picosec; }
-
       UInt64 toCycles(Frequency frequency) const;
 
+      UInt64 getTime() const { return _picosec; }
       UInt64 toNanosec() const;
+      double toSec() const;
 
    private:
       UInt64 _picosec;
@@ -108,16 +108,19 @@ inline Latency Latency::operator+=(const Latency& lat)
 
 inline UInt64 Time::toCycles(Frequency frequency) const
 {
-   UInt64 cycles = (UInt64) ceil(((double) (_picosec) * ((double) frequency))/double(1000));
+   UInt64 cycles = (UInt64) ceil(((double) (_picosec) * ((double) frequency)) / double(1.0e3));
 
    return cycles;
 }
 
 inline UInt64 Time::toNanosec() const
 {
-   return (UInt64) ceil(((double) _picosec)/double(1000));
+   return (UInt64) ceil(((double) _picosec)/double(1.0e3));
 }
 
-
+inline double Time::toSec() const
+{
+   return ((double) _picosec) / double(1.0e12);
+}
 
 #endif

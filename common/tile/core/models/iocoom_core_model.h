@@ -17,7 +17,7 @@ public:
    IOCOOMCoreModel(Core* core);
    ~IOCOOMCoreModel();
 
-   void outputSummary(std::ostream &os);
+   void outputSummary(std::ostream &os, const Time& target_completion_time);
 
 private:
 

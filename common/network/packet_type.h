@@ -29,6 +29,8 @@ enum PacketType
    SYSTEM_INITIALIZATION_ACK,
    SYSTEM_INITIALIZATION_FINI,
    CLOCK_SKEW_MINIMIZATION,
+   REMOTE_QUERY,
+   REMOTE_QUERY_RESPONSE,
    NUM_PACKET_TYPES
 };
 
@@ -48,7 +50,6 @@ static std::string g_static_network_name_list[] __attribute__((unused)) =
    "User",
    "Memory",
    "System",
-   "Frequency-Control",
    "DVFS"
 };
 
@@ -79,7 +80,9 @@ static EStaticNetwork g_type_to_static_network_map[] __attribute__((unused)) =
    STATIC_NETWORK_SYSTEM,        // SYSTEM_INITIALIZATION_NOTIFY
    STATIC_NETWORK_SYSTEM,        // SYSTEM_INITIALIZATION_ACK
    STATIC_NETWORK_SYSTEM,        // SYSTEM_INITIALIZATION_FINI
-   STATIC_NETWORK_SYSTEM         // CLOCK_SKEW_MINIMIZATION
+   STATIC_NETWORK_SYSTEM,        // CLOCK_SKEW_MINIMIZATION
+   STATIC_NETWORK_SYSTEM,        // REMOTE_QUERY
+   STATIC_NETWORK_SYSTEM         // REMOTE_QUERY_RESPONSE
 };
 
 #endif

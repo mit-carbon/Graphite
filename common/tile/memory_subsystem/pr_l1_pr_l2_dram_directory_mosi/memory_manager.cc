@@ -410,12 +410,12 @@ MemoryManager::disableModels()
 }
 
 void
-MemoryManager::outputSummary(std::ostream &os)
+MemoryManager::outputSummary(std::ostream &os, const Time& target_completion_time)
 {
    os << "Cache Summary:\n";
-   _L1_cache_cntlr->getL1ICache()->outputSummary(os);
-   _L1_cache_cntlr->getL1DCache()->outputSummary(os);
-   _L2_cache_cntlr->getL2Cache()->outputSummary(os);
+   _L1_cache_cntlr->getL1ICache()->outputSummary(os, target_completion_time);
+   _L1_cache_cntlr->getL1DCache()->outputSummary(os, target_completion_time);
+   _L2_cache_cntlr->getL2Cache()->outputSummary(os, target_completion_time);
    _L2_cache_cntlr->outputSummary(os);
 
    if (_dram_cntlr_present)
@@ -433,31 +433,33 @@ MemoryManager::outputSummary(std::ostream &os)
       DramPerfModel::dummyOutputSummary(os);
    }
    
-   ::MemoryManager::outputSummary(os);
+   ::MemoryManager::outputSummary(os, target_completion_time);
 }
 
-void MemoryManager::computeEnergy()
+void
+MemoryManager::computeEnergy(const Time& curr_time)
 {
-   _L1_cache_cntlr->getL1ICache()->computeEnergy();
-   _L1_cache_cntlr->getL1DCache()->computeEnergy();
-   _L2_cache_cntlr->getL2Cache()->computeEnergy();
+   _L1_cache_cntlr->getL1ICache()->computeEnergy(curr_time);
+   _L1_cache_cntlr->getL1DCache()->computeEnergy(curr_time);
+   _L2_cache_cntlr->getL2Cache()->computeEnergy(curr_time);
 }
 
-double MemoryManager::getDynamicEnergy()
+double
+MemoryManager::getDynamicEnergy()
 {
    double dynamic_energy = _L1_cache_cntlr->getL1ICache()->getDynamicEnergy() +
                            _L1_cache_cntlr->getL1DCache()->getDynamicEnergy() +
                            _L2_cache_cntlr->getL2Cache()->getDynamicEnergy();
-
    return dynamic_energy;
 }
-double MemoryManager::getStaticPower()
-{
-   double static_power = _L1_cache_cntlr->getL1ICache()->getStaticPower() +
-                         _L1_cache_cntlr->getL1DCache()->getStaticPower() +
-                         _L2_cache_cntlr->getL2Cache()->getStaticPower();
 
-   return static_power;
+double
+MemoryManager::getLeakageEnergy()
+{
+   double leakage_energy = _L1_cache_cntlr->getL1ICache()->getLeakageEnergy() +
+                           _L1_cache_cntlr->getL1DCache()->getLeakageEnergy() +
+                           _L2_cache_cntlr->getL2Cache()->getLeakageEnergy();
+   return leakage_energy;
 }
 
 void
@@ -648,25 +650,25 @@ MemoryManager::getDVFS(module_t module_type, double &frequency, double &voltage)
 }
 
 int
-MemoryManager::setDVFS(module_t module_type, double frequency, voltage_option_t voltage_flag)
+MemoryManager::setDVFS(module_t module_type, double frequency, voltage_option_t voltage_flag, const Time& curr_time)
 {
    int rc = 0;
    switch (module_type)
    {
       case L1_ICACHE:
-         rc = getL1ICache()->setDVFS(frequency,voltage_flag);
+         rc = getL1ICache()->setDVFS(frequency,voltage_flag, curr_time);
          break;
 
       case L1_DCACHE:
-         rc = getL1DCache()->setDVFS(frequency,voltage_flag);
+         rc = getL1DCache()->setDVFS(frequency,voltage_flag, curr_time);
          break;
 
       case L2_CACHE:
-         rc = getL2Cache()->setDVFS(frequency,voltage_flag);
+         rc = getL2Cache()->setDVFS(frequency,voltage_flag, curr_time);
          break;
 
       case L2_DIRECTORY:
-         rc = getDramDirectoryCache()->setDVFS(frequency,voltage_flag);
+         rc = getDramDirectoryCache()->setDVFS(frequency,voltage_flag, curr_time);
          break;
 
       default:

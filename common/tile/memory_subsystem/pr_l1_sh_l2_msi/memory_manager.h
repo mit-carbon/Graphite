@@ -47,18 +47,18 @@ namespace PrL1ShL2MSI
       tile_id_t getShmemRequester(const void* pkt_data)
       { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
-      void outputSummary(std::ostream &os);
+      void outputSummary(std::ostream &os, const Time& target_completion_time);
 
       // Energy monitoring
-      void computeEnergy();
+      void computeEnergy(const Time& curr_time);
 
       double getDynamicEnergy();
-      double getStaticPower();
+      double getLeakageEnergy();
 
       void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::AccessType access_type);
 
       int getDVFS(module_t module, double &frequency, double &voltage);
-      int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag);
+      int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
    private:
       // L1/L2 cache cntlrs and DRAM_CNTLR cntlr

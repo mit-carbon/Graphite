@@ -47,17 +47,17 @@ namespace PrL1PrL2DramDirectoryMSI
       bool isModeled(const void* pkt_data)
       { return ((ShmemMsg*) pkt_data)->isModeled(); }
 
-      void outputSummary(std::ostream &os);
+      void outputSummary(std::ostream &os, const Time& target_completion_time);
 
       // Energy monitoring
-      void computeEnergy();
+      void computeEnergy(const Time& curr_time);
 
       double getDynamicEnergy();
-      double getStaticPower();
+      double getLeakageEnergy();
 
       void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::AccessType access_type);
       int getDVFS(module_t module, double &frequency, double &voltage);
-      int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag);
+      int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag, const Time& curr_time);
    
    private:
       L1CacheCntlr* _L1_cache_cntlr;

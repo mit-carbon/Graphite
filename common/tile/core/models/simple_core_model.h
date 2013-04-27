@@ -9,12 +9,7 @@ public:
    SimpleCoreModel(Core *core);
    ~SimpleCoreModel();
 
-   void outputSummary(std::ostream &os);
-
-   void computeEnergy() {};
-
-   double getDynamicEnergy() { return 0; }
-   double getStaticPower()   { return 0; }
+   void outputSummary(std::ostream &os, const Time& target_completion_time);
 
 private:
    void handleInstruction(Instruction *instruction);

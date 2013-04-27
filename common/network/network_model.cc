@@ -483,13 +483,12 @@ NetworkModel::getDVFS(double &frequency, double &voltage)
 }
 
 int
-NetworkModel::setDVFS(double frequency, voltage_option_t voltage_flag)
+NetworkModel::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time)
 {
    int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
    if (rc==0)
    {
       _frequency = frequency;
-      //_mcpat_cache_interface->setDVFS(_voltage, _frequency);
    }
    return rc;
 }

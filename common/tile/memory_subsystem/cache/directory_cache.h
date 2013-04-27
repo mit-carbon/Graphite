@@ -12,6 +12,7 @@ using std::ostream;
 #include "directory_entry.h"
 #include "directory_type.h"
 #include "caching_protocol_type.h"
+#include "dvfs.h"
 
 class McPATCacheInterface;
 
@@ -45,7 +46,7 @@ public:
    void disable() { _enabled = false; }
 
    int getDVFS(double &frequency, double &voltage);
-   int setDVFS(double frequency, voltage_option_t voltage_flag);
+   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
 private:
    Tile* _tile;

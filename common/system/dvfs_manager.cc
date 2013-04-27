@@ -7,9 +7,10 @@ using std::make_pair;
 #include "simulator.h"
 #include "tile.h"
 #include "core.h"
+#include "network_model.h"
+#include "core_model.h"
 #include "packetize.h"
 #include "utils.h"
-#include "network_model.h"
 
 DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
 volatile double DVFSManager::_max_frequency;
@@ -67,9 +68,12 @@ DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, volta
    if (tile_id < 0 || (unsigned int) tile_id >= Config::getSingleton()->getApplicationTiles())
       return -1;
 
+   // Get current time
+   Time curr_time = _tile->getCore()->getModel()->getCurrTime();
+
    // send request
    UnstructuredBuffer send_buffer;
-   send_buffer << module_mask << frequency << voltage_flag;
+   send_buffer << module_mask << frequency << voltage_flag << curr_time;
    core_id_t remote_core_id = {tile_id, MAIN_CORE_TYPE};
    _tile->getNetwork()->netSend(remote_core_id, DVFS_SET_REQUEST, send_buffer.getBuffer(), send_buffer.size());
 
@@ -142,7 +146,7 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
 }
 
 int
-DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, core_id_t requester)
+DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, const Time& curr_time, core_id_t requester)
 {
    int rc = 0, rc_tmp = 0;
 
@@ -164,33 +168,33 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
    // Parse mask and set frequency and voltage
    else{
       if (module_mask & CORE){
-         rc_tmp = _tile->getCore()->setDVFS(frequency, voltage_flag);
+         rc_tmp = _tile->getCore()->setDVFS(frequency, voltage_flag, curr_time);
          if (rc_tmp != 0) rc = rc_tmp;
       }
       if (module_mask & L1_ICACHE){
-         rc_tmp = _tile->getMemoryManager()->setDVFS(L1_ICACHE, frequency, voltage_flag);
+         rc_tmp = _tile->getMemoryManager()->setDVFS(L1_ICACHE, frequency, voltage_flag, curr_time);
          if (rc_tmp != 0) rc = rc_tmp;
       }
       if (module_mask & L1_DCACHE){
-         rc_tmp = _tile->getMemoryManager()->setDVFS(L1_DCACHE, frequency, voltage_flag);
+         rc_tmp = _tile->getMemoryManager()->setDVFS(L1_DCACHE, frequency, voltage_flag, curr_time);
          if (rc_tmp != 0) rc = rc_tmp;
       }
       if (module_mask & L2_CACHE){
-         rc_tmp = _tile->getMemoryManager()->setDVFS(L2_CACHE, frequency, voltage_flag);
+         rc_tmp = _tile->getMemoryManager()->setDVFS(L2_CACHE, frequency, voltage_flag, curr_time);
          if (rc_tmp != 0) rc = rc_tmp;
       }
       if (module_mask & L2_DIRECTORY){
-         rc_tmp = _tile->getMemoryManager()->setDVFS(L2_DIRECTORY, frequency, voltage_flag);
+         rc_tmp = _tile->getMemoryManager()->setDVFS(L2_DIRECTORY, frequency, voltage_flag, curr_time);
          if (rc_tmp != 0 && module_mask != TILE) rc = rc_tmp;
       }
       if (module_mask & NETWORK_USER){
          NetworkModel* user_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(USER);
-         rc_tmp = user_network_model->setDVFS(frequency, voltage_flag);
+         rc_tmp = user_network_model->setDVFS(frequency, voltage_flag, curr_time);
          if (rc_tmp != 0) rc = rc_tmp;
       }
       if (module_mask & NETWORK_MEMORY){
          NetworkModel* mem_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(SHARED_MEM);
-         rc_tmp = mem_network_model->setDVFS(frequency, voltage_flag);
+         rc_tmp = mem_network_model->setDVFS(frequency, voltage_flag, curr_time);
          if (rc_tmp != 0) rc = rc_tmp;
       }
    }
@@ -227,13 +231,15 @@ setDVFSCallback(void* obj, NetPacket packet)
    int module_mask;
    double frequency;
    voltage_option_t voltage_flag;
+   Time curr_time;
    
    recv_buffer >> module_mask;
    recv_buffer >> frequency;
    recv_buffer >> voltage_flag;
+   recv_buffer >> curr_time;
 
    DVFSManager* dvfs_manager = (DVFSManager* ) obj;
-   dvfs_manager->doSetDVFS(module_mask, frequency, voltage_flag, packet.sender);
+   dvfs_manager->doSetDVFS(module_mask, frequency, voltage_flag, curr_time, packet.sender);
 }
 
 // Called to initialize DVFS Levels

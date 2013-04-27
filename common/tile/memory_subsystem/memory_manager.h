@@ -27,7 +27,7 @@ public:
 
    void __handleMsgFromNetwork(NetPacket& packet);
 
-   virtual void outputSummary(std::ostream& os);
+   virtual void outputSummary(std::ostream& os, const Time& target_completion_time);
 
    Tile* getTile()                        { return _tile; }
    ShmemPerfModel* getShmemPerfModel()    { return _shmem_perf_model; }
@@ -51,10 +51,10 @@ public:
    static CachingProtocolType parseProtocolType(std::string& protocol_type);
    static MemoryManager* createMMU(std::string protocol_type, Tile* tile, double frequency, double voltage);
    
-   virtual void computeEnergy() = 0;
+   virtual void computeEnergy(const Time& curr_time) = 0;
 
    virtual double getDynamicEnergy() = 0;
-   virtual double getStaticPower() = 0;
+   virtual double getLeakageEnergy() = 0;
 
    // Cache line replication trace
    static void openCacheLineReplicationTraceFiles();
@@ -62,7 +62,7 @@ public:
    static void outputCacheLineReplicationSummary();
 
    virtual int getDVFS(module_t module, double &frequency, double &voltage) = 0;
-   virtual int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag) = 0;
+   virtual int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag, const Time& curr_time) = 0;
 
 protected:
    Network* getNetwork() { return _network; }

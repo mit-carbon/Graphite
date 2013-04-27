@@ -8,11 +8,12 @@ using std::ostream;
 class Network;
 class Core;
 class MemoryManager;
-class TileEnergyMonitor;
+// class TileEnergyMonitor;
+class RemoteQueryHelper;
+class DVFSManager;
 
 #include "fixed_types.h"
 #include "network.h"
-#include "dvfs_manager.h"
 
 class Tile
 {
@@ -27,7 +28,10 @@ public:
    Core* getCore()                     { return _core; }
    MemoryManager* getMemoryManager()   { return _memory_manager; }
    DVFSManager* getDVFSManager()       { return _dvfs_manager; }
-   TileEnergyMonitor* getTileEnergyMonitor()       { return _tile_energy_monitor; }
+   // TileEnergyMonitor* getTileEnergyMonitor()       { return _tile_energy_monitor; }
+   RemoteQueryHelper* getRemoteQueryHelper()       { return _remote_query_helper; }
+
+   Time getCoreTime(tile_id_t tile_id) const;
 
    static core_id_t getMainCoreId(tile_id_t id)    { return (core_id_t) {id, MAIN_CORE_TYPE}; }
    static bool isMainCore(core_id_t core_id)       { return (core_id.core_type == MAIN_CORE_TYPE); }
@@ -41,7 +45,8 @@ private:
    Core* _core;
    MemoryManager* _memory_manager;
    DVFSManager* _dvfs_manager;
-   TileEnergyMonitor* _tile_energy_monitor;
+   // TileEnergyMonitor* _tile_energy_monitor;
+   RemoteQueryHelper* _remote_query_helper;
 };
 
 #endif

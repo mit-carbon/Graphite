@@ -102,7 +102,7 @@ public:
    // dvfs
    volatile double getFrequency() { return _frequency; }
    int getDVFS(double &frequency, double &voltage);
-   int setDVFS(double frequency, voltage_option_t voltage_flag);
+   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
 protected:
    class NextDest

@@ -379,7 +379,7 @@ Cache::getCacheLineStateCounters(vector<UInt64>& cache_line_state_counters) cons
 }
 
 void
-Cache::outputSummary(ostream& out)
+Cache::outputSummary(ostream& out, const Time& target_completion_time)
 {
    // Cache Miss Summary
    out << "  Cache " << _name << ": "<< endl;
@@ -417,8 +417,8 @@ Cache::outputSummary(ostream& out)
    // Output Power and Area Summaries
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      _mcpat_cache_interface->computeEnergy(this);
-      _mcpat_cache_interface->outputSummary(out);
+      _mcpat_cache_interface->computeEnergy(target_completion_time);
+      _mcpat_cache_interface->outputSummary(out, target_completion_time);
    }
 
    // Track miss types
@@ -438,20 +438,19 @@ Cache::outputSummary(ostream& out)
    out << "      Data Array Writes: " << _event_counters[DATA_ARRAY_WRITE] << endl;
 }
 
-void Cache::computeEnergy()
+void Cache::computeEnergy(const Time& curr_time)
 {
-   _mcpat_cache_interface->computeEnergy(this);
+   _mcpat_cache_interface->computeEnergy(curr_time);
 }
 
 double Cache::getDynamicEnergy()
 {
-   double dynamic_energy = _mcpat_cache_interface->getDynamicEnergy();
-   return dynamic_energy;
+   return _mcpat_cache_interface->getDynamicEnergy();
 }
-double Cache::getStaticPower()
+
+double Cache::getLeakageEnergy()
 {
-   double static_power = _mcpat_cache_interface->getStaticPower();
-   return static_power;
+   return _mcpat_cache_interface->getLeakageEnergy();
 }
 
 // Utilities
@@ -505,7 +504,7 @@ Cache::getDVFS(double &frequency, double &voltage)
 }
 
 int
-Cache::setDVFS(double frequency, voltage_option_t voltage_flag)
+Cache::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time)
 {
    int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
    if (rc==0)
@@ -514,7 +513,7 @@ Cache::setDVFS(double frequency, voltage_option_t voltage_flag)
       _perf_model->setDVFS(_frequency);
 
       if (Config::getSingleton()->getEnablePowerModeling())
-         _mcpat_cache_interface->setDVFS(_voltage, _frequency);
+         _mcpat_cache_interface->setDVFS(_voltage, _frequency, curr_time);
    }
    return rc;
 }

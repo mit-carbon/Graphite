@@ -249,10 +249,10 @@ Core::getPacketTypeFromUserNetType(carbon_network_t net_type)
 }
 
 void
-Core::outputSummary(ostream& os)
+Core::outputSummary(ostream& os, const Time& target_completion_time)
 {
    if (_core_model)
-      _core_model->outputSummary(os);
+      _core_model->outputSummary(os, target_completion_time);
    
    UInt64 total_instruction_memory_access_latency_in_ns = _total_instruction_memory_access_latency.toNanosec();
    UInt64 total_data_memory_access_latency_in_ns = _total_data_memory_access_latency.toNanosec();
@@ -335,14 +335,14 @@ Core::getDVFS(double &frequency, double &voltage)
 }
 
 int
-Core::setDVFS(double frequency, voltage_option_t voltage_flag)
+Core::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time)
 {
    int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
 
-   if (rc==0){
-      _core_model->setDVFS(_frequency, _voltage, frequency);
+   if (rc==0)
+   {
+      _core_model->setDVFS(_frequency, _voltage, frequency, curr_time);
       _frequency = frequency;
    }
-
    return rc;
 }

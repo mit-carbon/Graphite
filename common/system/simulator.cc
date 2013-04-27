@@ -146,11 +146,9 @@ Simulator::~Simulator()
    if (m_statistics_thread)
       m_statistics_thread->finish();
 
-   m_sim_thread_manager->quitSimThreads();
+   m_lcp->finish();
 
    m_transport->barrier();
-
-   m_lcp->finish();
 
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
    {
@@ -172,6 +170,10 @@ Simulator::~Simulator()
       m_tile_manager->outputSummary(temp);
       assert(temp.str().length() == 0);
    }
+
+   m_sim_thread_manager->quitSimThreads();
+
+   m_transport->barrier();
 
    delete m_lcp_thread;
    delete m_mcp_thread;

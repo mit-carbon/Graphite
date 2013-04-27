@@ -115,21 +115,20 @@ public:
    
    void enable()     { _enabled = true; }
    void disable()    { _enabled = false; }
-   void reset()      {}
    
-   virtual void outputSummary(ostream& out);
+   void outputSummary(ostream& out, const Time& target_completion_time);
 
-   void computeEnergy();
+   void computeEnergy(const Time& curr_time);
 
    double getDynamicEnergy();
-   double getStaticPower();
+   double getLeakageEnergy();
 
    // Friend class
    friend class McPATCacheInterface;
 
    double getFrequency() const {return _frequency;};
    int getDVFS(double &frequency, double &voltage);
-   int setDVFS(double frequency, voltage_option_t voltage_flag);
+   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
 
 private:

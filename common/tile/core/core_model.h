@@ -28,10 +28,10 @@ public:
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 
-   void setDVFS(double old_frequency, double new_voltage, double new_frequency);
+   void setDVFS(double old_frequency, double new_voltage, double new_frequency, const Time& curr_time);
    void recomputeAverageFrequency(double frequency); 
 
-   Time getCurrTime() {return m_curr_time; }
+   Time getCurrTime() { return m_curr_time; }
    void setCurrTime(Time time);
 
    void pushDynamicInstructionInfo(DynamicInstructionInfo &i);
@@ -44,19 +44,19 @@ public:
 
    void enable();
    void disable();
-   bool isEnabled() { return m_enabled; }
+   bool isEnabled()  { return m_enabled; }
 
-   virtual void outputSummary(std::ostream &os) = 0;
+   virtual void outputSummary(std::ostream &os, const Time& target_completion_time) = 0;
 
-   void computeEnergy();
+   void computeEnergy(const Time& curr_time);
    double getDynamicEnergy();
-   double getStaticPower();
+   double getLeakageEnergy();
 
    class AbortInstructionException { };
 
    Time getCost(InstructionType type);
 
-   Core* getCore(){return m_core;};
+   Core* getCore()   { return m_core; }
 
 protected:
    enum RegType
@@ -130,7 +130,6 @@ private:
    Time m_total_execution_unit_stall_time;
 
    // Power/Area modeling
-   bool m_enable_area_or_power_modeling;
    McPATCoreInterface* m_mcpat_core_interface;
 };
 

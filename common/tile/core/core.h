@@ -76,7 +76,7 @@ public:
    State getState()                          { return _state; }
    void setState(State state)                { _state = state; }
   
-   void outputSummary(ostream& os);
+   void outputSummary(ostream& os, const Time& target_completion_time);
 
    void enableModels();
    void disableModels();
@@ -85,7 +85,7 @@ public:
    double getVoltage() const                 { return _voltage; }
 
    int getDVFS(double &frequency, double &voltage);
-   int setDVFS(double frequency, voltage_option_t voltage_flag);
+   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
 private:
    core_id_t _id;

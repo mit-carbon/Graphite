@@ -246,10 +246,19 @@ setDVFSCallback(void* obj, NetPacket packet)
 void
 DVFSManager::initializeDVFSLevels()
 {
-   UInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node");
+   UInt32 technology_node = 0;
+   try
+   {
+      technology_node = Sim()->getCfg()->getInt("general/technology_node");
+      _max_frequency = Sim()->getCfg()->getFloat("general/max_frequency");
+   }
+   catch (...)
+   {
+      LOG_PRINT_ERROR("Could not either read [general/technology_node] or [general/max_frequency] from the cfg file");
+   }
+
    string input_filename = Sim()->getGraphiteHome() + "/technology/dvfs_levels_" + convertToString<UInt32>(technology_node) + "nm.cfg";
    ifstream input_file(input_filename.c_str());
-   bool first_line = true;
    while (1)
    {
       char line_c[1024];
@@ -262,19 +271,12 @@ DVFSManager::initializeDVFSLevels()
          continue;
       if (line[0] == '#')  // Comment
          continue;
-      if (first_line)
-      {
-         _max_frequency = Sim()->getCfg()->getFloat("general/max_frequency");
-         first_line = false;
-      }
-      else
-      {
-         vector<string> tokens;
-         splitIntoTokens(line, tokens, " ");
-         double voltage = convertFromString<double>(tokens[0]);
-         double frequency_factor = convertFromString<double>(tokens[1]);
-         _dvfs_levels.push_back(make_pair(voltage, frequency_factor * _max_frequency));
-      }
+      
+      vector<string> tokens;
+      splitIntoTokens(line, tokens, " ");
+      double voltage = convertFromString<double>(tokens[0]);
+      double frequency_factor = convertFromString<double>(tokens[1]);
+      _dvfs_levels.push_back(make_pair(voltage, frequency_factor * _max_frequency));
    }
 }
 

@@ -39,10 +39,30 @@ int CarbonSetDVFS(tile_id_t tile_id, int module_mask, double* frequency, voltage
 {
    // Floating Point Save/Restore
    FloatingPointHandler floating_point_handler;
-   
+
+   if ((module_mask & NETWORK_MEMORY) || (module_mask & NETWORK_USER)){
+      return -2;
+   }
+
    int rc;
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    rc = tile->getDVFSManager()->setDVFS(tile_id, module_mask, *frequency, voltage_flag);
+
+   return rc;
+}
+
+// Set DVFS
+int CarbonSetDVFSAllTiles(int module_mask, double* frequency, voltage_option_t voltage_flag)
+{
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+   
+   int rc=0;
+   for (unsigned int i=0; i<Config::getSingleton()->getApplicationTiles(); i++){
+      Tile* tile = Sim()->getTileManager()->getTileFromID(i);
+      int rc_tmp = tile->getDVFSManager()->setDVFS(i, module_mask, *frequency, voltage_flag);
+      if (rc_tmp != 0) rc = rc_tmp;
+   }
 
    return rc;
 }

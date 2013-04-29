@@ -101,6 +101,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonGetFrequency") msg_ptr = AFUNPTR(replacementCarbonGetFrequency);
    else if (name == "CarbonGetVoltage") msg_ptr = AFUNPTR(replacementCarbonGetVoltage);
    else if (name == "CarbonSetDVFS") msg_ptr = AFUNPTR(replacementCarbonSetDVFS);
+   else if (name == "CarbonSetDVFSAllTiles") msg_ptr = AFUNPTR(replacementCarbonSetDVFSAllTiles);
 
    // Turn off performance modeling at _start()
    if (name == "_start")
@@ -958,6 +959,27 @@ void replacementCarbonSetDVFS(CONTEXT *ctxt)
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
 
    ADDRINT ret_val = CarbonSetDVFS(tile_id, module_mask, &frequency_buf, voltage_flag);
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonSetDVFSAllTiles(CONTEXT *ctxt)
+{
+   int module_mask;
+   double* frequency;
+   voltage_option_t voltage_flag;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &module_mask,
+         IARG_PTR, &frequency,
+         IARG_UINT32, &voltage_flag,
+         CARBON_IARG_END);
+
+   double frequency_buf;
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
+
+   ADDRINT ret_val = CarbonSetDVFSAllTiles(module_mask, &frequency_buf, voltage_flag);
 
    retFromReplacedRtn(ctxt, ret_val);
 }

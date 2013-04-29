@@ -7,6 +7,7 @@ using namespace std;
 #include "tile_manager.h"
 #include "tile.h"
 #include "log.h"
+#include "dvfs.h"
 
 // The Pintool can easily read from application memory, so
 // we dont need to explicitly initialize stuff and do a special ret
@@ -539,6 +540,25 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
+            IARG_END);
+   }
+
+   else if (rtn_name == "CarbonSetDVFSAllTiles")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(int),
+            CALLINGSTD_DEFAULT,
+            "CarbonSetDVFSAllTiles",
+            PIN_PARG(int),
+            PIN_PARG(double*),
+            PIN_PARG(voltage_option_t),
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonSetDVFSAllTiles),
+            IARG_PROTOTYPE, proto,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_END);
    }
 }

@@ -264,7 +264,7 @@ DVFSManager::initializeDVFSLevels()
          continue;
       if (first_line)
       {
-         _max_frequency = convertFromString<double>(line);
+         _max_frequency = Sim()->getCfg()->getFloat("general/max_frequency");
          first_line = false;
       }
       else

@@ -893,7 +893,6 @@ void replacementCarbonGetDVFS(CONTEXT *ctxt)
    core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) voltage, (char*) &voltage_buf, sizeof(voltage_buf));
 
    retFromReplacedRtn(ctxt, ret_val);
-   
 }
 
 void replacementCarbonGetFrequency(CONTEXT *ctxt)

@@ -12,7 +12,6 @@ int CarbonGetDVFS(tile_id_t tile_id, module_t module_type, double* frequency, do
    int rc;
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    rc = tile->getDVFSManager()->getDVFS(tile_id, module_type, frequency, voltage);
-
    return rc;
 }
 
@@ -47,7 +46,6 @@ int CarbonSetDVFS(tile_id_t tile_id, int module_mask, double* frequency, voltage
    int rc;
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    rc = tile->getDVFSManager()->setDVFS(tile_id, module_mask, *frequency, voltage_flag);
-
    return rc;
 }
 
@@ -58,11 +56,11 @@ int CarbonSetDVFSAllTiles(int module_mask, double* frequency, voltage_option_t v
    FloatingPointHandler floating_point_handler;
    
    int rc=0;
-   for (unsigned int i=0; i<Config::getSingleton()->getApplicationTiles(); i++){
-      Tile* tile = Sim()->getTileManager()->getTileFromID(i);
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+   for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getApplicationTiles(); i++)
+   {
       int rc_tmp = tile->getDVFSManager()->setDVFS(i, module_mask, *frequency, voltage_flag);
       if (rc_tmp != 0) rc = rc_tmp;
    }
-
    return rc;
 }

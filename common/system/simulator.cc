@@ -45,7 +45,6 @@ void Simulator::setConfig(config::Config *cfg)
 
 void Simulator::release()
 {
-   // Fxsupport::fini();
    delete m_singleton;
    m_singleton = NULL;
 }

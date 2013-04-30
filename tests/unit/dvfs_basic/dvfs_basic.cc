@@ -31,24 +31,25 @@ int main()
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    // remote core
-   rc = CarbonGetDVFS(10, CORE, &frequency, &voltage);
+   rc = CarbonGetDVFS(1, CORE, &frequency, &voltage);
    assert(rc == 0);
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 2.0;
-   rc = CarbonSetDVFS(10, CORE, &frequency, AUTO);
+   rc = CarbonSetDVFS(1, CORE, &frequency, AUTO);
    assert(rc == 0);
 
-   rc = CarbonGetDVFS(10, CORE, &frequency, &voltage);
+   rc = CarbonGetDVFS(1, CORE, &frequency, &voltage);
    assert(rc == 0);
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 1.0;
-   rc = CarbonSetDVFS(10, CORE, &frequency, HOLD);
+   rc = CarbonSetDVFS(1, CORE, &frequency, HOLD);
    assert(rc == 0);
 
-   rc = CarbonGetDVFS(10, CORE, &frequency, &voltage);
+   rc = CarbonGetDVFS(1, CORE, &frequency, &voltage);
    assert(rc == 0);
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
+   return 0;
 }

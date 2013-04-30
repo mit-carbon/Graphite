@@ -456,7 +456,7 @@ void routineCallback(RTN rtn, void* v)
             PIN_PARG(CAPI_endpoint_t),
             PIN_PARG(char*),
             PIN_PARG(int),
-            PIN_PARG(UInt32),
+            PIN_PARG_ENUM(carbon_network_t),
             PIN_PARG_END());
 
       RTN_ReplaceSignature(rtn,
@@ -480,7 +480,7 @@ void routineCallback(RTN rtn, void* v)
             PIN_PARG(CAPI_endpoint_t),
             PIN_PARG(char*),
             PIN_PARG(int),
-            PIN_PARG(UInt32),
+            PIN_PARG_ENUM(carbon_network_t),
             PIN_PARG_END());
 
       RTN_ReplaceSignature(rtn,
@@ -519,7 +519,7 @@ void routineCallback(RTN rtn, void* v)
             CALLINGSTD_DEFAULT,
             "CarbonGetDVFS",
             PIN_PARG(tile_id_t),
-            PIN_PARG(module_t),
+            PIN_PARG_ENUM(module_t),
             PIN_PARG(double*),
             PIN_PARG(double*),
             PIN_PARG_END());
@@ -542,7 +542,7 @@ void routineCallback(RTN rtn, void* v)
             CALLINGSTD_DEFAULT,
             "CarbonGetFrequency",
             PIN_PARG(tile_id_t),
-            PIN_PARG(module_t),
+            PIN_PARG_ENUM(module_t),
             PIN_PARG(double*),
             PIN_PARG_END());
 
@@ -563,7 +563,7 @@ void routineCallback(RTN rtn, void* v)
             CALLINGSTD_DEFAULT,
             "CarbonGetVoltage",
             PIN_PARG(tile_id_t),
-            PIN_PARG(module_t),
+            PIN_PARG_ENUM(module_t),
             PIN_PARG(double*),
             PIN_PARG_END());
 
@@ -586,7 +586,7 @@ void routineCallback(RTN rtn, void* v)
             PIN_PARG(tile_id_t),
             PIN_PARG(int),
             PIN_PARG(double*),
-            PIN_PARG(voltage_option_t),
+            PIN_PARG_ENUM(voltage_option_t),
             PIN_PARG_END());
 
       RTN_ReplaceSignature(rtn,
@@ -608,7 +608,7 @@ void routineCallback(RTN rtn, void* v)
             "CarbonSetDVFSAllTiles",
             PIN_PARG(int),
             PIN_PARG(double*),
-            PIN_PARG(voltage_option_t),
+            PIN_PARG_ENUM(voltage_option_t),
             PIN_PARG_END());
 
       RTN_ReplaceSignature(rtn,

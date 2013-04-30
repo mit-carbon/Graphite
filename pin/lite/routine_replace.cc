@@ -34,6 +34,8 @@ void routineCallback(RTN rtn, void* v)
             AFUNPTR(CarbonEnableModels),
             IARG_PROTOTYPE, proto,
             IARG_END);
+
+      PROTO_Free(proto);
    }
  
    // Disable Models
@@ -48,6 +50,8 @@ void routineCallback(RTN rtn, void* v)
             AFUNPTR(CarbonDisableModels),
             IARG_PROTOTYPE, proto,
             IARG_END);
+
+      PROTO_Free(proto);
    }
 
    // _start
@@ -100,6 +104,8 @@ void routineCallback(RTN rtn, void* v)
             AFUNPTR(lite::nullFunction),
             IARG_PROTOTYPE, proto,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CarbonStopSim")
    {
@@ -112,6 +118,8 @@ void routineCallback(RTN rtn, void* v)
             AFUNPTR(lite::nullFunction),
             IARG_PROTOTYPE, proto,
             IARG_END);
+
+      PROTO_Free(proto);
    }
 
    // Get Tile ID
@@ -126,6 +134,8 @@ void routineCallback(RTN rtn, void* v)
             AFUNPTR(CarbonGetTileId),
             IARG_PROTOTYPE, proto,
             IARG_END);
+
+      PROTO_Free(proto);
    }
 
    // Thread Creation
@@ -145,6 +155,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name.find("pthread_create") != string::npos)
    {
@@ -167,6 +179,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    // Thread Joining
    else if (rtn_name == "CarbonJoinThread")
@@ -183,6 +197,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_CONTEXT,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name.find("pthread_join") != string::npos)
    {
@@ -201,6 +217,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    // Synchronization
    else if (rtn_name == "CarbonMutexInit")
@@ -216,6 +234,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CarbonMutexLock")
    {
@@ -230,6 +250,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CarbonMutexUnlock")
    {
@@ -244,6 +266,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CarbonCondInit")
    {
@@ -258,6 +282,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CarbonCondWait")
    {
@@ -274,6 +300,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CarbonCondSignal")
    {
@@ -288,6 +316,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CarbonCondBroadcast")
    {
@@ -302,6 +332,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CarbonBarrierInit")
    {
@@ -318,6 +350,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CarbonBarrierWait")
    {
@@ -332,6 +366,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    
    // CAPI Functions
@@ -348,6 +384,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CAPI_rank")
    {
@@ -362,6 +400,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CAPI_message_send_w")
    {
@@ -382,6 +422,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CAPI_message_receive_w")
    {
@@ -402,6 +444,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CAPI_message_send_w_ex")
    {
@@ -424,6 +468,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 4,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    else if (rtn_name == "CAPI_message_receive_w_ex")
    {
@@ -446,6 +492,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 4,
             IARG_END);
+
+      PROTO_Free(proto);
    }
 
    // Getting Simulated Time
@@ -460,6 +508,8 @@ void routineCallback(RTN rtn, void* v)
             AFUNPTR(CarbonGetTime),
             IARG_PROTOTYPE, proto,
             IARG_END);
+
+      PROTO_Free(proto);
    }
 
    // Dynamic voltage frequency updating
@@ -482,6 +532,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
             IARG_END);
+
+      PROTO_Free(proto);
    }
 
    else if (rtn_name == "CarbonGetFrequency")
@@ -501,6 +553,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_END);
+
+      PROTO_Free(proto);
    }
 
    else if (rtn_name == "CarbonGetVoltage")
@@ -520,6 +574,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_END);
+
+      PROTO_Free(proto);
    }
    
    else if (rtn_name == "CarbonSetDVFS")
@@ -541,6 +597,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 3,
             IARG_END);
+
+      PROTO_Free(proto);
    }
 
    else if (rtn_name == "CarbonSetDVFSAllTiles")
@@ -560,6 +618,8 @@ void routineCallback(RTN rtn, void* v)
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_END);
+
+      PROTO_Free(proto);
    }
 }
 

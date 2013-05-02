@@ -508,7 +508,7 @@ void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count)
 }
 
 //---------------------------------------------------------------------------
-// Compute Energy from McPat
+// Compute Energy from McPAT
 //---------------------------------------------------------------------------
 void McPATCoreInterface::computeEnergy(const Time& curr_time)
 {
@@ -779,7 +779,7 @@ void McPATCoreInterface::updateOutputDataStructure(double time_interval)
 }
 
 //---------------------------------------------------------------------------
-// Collect Energy from McPat
+// Collect Energy from McPAT
 //---------------------------------------------------------------------------
 double McPATCoreInterface::getDynamicEnergy()
 {

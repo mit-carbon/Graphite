@@ -1,55 +1,58 @@
 #pragma once
 
+#include <map>
+using std::map;
+
 #include "fixed_types.h"
+#include "time_types.h"
 #include "contrib/dsent/dsent_contrib.h"
 
 class RouterPowerModel
 {
 public:
-   RouterPowerModel(double frequency, UInt32 num_input_ports, UInt32 num_output_ports, UInt32 num_flits_per_port_buffer, UInt32 flit_width);
+   RouterPowerModel(double frequency, double voltage, UInt32 num_input_ports, UInt32 num_output_ports,
+                    UInt32 num_flits_per_port_buffer, UInt32 flit_width);
    ~RouterPowerModel();
 
-   // Update Dynamic Energy
-   void updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets, UInt32 multicast_idx = 1);
-   
+   // Change voltage, frequency dynamically
+   void setDVFS(double frequency, double voltage, const Time& curr_time);
+
+   // Compute Energy upto this point 
+   void computeEnergy(const Time& curr_time);
    // Get Dynamic Energy
-   volatile double getDynamicEnergy()
+   double getDynamicEnergy()
    {  
       return (_total_dynamic_energy_buffer + _total_dynamic_energy_crossbar + 
               _total_dynamic_energy_switch_allocator + _total_dynamic_energy_clock);
    }
-   volatile double getDynamicEnergyBuffer()           { return _total_dynamic_energy_buffer;             }
-   volatile double getDynamicEnergyCrossbar()         { return _total_dynamic_energy_crossbar;           }
-   volatile double getDynamicEnergySwitchAllocator()  { return _total_dynamic_energy_switch_allocator;   }
-   volatile double getDynamicEnergyClock()            { return _total_dynamic_energy_clock;              }
-   
-   // Static Power
-   volatile double getStaticPowerBuffer()             { return _dsent_router->get_static_power_buf();    }
-   volatile double getStaticPowerBufferCrossbar()     { return _dsent_router->get_static_power_xbar();   }
-   volatile double getStaticPowerSwitchAllocator()    { return _dsent_router->get_static_power_sa();     }
-   volatile double getStaticPowerClock()              { return _dsent_router->get_static_power_clock();  }
-   volatile double getStaticPower()
-   {
-      return (_dsent_router->get_static_power_buf() + _dsent_router->get_static_power_xbar() +
-              _dsent_router->get_static_power_sa() + _dsent_router->get_static_power_clock());
+   // Get Static Energy
+   double getStaticEnergy()
+   { 
+      return _total_static_energy;
    }
 
+   // Update Dynamic Energy
+   void updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets, UInt32 multicast_idx = 1);
+ 
 private:
-   volatile double _frequency;
    UInt32 _num_input_ports;
    UInt32 _num_output_ports;
-   UInt32 _num_flits_per_port_buffer;
-   UInt32 _flit_width;
 
+   map<volatile double, dsent_contrib::DSENTRouter*> _dsent_router_map;
    dsent_contrib::DSENTRouter* _dsent_router;
 
+   // Energy counters
    volatile double _total_dynamic_energy_buffer;
    volatile double _total_dynamic_energy_crossbar;
    volatile double _total_dynamic_energy_switch_allocator;
    volatile double _total_dynamic_energy_clock;
+   volatile double _total_static_energy;
+   // Last energy compute time
+   Time _last_energy_compute_time;
 
-   void initializeCounters();
-   
+   void initializeEnergyCounters();
+   double getStaticPower() const;
+
    void updateDynamicEnergyBufferWrite(UInt32 num_flits);
    void updateDynamicEnergyBufferRead(UInt32 num_flits);
    void updateDynamicEnergyCrossbar(UInt32 num_flits, UInt32 multicast_idx);

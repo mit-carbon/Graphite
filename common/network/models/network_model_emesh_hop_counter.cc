@@ -9,14 +9,10 @@
 #include "constants.h"
 
 NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 network_id, double frequency, double voltage)
-   : NetworkModel(net, network_id)
+   : NetworkModel(net, network_id, frequency, voltage)
    , _router_power_model(NULL)
    , _electrical_link_power_model(NULL)
 {
-
-   _frequency = frequency;
-   _voltage = voltage;
-
    SInt32 num_application_tiles = Config::getSingleton()->getApplicationTiles();
 
    _mesh_width = (SInt32) floor (sqrt(num_application_tiles));
@@ -90,9 +86,9 @@ NetworkModelEMeshHopCounter::createRouterAndLinkModels()
    UInt32 num_router_ports = 5;
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      _router_power_model = new RouterPowerModel(_frequency, num_router_ports, num_router_ports,
+      _router_power_model = new RouterPowerModel(_frequency, _voltage, num_router_ports, num_router_ports,
                                                  num_flits_per_output_buffer, _flit_width);
-      _electrical_link_power_model = new ElectricalLinkPowerModel(link_type, _frequency, link_length, _flit_width);
+      _electrical_link_power_model = new ElectricalLinkPowerModel(link_type, _frequency, _voltage, link_length, _flit_width);
    }
 
 }
@@ -161,10 +157,10 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt, queue<Hop> &next_
 }
 
 void
-NetworkModelEMeshHopCounter::outputSummary(std::ostream &out)
+NetworkModelEMeshHopCounter::outputSummary(std::ostream &out, const Time& target_completion_time)
 {
-   NetworkModel::outputSummary(out);
-   outputPowerSummary(out);
+   NetworkModel::outputSummary(out, target_completion_time);
+   outputPowerSummary(out, target_completion_time);
    outputEventCountSummary(out);
 }
 
@@ -189,25 +185,31 @@ NetworkModelEMeshHopCounter::updateDynamicEnergy(const NetPacket& packet, UInt32
 }
 
 void
-NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out)
+NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out, const Time& target_completion_time)
 {
    if (!Config::getSingleton()->getEnablePowerModeling())
       return;
+
+   double target_completion_sec = target_completion_time.toSec();
 
    out << "    Energy Counters: " << endl;
    if (isApplicationTile(_tile_id))
    {
       // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
-      volatile double static_power = _router_power_model->getStaticPower() +
-                                     (_electrical_link_power_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
-      volatile double dynamic_energy = _router_power_model->getDynamicEnergy() +
-                                       _electrical_link_power_model->getDynamicEnergy();
-      out << "      Static Power (in W): " << static_power << endl;
-      out << "      Dynamic Energy (in J): " << dynamic_energy << endl;
+      double static_energy = _router_power_model->getStaticEnergy() +
+                            (_electrical_link_power_model->getStaticEnergy() * _NUM_OUTPUT_DIRECTIONS);
+      double dynamic_energy = _router_power_model->getDynamicEnergy() +
+                              _electrical_link_power_model->getDynamicEnergy();
+      out << "      Average Static Power (in W): " << static_energy / target_completion_sec << endl;
+      out << "      Average Dynamic Power (in W): " << dynamic_energy / target_completion_sec << endl;
+      out << "      Total Static Energy (in J): " << static_energy << endl;
+      out << "      Total Dynamic Energy (in J): " << dynamic_energy << endl;
    }
    else if (isSystemTile(_tile_id))
    {
-      out << "      Static Power (in W): " << endl;
+      out << "      Average Static Power (in W): " << endl;
+      out << "      Average Dynamic Power (in W): " << endl;
+      out << "      Static Energy (in J): " << endl;
       out << "      Dynamic Energy (in J): " << endl;
    }
    else
@@ -242,15 +244,32 @@ NetworkModelEMeshHopCounter::outputEventCountSummary(ostream& out)
    }
 }
 
-double NetworkModelEMeshHopCounter::getDynamicEnergy()
+void
+NetworkModelEMeshHopCounter::setDVFS(double frequency, double voltage, const Time& curr_time)
+{
+   _router_power_model->setDVFS(frequency, voltage, curr_time);
+   _electrical_link_power_model->setDVFS(frequency, voltage, curr_time);
+}
+
+void
+NetworkModelEMeshHopCounter::computeEnergy(const Time& curr_time)
+{
+   _router_power_model->computeEnergy(curr_time);
+   _electrical_link_power_model->computeEnergy(curr_time);
+}
+
+double
+NetworkModelEMeshHopCounter::getDynamicEnergy()
 {
    double dynamic_energy = _router_power_model->getDynamicEnergy() +
                            _electrical_link_power_model->getDynamicEnergy();
    return dynamic_energy;
 }
-double NetworkModelEMeshHopCounter::getStaticPower()
+
+double
+NetworkModelEMeshHopCounter::getStaticEnergy()
 {
-   double static_power = _router_power_model->getStaticPower() +
-                           (_electrical_link_power_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
-   return static_power;
+   double static_energy = _router_power_model->getStaticEnergy() +
+                          (_electrical_link_power_model->getStaticEnergy() * _NUM_OUTPUT_DIRECTIONS);
+   return static_energy;
 }

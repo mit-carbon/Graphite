@@ -10,10 +10,6 @@ public:
    ~NetworkModelMagic();
 
    void routePacket(const NetPacket &pkt, queue<Hop>& next_hops);
-   void outputSummary(std::ostream &out);
-
-   double getDynamicEnergy() { return 0; }
-   double getStaticPower()   { return 0; }
 };
 
 #endif /* NETWORK_MODEL_MAGIC_H */

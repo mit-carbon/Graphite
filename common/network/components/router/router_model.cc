@@ -7,7 +7,7 @@
 #include "log.h"
 #include "time_types.h"
 
-RouterModel::RouterModel(NetworkModel* model, double frequency,
+RouterModel::RouterModel(NetworkModel* model, double frequency, double voltage,
                          SInt32 num_input_ports, SInt32 num_output_ports,
                          SInt32 num_flits_per_port_buffer, UInt64 delay, SInt32 flit_width,
                          bool contention_model_enabled, string& contention_model_type)
@@ -15,7 +15,6 @@ RouterModel::RouterModel(NetworkModel* model, double frequency,
    , _frequency(frequency)
    , _num_input_ports(num_input_ports)
    , _num_output_ports(num_output_ports)
-   , _flit_width(flit_width)
    , _delay(delay)
    , _contention_model_enabled(contention_model_enabled)
    , _power_model(NULL)
@@ -31,7 +30,10 @@ RouterModel::RouterModel(NetworkModel* model, double frequency,
    initializeContentionCounters();
    
    if (Config::getSingleton()->getEnablePowerModeling())
-      _power_model = new RouterPowerModel(_frequency, _num_input_ports, _num_output_ports, num_flits_per_port_buffer, flit_width);
+   {
+      _power_model = new RouterPowerModel(_frequency, voltage, _num_input_ports, _num_output_ports,
+                                          num_flits_per_port_buffer, flit_width);
+   }
 }
 
 RouterModel::~RouterModel()

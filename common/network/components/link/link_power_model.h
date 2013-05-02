@@ -1,29 +1,23 @@
 #pragma once
 
 #include "fixed_types.h"
+#include "time_types.h"
 
 class LinkPowerModel
 {
 public:
-   LinkPowerModel(double frequency, double link_length, UInt32 link_width)
-      : _frequency(frequency)
-      , _link_length(link_length)
-      , _link_width(link_width)
-      , _total_static_power(0.0)
-      , _total_dynamic_energy(0.0)
-   {}
-   virtual ~LinkPowerModel() {}
+   LinkPowerModel();
+   virtual ~LinkPowerModel();
 
-   volatile double getStaticPower()    { return _total_static_power;    }
-   volatile double getDynamicEnergy()  { return _total_dynamic_energy;  }
+   virtual void setDVFS(double frequency, double voltage, const Time& curr_time) = 0;
+   virtual void computeEnergy(const Time& curr_time) = 0;
+   double getDynamicEnergy()  { return _total_dynamic_energy;  }
+   double getStaticEnergy()   { return _total_static_energy;   }
    
 protected:
-   // Input parameters
-   volatile double _frequency;
-   volatile double _link_length;
-   UInt32 _link_width;
-   
    // Output parameters 
-   volatile double _total_static_power;
    volatile double _total_dynamic_energy;
+   volatile double _total_static_energy;
+   // Last energy compute time
+   Time _last_energy_compute_time;
 };

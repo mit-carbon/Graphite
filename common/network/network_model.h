@@ -39,8 +39,8 @@ using std::pair;
 class NetworkModel
 {
 public:
-   NetworkModel(Network *network, SInt32 network_id);
-   virtual ~NetworkModel() { }
+   NetworkModel(Network *network, SInt32 network_id, double frequency, double voltage);
+   virtual ~NetworkModel() {}
 
    class Hop
    {
@@ -70,13 +70,22 @@ public:
    void __routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
    void __processReceivedPacket(NetPacket &pkt);
 
-   virtual void outputSummary(std::ostream &out) = 0;
+   virtual void outputSummary(std::ostream &out, const Time& target_completion_time);
 
-   virtual double getDynamicEnergy() { return 0; }
-   virtual double getStaticPower()   { return 0; }
+   // Energy
+   virtual void computeEnergy(const Time& curr_time) { }
+   virtual double getDynamicEnergy()   { return 0; }
+   virtual double getStaticEnergy()    { return 0; }
 
-   void enable() { _enabled = true; }
-   void disable() { _enabled = false; }
+   // DVFS
+   double getFrequency() const   { return _frequency; }
+   double getVoltage() const     { return _voltage;   }
+   int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
+
+   // Enable/disable
+   void enable()                 { _enabled = true;   }
+   void disable()                { _enabled = false;  }
 
    static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type, double frequency, double voltage);
    static UInt32 parseNetworkType(string str);
@@ -98,11 +107,6 @@ public:
 
    // Tracing Network Injection/Ejection Rate
    void popCurrentUtilizationStatistics(UInt64& total_flits_sent, UInt64& total_flits_broadcasted, UInt64& total_flits_received);
-
-   // dvfs
-   volatile double getFrequency() { return _frequency; }
-   int getDVFS(double &frequency, double &voltage);
-   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
 protected:
    class NextDest
@@ -145,7 +149,6 @@ private:
    
    SInt32 _network_id;
    string _network_name;
-   bool _enabled;
 
    // Lock
    Lock _lock;
@@ -166,6 +169,8 @@ private:
    Time _total_packet_latency;
    Time _total_contention_delay;
 
+   bool _enabled;
+   
    // For getting a trace of network injection/ejection rate
    UInt64 _total_flits_sent_in_current_interval;
    UInt64 _total_flits_broadcasted_in_current_interval;
@@ -173,7 +178,10 @@ private:
 
    virtual void routePacket(const NetPacket &pkt, queue<Hop> &next_hops) = 0;
    virtual void processReceivedPacket(NetPacket &pkt);
-  
+ 
+   // DVFS 
+   virtual void setDVFS(double frequency, double voltage, const Time& curr_time) {}
+
    // Process Corner Cases
    bool processCornerCases(const NetPacket &pkt, queue<Hop> &next_hops);
 
@@ -185,9 +193,6 @@ private:
    void initializeEventCounters();
    // Trace of Injection/Ejection Rate
    void initializeCurrentUtilizationStatistics();
-
-   // McPAT interface for modeling area and power
-   McPATCacheInterface* _mcpat_cache_interface;
 };
 
 #endif // NETWORK_MODEL_H

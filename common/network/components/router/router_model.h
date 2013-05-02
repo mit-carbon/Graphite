@@ -15,7 +15,7 @@ class NetPacket;
 class RouterModel
 {
 public:
-   RouterModel(NetworkModel* model, double frequency,
+   RouterModel(NetworkModel* model, double frequency, double voltage,
                SInt32 num_input_ports, SInt32 num_output_ports,
                SInt32 num_flits_per_port_buffer, UInt64 delay, SInt32 flit_width,
                bool contention_model_enabled, string& contention_model_type);
@@ -51,7 +51,6 @@ private:
    volatile double _frequency;
    SInt32 _num_input_ports;
    SInt32 _num_output_ports;
-   SInt32 _flit_width;
    UInt64 _delay;
    bool _contention_model_enabled;
    vector<QueueModel*> _contention_model_list;

@@ -3,10 +3,8 @@
 #include "log.h"
 
 NetworkModelMagic::NetworkModelMagic(Network *net, SInt32 network_id, double frequency, double voltage)
-   : NetworkModel(net, network_id)
+   : NetworkModel(net, network_id, frequency, voltage)
 {
-   _frequency = frequency;
-   _voltage = voltage;
    _flit_width = -1;
    _has_broadcast_capability = false;
 }
@@ -21,9 +19,4 @@ NetworkModelMagic::routePacket(const NetPacket &pkt, queue<Hop> &next_hops)
    // A latency of '1'
    Hop hop(pkt, TILE_ID(pkt.receiver), RECEIVE_TILE, Latency(1,_frequency), Latency(0,_frequency));
    next_hops.push(hop);
-}
-
-void NetworkModelMagic::outputSummary(std::ostream &out)
-{
-   NetworkModel::outputSummary(out);
 }

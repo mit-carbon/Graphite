@@ -64,7 +64,7 @@ void Tile::outputSummary(ostream &os)
       _memory_manager->outputSummary(os, target_completion_time);
 
    LOG_PRINT("Network Summary");
-   _network->outputSummary(os);
+   _network->outputSummary(os, target_completion_time);
    
    LOG_PRINT("Tile Energy Monitor Summary");
    // if (_tile_energy_monitor)

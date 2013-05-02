@@ -78,7 +78,7 @@ void Network::unregisterCallback(PacketType type)
    _callbacks[type] = NULL;
 }
 
-void Network::outputSummary(std::ostream &out) const
+void Network::outputSummary(std::ostream &out, const Time& target_completion_time) const
 {
    out << "Network Summary: " << endl;
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
@@ -86,7 +86,7 @@ void Network::outputSummary(std::ostream &out) const
       if (i > STATIC_NETWORK_SYSTEM)
          break;         
       out << "  Network (" <<  _models[i]->getNetworkName() << "): " << endl;
-      _models[i]->outputSummary(out);
+      _models[i]->outputSummary(out, target_completion_time);
    }
 }
 

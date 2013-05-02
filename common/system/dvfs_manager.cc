@@ -35,7 +35,8 @@ int
 DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage)
 {
    // Invalid tile id error
-   if (tile_id < 0 || (unsigned int) tile_id >= Config::getSingleton()->getApplicationTiles()){
+   if (tile_id < 0 || (unsigned int) tile_id >= Config::getSingleton()->getApplicationTiles())
+   {
       *frequency = 0;
       *voltage = 0;
       return -1;

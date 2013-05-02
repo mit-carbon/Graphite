@@ -14,16 +14,21 @@ using namespace std;
 #include "clock_converter.h"
 #include "log.h"
 
-NetworkModel::NetworkModel(Network *network, SInt32 network_id):
-   _network(network),
-   _network_id(network_id),
-   _enabled(false)
+NetworkModel::NetworkModel(Network *network, SInt32 network_id, double frequency, double voltage)
+   : _network(network)
+   , _network_id(network_id)
+   , _enabled(false)
 {
    assert(network_id >= 0 && network_id < NUM_STATIC_NETWORKS);
    _network_name = g_static_network_name_list[network_id];
 
+   // Initialize frequency, voltage
+   _frequency = frequency;
+   _voltage = voltage;
+
    // Get the Tile ID
-   _tile_id = getNetwork()->getTile()->getId();
+   _tile_id = _network->getTile()->getId();
+   
    // Get the Tile Width
    try
    {
@@ -265,7 +270,7 @@ NetworkModel::updateReceiveCounters(const NetPacket& packet)
 }
 
 void
-NetworkModel::outputSummary(ostream& out)
+NetworkModel::outputSummary(ostream& out, const Time& target_completion_time)
 {
    out << "    Total Packets Sent: " << _total_packets_sent << endl;
    out << "    Total Flits Sent: " << _total_flits_sent << endl;
@@ -456,6 +461,27 @@ NetworkModel::processCornerCases(const NetPacket& pkt, queue<Hop>& next_hops)
    return true;
 }
 
+int
+NetworkModel::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}
+
+int
+NetworkModel::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time)
+{
+   // Get voltage at new frequency
+   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
+   if (rc==0)
+   {
+      _frequency = frequency;
+      setDVFS(_frequency, _voltage, curr_time);
+   }
+   return rc;
+}
+
 void
 NetworkModel::initializeCurrentUtilizationStatistics()
 {
@@ -472,25 +498,6 @@ NetworkModel::popCurrentUtilizationStatistics(UInt64& flits_sent, UInt64& flits_
    flits_received = _total_flits_received_in_current_interval;
    
    initializeCurrentUtilizationStatistics();
-}
-
-int
-NetworkModel::getDVFS(double &frequency, double &voltage)
-{
-   frequency = _frequency;
-   voltage = _voltage;
-   return 0;
-}
-
-int
-NetworkModel::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time)
-{
-   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
-   if (rc==0)
-   {
-      _frequency = frequency;
-   }
-   return rc;
 }
 
 NetworkModel::Hop::Hop(const NetPacket& pkt, tile_id_t next_tile_id, SInt32 next_node_type,

@@ -89,7 +89,7 @@ public:
 
    void unregisterCallback(PacketType type);
 
-   void outputSummary(ostream &out) const;
+   void outputSummary(ostream &out, const Time& target_completion_time) const;
 
    void netPullFromTransport();
 

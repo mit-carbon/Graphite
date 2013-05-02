@@ -64,7 +64,6 @@ all: obj_$(TAG)/$(TARGET)
 
 obj_$(TAG)/$(TARGET) : $(OBJS)
 	ar rcs $@ $^
-	rm -f mcpat.db
 
 obj_$(TAG)/%.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@

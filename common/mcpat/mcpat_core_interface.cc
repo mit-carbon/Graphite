@@ -751,31 +751,51 @@ void McPATCoreInterface::updateOutputDataStructure(double time_interval)
    _mcpat_core_out.exu.bypass.area            = _core_wrapper->core->exu->bypass.area.get_area() * 1e-6;
    _mcpat_core_out.exu.bypass.leakage_energy += leakage_power * time_interval;
    _mcpat_core_out.exu.bypass.dynamic_energy += _core_wrapper->core->exu->bypass.rt_power.readOp.dynamic;
-   
+  
    // Subtract Instruction Cache Area, Energy, and Power
    // Core
-   _mcpat_core_out.core.area              = _mcpat_core_out.core.area             - _mcpat_core_out.ifu.icache.area;
-   _mcpat_core_out.core.leakage_energy    = _mcpat_core_out.core.leakage_energy   - _mcpat_core_out.ifu.icache.leakage_energy;
-   _mcpat_core_out.core.dynamic_energy    = _mcpat_core_out.core.dynamic_energy   - _mcpat_core_out.ifu.icache.dynamic_energy;
+   _mcpat_core_out.core.area              -= _mcpat_core_out.ifu.icache.area;
+   _mcpat_core_out.core.leakage_energy    -= _mcpat_core_out.ifu.icache.leakage_energy;
+   _mcpat_core_out.core.dynamic_energy    -= _mcpat_core_out.ifu.icache.dynamic_energy;
    //    Instruction Fetch Unit
-   _mcpat_core_out.ifu.ifu.area           = _mcpat_core_out.ifu.ifu.area           - _mcpat_core_out.ifu.icache.area;
-   _mcpat_core_out.ifu.ifu.leakage_energy = _mcpat_core_out.ifu.ifu.leakage_energy - _mcpat_core_out.ifu.icache.leakage_energy;
-   _mcpat_core_out.ifu.ifu.dynamic_energy = _mcpat_core_out.ifu.ifu.dynamic_energy - _mcpat_core_out.ifu.icache.dynamic_energy;
+   _mcpat_core_out.ifu.ifu.area           -= _mcpat_core_out.ifu.icache.area;
+   _mcpat_core_out.ifu.ifu.leakage_energy -= _mcpat_core_out.ifu.icache.leakage_energy;
+   _mcpat_core_out.ifu.ifu.dynamic_energy -= _mcpat_core_out.ifu.icache.dynamic_energy;
+   //       Instruction Cache
+   _mcpat_core_out.ifu.icache.area           = 0;
+   _mcpat_core_out.ifu.icache.leakage_energy = 0;
+   _mcpat_core_out.ifu.icache.dynamic_energy = 0;
 
    // Subtract Data Cache Area, Energy, and Power
    // Core
-   _mcpat_core_out.core.area              = _mcpat_core_out.core.area              - _mcpat_core_out.lsu.dcache.area;
-   _mcpat_core_out.core.leakage_energy    = _mcpat_core_out.core.leakage_energy    - _mcpat_core_out.lsu.dcache.leakage_energy;
-   _mcpat_core_out.core.dynamic_energy    = _mcpat_core_out.core.dynamic_energy    - _mcpat_core_out.lsu.dcache.dynamic_energy;
+   _mcpat_core_out.core.area              -= _mcpat_core_out.lsu.dcache.area;
+   _mcpat_core_out.core.leakage_energy    -= _mcpat_core_out.lsu.dcache.leakage_energy;
+   _mcpat_core_out.core.dynamic_energy    -= _mcpat_core_out.lsu.dcache.dynamic_energy;
    //    Load Store Unit
-   _mcpat_core_out.lsu.lsu.area           = _mcpat_core_out.lsu.lsu.area           - _mcpat_core_out.lsu.dcache.area;
-   _mcpat_core_out.lsu.lsu.leakage_energy = _mcpat_core_out.lsu.lsu.leakage_energy - _mcpat_core_out.lsu.dcache.leakage_energy;
-   _mcpat_core_out.lsu.lsu.dynamic_energy = _mcpat_core_out.lsu.lsu.dynamic_energy - _mcpat_core_out.lsu.dcache.dynamic_energy;
+   _mcpat_core_out.lsu.lsu.area           -= _mcpat_core_out.lsu.dcache.area;
+   _mcpat_core_out.lsu.lsu.leakage_energy -= _mcpat_core_out.lsu.dcache.leakage_energy;
+   _mcpat_core_out.lsu.lsu.dynamic_energy -= _mcpat_core_out.lsu.dcache.dynamic_energy;
+   //       Data Cache
+   _mcpat_core_out.lsu.dcache.area           = 0;
+   _mcpat_core_out.lsu.dcache.leakage_energy = 0;
+   _mcpat_core_out.lsu.dcache.dynamic_energy = 0;
 
    // Subtract out Memory Management Unit power
-   _mcpat_core_out.core.area              = _mcpat_core_out.core.area              - _mcpat_core_out.mmu.mmu.area;
-   _mcpat_core_out.core.leakage_energy    = _mcpat_core_out.core.leakage_energy    - _mcpat_core_out.mmu.mmu.leakage_energy;
-   _mcpat_core_out.core.dynamic_energy    = _mcpat_core_out.core.dynamic_energy    - _mcpat_core_out.mmu.mmu.dynamic_energy;
+   _mcpat_core_out.core.area              -= _mcpat_core_out.mmu.mmu.area;
+   _mcpat_core_out.core.leakage_energy    -= _mcpat_core_out.mmu.mmu.leakage_energy;
+   _mcpat_core_out.core.dynamic_energy    -= _mcpat_core_out.mmu.mmu.dynamic_energy;
+   // Memory Management Unit
+   _mcpat_core_out.mmu.mmu.area           = 0;
+   _mcpat_core_out.mmu.mmu.leakage_energy = 0;
+   _mcpat_core_out.mmu.mmu.dynamic_energy = 0;
+   //   I-TLB
+   _mcpat_core_out.mmu.itlb.area           = 0;
+   _mcpat_core_out.mmu.itlb.leakage_energy = 0;
+   _mcpat_core_out.mmu.itlb.dynamic_energy = 0;
+   //   D-TLB
+   _mcpat_core_out.mmu.dtlb.area           = 0;
+   _mcpat_core_out.mmu.dtlb.leakage_energy = 0;
+   _mcpat_core_out.mmu.dtlb.dynamic_energy = 0;
 }
 
 //---------------------------------------------------------------------------

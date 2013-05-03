@@ -2215,7 +2215,7 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
 
   if (DB_NOTFOUND == dbp->get(dbp, NULL, &key, &data, 0))
   {
-  solve(&fin_res);
+    solve(&fin_res);
 
     data.data = &fin_res;
     data.size = sizeof(fin_res);

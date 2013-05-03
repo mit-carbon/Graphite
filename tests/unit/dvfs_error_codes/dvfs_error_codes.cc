@@ -25,7 +25,7 @@ int main()
    }
 
    // invalid frequency
-   rc = CarbonSetDVFS(0, 0x2f, &frequency, AUTO);
+   rc = CarbonSetDVFS(0, 0xf, &frequency, AUTO);
    printf("test 3) Voltage: %g, Frequency: %g, RC: %i\n", voltage, frequency, rc);
    if (rc != -4){
       fprintf(stderr, "Expected RC = -4, got RC = %i", rc) ;

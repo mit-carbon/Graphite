@@ -40,13 +40,10 @@ int main()
    double voltage = 0;
    int rc;
 
-   
-
    frequency = 1.0;
-   for (int i=0; i<64; i++){
-      rc = CarbonSetDVFS(i, L2_CACHE | NETWORK_MEMORY, &frequency, AUTO);
-      assert(rc == 0);
-   }
+   rc = CarbonSetDVFSAllTiles(L2_CACHE | NETWORK_MEMORY, &frequency, AUTO);
+   assert(rc == 0);
 
+   doComputeWork();
    doMemoryWork();
 }

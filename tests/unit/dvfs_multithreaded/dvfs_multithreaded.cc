@@ -13,7 +13,6 @@ double memory_low_frequency;
 double memory_high_frequency;
 double compute_low_frequency;
 double compute_high_frequency;
-//pthread_barrier_t global_barrier;
 carbon_barrier_t global_barrier;
 
 void doMemoryWork(int current_iteration)
@@ -46,39 +45,50 @@ void* doWork(void*)
    double frequency;
    int rc;
 
-   //pthread_barrier_wait(&global_barrier);
-   CarbonBarrierWait(&global_barrier);
-
    for (int i= 0; i<num_iterations; i++){
 
-      // set memory dvfs
-      rc = CarbonSetDVFS(tile_id, CORE | L1_ICACHE | L1_DCACHE, &memory_low_frequency, AUTO);
-      assert(rc == 0);
-      rc = CarbonSetDVFS(tile_id, L2_CACHE | NETWORK_MEMORY, &memory_high_frequency, AUTO);
-      assert(rc == 0);
-
+      // Change Frequency for memory phase
+      CarbonBarrierWait(&global_barrier);
+      if (tile_id == 0)
+      {
+         // set memory dvfs
+         rc = CarbonSetDVFSAllTiles(CORE | L1_ICACHE | L1_DCACHE, &memory_low_frequency, AUTO);
+         assert(rc == 0);
+         rc = CarbonSetDVFSAllTiles(L2_CACHE | NETWORK_MEMORY, &memory_high_frequency, AUTO);
+         assert(rc == 0);
+      }
+      CarbonBarrierWait(&global_barrier);
+     
+      // Do Memory Work 
       doMemoryWork(i);
 
-      //pthread_barrier_wait(&global_barrier);
+      // Change Frequency for compute phase
       CarbonBarrierWait(&global_barrier);
-
-      // set compute dvfs
-      rc = CarbonSetDVFS(tile_id, CORE | L1_ICACHE | L1_DCACHE, &compute_high_frequency, AUTO);
-      assert(rc == 0);
-      rc = CarbonSetDVFS(tile_id, L2_CACHE | NETWORK_MEMORY, &compute_low_frequency, AUTO);
-      assert(rc == 0);
-
+      if (tile_id == 0)
+      {
+         // set compute dvfs
+         rc = CarbonSetDVFSAllTiles(CORE | L1_ICACHE | L1_DCACHE, &compute_high_frequency, AUTO);
+         assert(rc == 0);
+         rc = CarbonSetDVFSAllTiles(L2_CACHE | NETWORK_MEMORY, &compute_low_frequency, AUTO);
+         assert(rc == 0);
+      }
+      CarbonBarrierWait(&global_barrier);
+      
+      // Do Compute Work
       doComputeWork(i);
-
-      // Wait for all threads to be spawned
-      //pthread_barrier_wait(&global_barrier);
-      CarbonBarrierWait(&global_barrier);
-       
    }
 
-   double default_frequency = 1.0;
-   rc = CarbonSetDVFS(tile_id, TILE, &default_frequency, AUTO);
-
+   // Change to Default Frequency
+   CarbonBarrierWait(&global_barrier);
+   if (tile_id == 0)
+   {
+      double default_frequency = 1.0;
+      // set compute dvfs
+      rc = CarbonSetDVFSAllTiles(CORE | L1_ICACHE | L1_DCACHE | L2_CACHE | NETWORK_MEMORY, &default_frequency, AUTO);
+      assert(rc == 0);
+   }
+   CarbonBarrierWait(&global_barrier);
+      
    return NULL;
 }
 

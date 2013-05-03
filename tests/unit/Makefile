@@ -13,9 +13,13 @@ SHARED_MEM_UNIT_LIST = shared_mem_basic_unit_test shared_mem_test1_unit_test \
 							  shared_mem_test4_unit_test shared_mem_test5_unit_test \
 							  shared_mem_test6_unit_test
 
-regress_unit: $(TEST_UNIT_LIST)
+regress_unit: $(TEST_UNIT_LIST) regress_dvfs
 	
 regress_shared_mem: $(SHARED_MEM_UNIT_LIST)
+
+regress_dvfs: frequency_scaling_random_unit_test dvfs_basic_unit_test \
+				  dvfs_error_codes_unit_test dvfs_scale_frequency_unit_test \
+				  dvfs_multithreaded_unit_test
 
 clean:
 	for t in $(patsubst %_unit_test,%,$(TEST_UNIT_LIST)) ; do make -C $(TEST_UNIT_DIR)/$$t clean ; done

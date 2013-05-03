@@ -102,12 +102,14 @@ RouterPowerModel::updateDynamicEnergyClock(UInt32 num_events)
 void
 RouterPowerModel::setDVFS(double frequency, double voltage, const Time& curr_time)
 {
+   LOG_PRINT("Router setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] begin", frequency, voltage, curr_time.toNanosec());
    // Compute leakage/dynamic energy
    computeEnergy(curr_time);
 
    // Set new DSENT router model
    _dsent_router = _dsent_router_map[voltage];
    LOG_ASSERT_ERROR(_dsent_router, "Could not find DSENT Router model for voltage(%g)", voltage);
+   LOG_PRINT("Router setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] end", frequency, voltage, curr_time.toNanosec());
 }
 
 void
@@ -116,7 +118,7 @@ RouterPowerModel::computeEnergy(const Time& curr_time)
    // Compute the interval between current time and time when energy was last computed
    double time_interval = (curr_time - _last_energy_compute_time).toSec();
    // Increment total static energy
-   _total_static_energy += getStaticPower() * time_interval;
+   _total_static_energy += (getStaticPower() * time_interval);
    // Set _last_energy_compute_time to curr_time
    _last_energy_compute_time = curr_time;
 }

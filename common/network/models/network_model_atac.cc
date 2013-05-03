@@ -883,11 +883,11 @@ NetworkModelAtac::computeProcessToTileMapping()
 
    SInt32 process_count = (SInt32) Config::getSingleton()->getProcessCount();
    vector<Config::TileList> process_to_tile_mapping(process_count);
-  
-   LOG_ASSERT_WARNING(_num_clusters >= process_count,
-        "Number of Clusters(%u) < Total Processes in Simulation(%u)",
-        _num_clusters, process_count);
-        
+ 
+   LOG_ASSERT_ERROR(_num_clusters >= process_count,
+                    "Number of Clusters(%u) < Total Processes in Simulation(%u)",
+                    _num_clusters, process_count);
+ 
    UInt32 process_num = 0;
    for (SInt32 i = 0; i < _num_clusters; i++)
    {

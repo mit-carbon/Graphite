@@ -498,15 +498,16 @@ NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out, const Time& target_c
    if (!Config::getSingleton()->getEnablePowerModeling())
       return;
 
-   // Compute the final leakage/dynamic energy
-   computeEnergy(target_completion_time);
-   // Convert time into seconds
-   double target_completion_sec = target_completion_time.toSec();
-
    // Output to sim.out
    out << "    Energy Counters:" << endl;
    if (isApplicationTile(_tile_id))
    {
+      // Convert time into seconds
+      double target_completion_sec = target_completion_time.toSec();
+      
+      // Compute the final leakage/dynamic energy
+      computeEnergy(target_completion_time);
+      
       double static_energy = _mesh_router->getPowerModel()->getStaticEnergy();
       double dynamic_energy = _mesh_router->getPowerModel()->getDynamicEnergy();
       for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
@@ -535,41 +536,39 @@ NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out, const Time& target_c
 void
 NetworkModelEMeshHopByHop::setDVFS(double frequency, double voltage, const Time& curr_time)
 {
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
    _mesh_router->getPowerModel()->setDVFS(frequency, voltage, curr_time);
    for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
-   {
       _mesh_link_list[i]->getPowerModel()->setDVFS(frequency, voltage, curr_time);
-   }
 }
 
 void
 NetworkModelEMeshHopByHop::computeEnergy(const Time& curr_time)
 {
+   assert(Config::getSingleton()->getEnablePowerModeling());
    _mesh_router->getPowerModel()->computeEnergy(curr_time);
    for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
-   {
       _mesh_link_list[i]->getPowerModel()->computeEnergy(curr_time);
-   }
 }
 
 double
 NetworkModelEMeshHopByHop::getDynamicEnergy()
 {
+   assert(Config::getSingleton()->getEnablePowerModeling());
    double dynamic_energy = _mesh_router->getPowerModel()->getDynamicEnergy();
    for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
-   {
       dynamic_energy += _mesh_link_list[i]->getPowerModel()->getDynamicEnergy();
-   }
    return dynamic_energy;
 }
 
 double
 NetworkModelEMeshHopByHop::getStaticEnergy()
 {
+   assert(Config::getSingleton()->getEnablePowerModeling());
    double static_energy = _mesh_router->getPowerModel()->getStaticEnergy();
    for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
-   {
       static_energy += _mesh_link_list[i]->getPowerModel()->getStaticEnergy();
-   }
    return static_energy;
 }

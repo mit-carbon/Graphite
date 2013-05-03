@@ -190,11 +190,15 @@ NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out, const Time& target
    if (!Config::getSingleton()->getEnablePowerModeling())
       return;
 
-   double target_completion_sec = target_completion_time.toSec();
-
    out << "    Energy Counters: " << endl;
    if (isApplicationTile(_tile_id))
    {
+      // Convert time into seconds
+      double target_completion_sec = target_completion_time.toSec();
+      
+      // Compute the final leakage/dynamic energy
+      computeEnergy(target_completion_time);
+      
       // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
       double static_energy = _router_power_model->getStaticEnergy() +
                             (_electrical_link_power_model->getStaticEnergy() * _NUM_OUTPUT_DIRECTIONS);
@@ -247,13 +251,19 @@ NetworkModelEMeshHopCounter::outputEventCountSummary(ostream& out)
 void
 NetworkModelEMeshHopCounter::setDVFS(double frequency, double voltage, const Time& curr_time)
 {
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
+   LOG_PRINT("setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] begin", frequency, voltage, curr_time.toNanosec());
    _router_power_model->setDVFS(frequency, voltage, curr_time);
    _electrical_link_power_model->setDVFS(frequency, voltage, curr_time);
+   LOG_PRINT("setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] end", frequency, voltage, curr_time.toNanosec());
 }
 
 void
 NetworkModelEMeshHopCounter::computeEnergy(const Time& curr_time)
 {
+   assert (Config::getSingleton()->getEnablePowerModeling());
    _router_power_model->computeEnergy(curr_time);
    _electrical_link_power_model->computeEnergy(curr_time);
 }
@@ -261,6 +271,7 @@ NetworkModelEMeshHopCounter::computeEnergy(const Time& curr_time)
 double
 NetworkModelEMeshHopCounter::getDynamicEnergy()
 {
+   assert (Config::getSingleton()->getEnablePowerModeling());
    double dynamic_energy = _router_power_model->getDynamicEnergy() +
                            _electrical_link_power_model->getDynamicEnergy();
    return dynamic_energy;
@@ -269,6 +280,7 @@ NetworkModelEMeshHopCounter::getDynamicEnergy()
 double
 NetworkModelEMeshHopCounter::getStaticEnergy()
 {
+   assert (Config::getSingleton()->getEnablePowerModeling());
    double static_energy = _router_power_model->getStaticEnergy() +
                           (_electrical_link_power_model->getStaticEnergy() * _NUM_OUTPUT_DIRECTIONS);
    return static_energy;

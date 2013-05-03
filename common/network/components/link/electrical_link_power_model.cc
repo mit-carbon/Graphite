@@ -35,12 +35,14 @@ ElectricalLinkPowerModel::~ElectricalLinkPowerModel()
 void
 ElectricalLinkPowerModel::setDVFS(double frequency, double voltage, const Time& curr_time)
 {
+   LOG_PRINT("Electrical-Link setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] begin", frequency, voltage, curr_time.toNanosec());
    // Compute leakage/dynamic energy
    computeEnergy(curr_time);
    
    // Set new DSENT electrical link model
    _dsent_link = _dsent_link_map[voltage];
    LOG_ASSERT_ERROR(_dsent_link, "Could not find DSENT Electrical Link model for voltage(%g)", voltage);
+   LOG_PRINT("Electrical-Link setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] end", frequency, voltage, curr_time.toNanosec());
 }
 
 void

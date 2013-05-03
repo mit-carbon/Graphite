@@ -1,6 +1,5 @@
 #include "packetize.h"
-
-using namespace std;
+#include "fixed_types.h"
 
 UnstructuredBuffer::UnstructuredBuffer()
 {
@@ -23,7 +22,7 @@ int UnstructuredBuffer::size()
 
 // put buffer
 
-UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<const void*, int> buffer)
+UnstructuredBuffer& UnstructuredBuffer::operator<<(std::pair<const void*, int> buffer)
 {
    const void *buff = buffer.first;
    int size = buffer.second;
@@ -35,7 +34,7 @@ UnstructuredBuffer& UnstructuredBuffer::operator<<(pair<const void*, int> buffer
 
 // get buffer
 
-UnstructuredBuffer& UnstructuredBuffer::operator>>(pair<void*, int> buffer)
+UnstructuredBuffer& UnstructuredBuffer::operator>>(std::pair<void*, int> buffer)
 {
    const void *buff = buffer.first;
    int size = buffer.second;
@@ -69,8 +68,8 @@ int main(int argc, char* argv[])
 
    char data4[] = "hello world";
    char data4prime[] = "aaaaaaaaaaaa";
-   buff << make_pair(data4, 12);
-   buff >> make_pair(data4prime, 12);
+   buff << std::make_pair(data4, 12);
+   buff >> std::make_pair(data4prime, 12);
 
 
    cout << data4prime << endl;

@@ -1,9 +1,11 @@
 #include "DSENTRouter.h"
 #include "DSENTInterface.h"
 #include "dsent-core/libutil/String.h"
+#include "../../common/misc/packetize.h"
 
 #include <iostream>
 #include <cassert>
+#include <cstring>
 #include <vector>
 
 using namespace std;
@@ -30,11 +32,55 @@ namespace dsent_contrib
         assert(num_buffers_ == num_buffers_);
         assert((flit_width_ == flit_width_) && (flit_width_ != 0));
 
-        // Create vector
-        m_dynamic_energy_xbar_ = new vector<double>();        
-        // Initialize everything else
-        init(frequency_, num_in_port_, num_out_port_, num_vclass_, num_vchannel_,
-                num_buffers_, flit_width_, dsent_interface_);
+        // Get database
+        DB* database = dsent_interface_->getDatabase();
+
+        // Zero-out key, data
+        DBT key, data;
+        memset(&key, 0, sizeof(DBT));
+        memset(&data, 0, sizeof(DBT));
+
+        // Create key
+        UnstructuredBuffer input;
+        input << frequency_ << num_in_port_ << num_out_port_ << num_vclass_ << num_vchannel_ << num_buffers_ << flit_width_;
+        key.data = (char*) input.getBuffer();
+        key.size = input.size();
+        
+        // Get dynamic_energy / static_power
+        UnstructuredBuffer output;
+        if (DB_NOTFOUND == database->get(database, NULL, &key, &data, 0))
+        {
+           // Create vector
+           m_dynamic_energy_xbar_ = new vector<double>();
+
+            // Initialize everything else
+            init(frequency_, num_in_port_, num_out_port_, num_vclass_, num_vchannel_,
+                 num_buffers_, flit_width_, dsent_interface_);
+
+            // Create output
+            output << m_dynamic_energy_buf_write_ << m_dynamic_energy_buf_read_ << m_dynamic_energy_sa_ << m_dynamic_energy_clock_;
+            for (unsigned int multicast = 0; multicast <= num_out_port_; ++multicast)
+                output << m_dynamic_energy_xbar_->at(multicast);
+            output << m_static_power_buf_ << m_static_power_xbar_ << m_static_power_sa_ << m_static_power_clock_;
+            data.data = (char*) output.getBuffer();
+            data.size = output.size();
+            
+            // Write in database
+            database->put(database, NULL, &key, &data, DB_NOOVERWRITE);
+            database->sync(database, 0);
+        }
+        else // Key exists
+        {
+            // Read from database
+            output << make_pair(data.data, data.size);
+            
+            // Populate object fields
+            output >> m_dynamic_energy_buf_write_ >> m_dynamic_energy_buf_read_ >> m_dynamic_energy_sa_ >> m_dynamic_energy_clock_;
+            m_dynamic_energy_xbar_ = new vector<double>(num_out_port_+1);
+            for (unsigned int multicast = 0; multicast <= num_out_port_; ++multicast)
+                output >> m_dynamic_energy_xbar_->at(multicast);
+            output >> m_static_power_buf_ >> m_static_power_xbar_ >> m_static_power_sa_ >> m_static_power_clock_;
+        }
     }
 
     DSENTRouter::~DSENTRouter()

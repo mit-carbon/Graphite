@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <db.h>
 #include "Type.h"
 
 namespace dsent_contrib
@@ -53,6 +54,9 @@ namespace dsent_contrib
             // Run DSENT with some specified arguments, returning outputs
             std::vector<String> run_dsent(const String& cfg_file_path_, const std::vector<String>& evals_, const std::vector<Overwrite>& overwrites_) const;
 
+            // Get BerkeleyDB database
+            DB* getDatabase() const    { return m_database; }
+
         private:
             // Config file paths
             String m_el_link_cfg_file_path_;
@@ -63,6 +67,8 @@ namespace dsent_contrib
             String m_phot_tech_file_path_;
             // Global tech overwrites
             std::vector<Overwrite>* m_overwrites_tech_;
+            // BerkeleyDB Database
+            DB* m_database;
 
         private:        
             // Singleton
@@ -71,6 +77,7 @@ namespace dsent_contrib
             const static String el_link_cfg_file_name;
             const static String op_link_cfg_file_name;
             const static String router_cfg_file_name;
+            
     };
 }
 #endif

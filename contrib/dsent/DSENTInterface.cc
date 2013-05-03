@@ -6,6 +6,7 @@
 #include <ostream>
 #include <cassert>
 #include <cstring>
+#include <cstdlib>
 
 using namespace std;
 using namespace LibUtil;
@@ -61,6 +62,12 @@ namespace dsent_contrib
 
         // Create global tech overwrites
         m_overwrites_tech_ = new vector<Overwrite>();
+
+        // Open the database
+        char database_filename[1024];
+        snprintf(database_filename, 1024, "%s/dsent-%s.db", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp", getenv("USER"));
+        db_create(&m_database, NULL, 0);
+        m_database->open(m_database, NULL, database_filename, NULL, DB_HASH, DB_CREATE, 0);
     }
 
     DSENTInterface::~DSENTInterface()

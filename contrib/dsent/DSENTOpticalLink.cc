@@ -1,9 +1,11 @@
 #include "DSENTOpticalLink.h"
 #include "DSENTInterface.h"
 #include "dsent-core/libutil/String.h"
+#include "../../common/misc/packetize.h"
 
 #include <iostream>
 #include <cassert>
+#include <cstring>
 #include <vector>
 
 using namespace std;
@@ -30,17 +32,59 @@ namespace dsent_contrib
         assert(link_data_rate_ > 0);
         assert(length_ > 0);
         assert(core_flit_width_ > 0);
-        
-        // Power of 2 serdes ratio check
-        unsigned int serdes_ratio = (int) (link_data_rate_ / core_data_rate_);
-        assert(((serdes_ratio - 1) & serdes_ratio) == 0);
-        
-        // Create vectors
-        m_dynamic_energy_ = new vector<double>();
+       
+        // Get database
+        DB* database = dsent_interface_->getDatabase();
 
-        // Initialize everything else
-        init(core_data_rate_, link_data_rate_, length_, num_readers_, max_readers_, core_flit_width_, 
-            tuning_strategy_, laser_type_, dsent_interface_);
+        // Zero-out key, data
+        DBT key, data;
+        memset(&key, 0, sizeof(DBT));
+        memset(&data, 0, sizeof(DBT));
+
+        // Create key
+        UnstructuredBuffer input;
+        input << core_data_rate_ << link_data_rate_ << num_readers_ << max_readers_ << core_flit_width_
+              << tuning_strategy_ << laser_type_;
+        key.data = (char*) input.getBuffer();
+        key.size = input.size();
+
+        // Get dynamic_energy / static_power
+        UnstructuredBuffer output;
+        if (DB_NOTFOUND == database->get(database, NULL, &key, &data, 0))
+        {
+            // Power of 2 serdes ratio check
+            unsigned int serdes_ratio = (int) (link_data_rate_ / core_data_rate_);
+            assert(((serdes_ratio - 1) & serdes_ratio) == 0);
+           
+            // Create vectors
+            m_dynamic_energy_ = new vector<double>();
+
+            // Initialize everything else
+            init(core_data_rate_, link_data_rate_, length_, num_readers_, max_readers_, core_flit_width_, 
+                tuning_strategy_, laser_type_, dsent_interface_);
+
+            // Create output
+            for (unsigned int multicast = 0; multicast <= max_readers_; ++multicast)
+                output << m_dynamic_energy_->at(multicast);
+            output << m_static_power_leakage_ << m_static_power_laser_ << m_static_power_heating_;
+            data.data = (char*) output.getBuffer();
+            data.size = output.size();
+
+            // Write in database
+            database->put(database, NULL, &key, &data, DB_NOOVERWRITE);
+            database->sync(database, 0);
+        }
+        else // Key exists
+        {
+            // Read from database
+            output << make_pair(data.data, data.size);
+
+            // Populate object fields
+            m_dynamic_energy_ = new vector<double>(max_readers_+1);
+            for (unsigned int multicast = 0; multicast <= max_readers_; ++multicast)
+                output >> m_dynamic_energy_->at(multicast);
+            output >> m_static_power_leakage_ >> m_static_power_laser_ >> m_static_power_heating_;            
+        }
     }
 
     DSENTOpticalLink::~DSENTOpticalLink()

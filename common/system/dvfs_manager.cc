@@ -90,8 +90,7 @@ DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, volta
    return rc;
 }
 
-
-int
+void
 DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
 {
    double frequency, voltage;
@@ -142,11 +141,9 @@ DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
    UnstructuredBuffer send_buffer;
    send_buffer << rc << frequency << voltage;
    _tile->getNetwork()->netSend(requester, DVFS_GET_REPLY, send_buffer.getBuffer(), send_buffer.size());
-
-   return rc;
 }
 
-int
+void
 DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, const Time& curr_time, core_id_t requester)
 {
    int rc = 0, rc_tmp = 0;
@@ -202,10 +199,7 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
 
    UnstructuredBuffer send_buffer;
    send_buffer << rc;
-
    _tile->getNetwork()->netSend(requester, DVFS_SET_REPLY, send_buffer.getBuffer(), send_buffer.size());
-
-   return rc;
 }
 
 // Called over the network (callbacks)

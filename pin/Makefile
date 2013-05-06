@@ -17,9 +17,10 @@ include $(SIM_ROOT)/Makefile.config
 
 TARGET = ia32e
 
-PIN_ROOT = $(PIN_HOME)
-include $(PIN_HOME)/source/tools/Config/makefile.config
-include $(PIN_HOME)/source/tools/Config/makefile.default.rules
+override PIN_ROOT = $(PIN_HOME)
+CONFIG_ROOT = $(PIN_HOME)/source/tools/Config
+include $(CONFIG_ROOT)/makefile.config
+include $(CONFIG_ROOT)/makefile.default.rules
 
 CXXFLAGS += $(TOOL_CXXFLAGS)
 CFLAGS += $(CXXFLAGS)

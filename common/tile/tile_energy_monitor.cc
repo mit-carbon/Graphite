@@ -32,7 +32,7 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
       m_memory_manager = m_tile->getMemoryManager();
 
    // Initialize Delta T Variable
-   m_delta_t = Sim()->getCfg()->getInt("runtime_energy_modeling/interval");
+   m_delta_t = (Sim()->getCfg()->getInt("runtime_energy_modeling/interval"))*1E-9;
 
    // Initialize Time Counters
    initializeTimeCounters();
@@ -45,26 +45,8 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
    initializeCacheEnergyCounters();
    initializeNetworkEnergyCounters();
 
-   // Initialize Static Power
-   if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
-   {
-      // Not Thread Spawner Tile / MCP
-      // Initialize Static Power
-      getCoreStaticPower();
-      getCacheStaticPower();
-      getNetworkStaticPower();
-      // Initialize Total Power
-      m_core_current_total_power = m_core_static_power;
-      m_cache_current_total_power = m_cache_static_power;
-      for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
-      {
-         m_network_current_total_power[i] = m_network_static_power[i];
-      }
-   }
-
    // Initialize First Time Variable
-   // Check Core Cycle Count
-   m_first_time = m_core_model->getCurrTime().toCycles(m_tile->getCore()->getFrequency());
+   m_first_time = m_core_model->getCurrTime().toSec();
 
    // Initialize Power Trace
    m_power_trace_enabled = Sim()->getCfg()->getBool("runtime_energy_modeling/power_trace/enabled");
@@ -106,7 +88,7 @@ TileEnergyMonitor::~TileEnergyMonitor()
 void TileEnergyMonitor::periodicallyCollectEnergy()
 {
    // Check Core Cycle Count
-   m_current_time = m_core_model->getCurrTime().toCycles(m_tile->getCore()->getFrequency());
+   m_current_time = m_core_model->getCurrTime().toSec();
 
    // Check if the Next Time has been reached
    if (m_current_time >= m_next_time)
@@ -117,8 +99,9 @@ void TileEnergyMonitor::periodicallyCollectEnergy()
       m_counter = m_counter + 1;
 
       // Compute Energy
-      computeCoreEnergy();
-      computeCacheEnergy();
+      Time curr_time = m_core_model->getCurrTime();
+      computeCoreEnergy(curr_time);
+      computeCacheEnergy(curr_time);
 
       // Collect Energy
       collectCoreEnergy();
@@ -160,8 +143,8 @@ void TileEnergyMonitor::logCurrentTotalEnergyAndPower()
       (double) m_core_current_total_power,\
       (double) m_cache_current_total_energy,\
       (double) m_cache_current_total_power,\
-      (double) m_network_current_total_energy[2],\
-      (double) m_network_current_total_power[2]);
+      (double) m_network_current_total_energy[1],\
+      (double) m_network_current_total_power[1]);
 }
 
 //---------------------------------------------------------------------------
@@ -183,21 +166,27 @@ void TileEnergyMonitor::initializeTimeCounters()
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::initializeCoreEnergyCounters()
 {
-   m_core_current_total_energy = 0;
+   //    Total
    m_core_previous_total_energy = 0;
+   m_core_current_total_energy = 0;
    m_core_current_total_power = 0;
-   m_core_total_dynamic_energy = 0;
-   m_core_static_power = 0;
-   m_core_total_static_energy = 0;
+   //    Dynamic
+   m_core_previous_dynamic_energy = 0;
+   m_core_current_dynamic_energy = 0;
+   m_core_current_static_power = 0;
+   //    Static
+   m_core_previous_static_energy = 0;
+   m_core_current_static_energy = 0;
+   m_core_current_static_power = 0;
 }
 
 //---------------------------------------------------------------------------
 // Compute Core Energy
 //---------------------------------------------------------------------------
-void TileEnergyMonitor::computeCoreEnergy()
+void TileEnergyMonitor::computeCoreEnergy(Time &curr_time)
 {
    // Compute Energy
-   m_core_model->computeEnergy();
+   m_core_model->computeEnergy(curr_time);
 }
 
 //---------------------------------------------------------------------------
@@ -206,13 +195,12 @@ void TileEnergyMonitor::computeCoreEnergy()
 void TileEnergyMonitor::collectCoreEnergy()
 {
    getCoreDynamicEnergy();
-   getCoreStaticPower();
    getCoreStaticEnergy();
 
    // Store the Previous Total Energy
    m_core_previous_total_energy = m_core_current_total_energy;
    // Calculate the Current Total Energy
-   m_core_current_total_energy = m_core_total_dynamic_energy + m_core_total_static_energy;
+   m_core_current_total_energy = m_core_current_dynamic_energy + m_core_current_static_energy;
 }
 
 //---------------------------------------------------------------------------
@@ -220,9 +208,12 @@ void TileEnergyMonitor::collectCoreEnergy()
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::calculateCorePower()
 {
+   calculateCoreDynamicPower();
+   calculateCoreStaticPower();
+
    m_core_current_total_power = (m_core_current_total_energy -
                                  m_core_previous_total_energy)/
-                                (m_time_elapsed*1E-9);
+                                (m_time_elapsed);
 }
 
 //---------------------------------------------------------------------------
@@ -230,19 +221,22 @@ void TileEnergyMonitor::calculateCorePower()
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::getCoreDynamicEnergy()
 {
-   m_core_total_dynamic_energy = m_core_model->getDynamicEnergy();
+   m_core_previous_dynamic_energy = m_core_current_dynamic_energy;
 
-   if (isnan(m_core_total_dynamic_energy)) m_core_total_dynamic_energy = 0;
+   m_core_current_dynamic_energy = m_core_model->getDynamicEnergy();
+
+   if (isnan(m_core_current_dynamic_energy)) 
+      m_core_current_dynamic_energy = m_core_previous_dynamic_energy;
 }
 
 //---------------------------------------------------------------------------
-// Get Core Static Power
+// Calculate Core Dynamic Power
 //---------------------------------------------------------------------------
-void TileEnergyMonitor::getCoreStaticPower()
+void TileEnergyMonitor::calculateCoreDynamicPower()
 {
-   m_core_static_power = m_core_model->getStaticPower();
-
-   if (isnan(m_core_static_power)) m_core_static_power = 0;
+   m_core_current_dynamic_power = (m_core_current_dynamic_energy -
+                                   m_core_previous_dynamic_energy)/
+                                  (m_time_elapsed);
 }
 
 //---------------------------------------------------------------------------
@@ -250,8 +244,22 @@ void TileEnergyMonitor::getCoreStaticPower()
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::getCoreStaticEnergy()
 {
-   m_core_total_static_energy = m_core_total_static_energy + 
-                         (m_core_static_power*m_time_elapsed*1E-9);
+   m_core_previous_static_energy = m_core_current_static_energy;
+
+   m_core_current_static_energy = m_core_model->getLeakageEnergy();
+
+   if (isnan(m_core_current_static_energy))
+      m_core_current_static_energy = m_core_previous_static_energy;
+}
+
+//---------------------------------------------------------------------------
+// Calculate Core Static Power
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::calculateCoreStaticPower()
+{
+   m_core_current_static_power = (m_core_current_static_energy -
+                                  m_core_previous_static_energy)/
+                                 (m_time_elapsed);
 }
 
 //---------------------------------------------------------------------------
@@ -259,44 +267,29 @@ void TileEnergyMonitor::getCoreStaticEnergy()
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::initializeCacheEnergyCounters()
 {
-   m_cache_current_total_energy = 0;
+   //    Total
    m_cache_previous_total_energy = 0;
+   m_cache_current_total_energy = 0;
    m_cache_current_total_power = 0;
-   m_cache_total_dynamic_energy = 0;
-   m_cache_static_power = 0;
-   m_cache_total_static_energy = 0;
-
-   /*m_l1i_cache_current_total_energy = 0;
-   m_l1i_cache_previous_total_energy = 0;
-   m_l1i_cache_current_total_power = 0;
-   m_l1i_cache_total_dynamic_energy = 0;
-   m_l1i_cache_static_power = 0;
-   m_l1i_cache_total_static_energy = 0;
-
-   m_l1d_cache_current_total_energy = 0;
-   m_l1d_cache_previous_total_energy = 0;
-   m_l1d_cache_current_total_power = 0;
-   m_l1d_cache_total_dynamic_energy = 0;
-   m_l1d_cache_static_power = 0;
-   m_l1d_cache_total_static_energy = 0;
-
-   m_l2_cache_current_total_energy = 0;
-   m_l2_cache_previous_total_energy = 0;
-   m_l2_cache_current_total_power = 0;
-   m_l2_cache_total_dynamic_energy = 0;
-   m_l2_cache_static_power = 0;
-   m_l2_cache_total_static_energy = 0;*/
+   //    Dynamic
+   m_cache_previous_dynamic_energy = 0;
+   m_cache_current_dynamic_energy = 0;
+   m_cache_current_dynamic_power = 0;
+   //    Static
+   m_cache_previous_static_energy = 0;
+   m_cache_current_static_energy = 0;
+   m_cache_current_static_power = 0;
 }
 
 //---------------------------------------------------------------------------
 // Compute Cache Energy
 //---------------------------------------------------------------------------
-void TileEnergyMonitor::computeCacheEnergy()
+void TileEnergyMonitor::computeCacheEnergy(Time &curr_time)
 {
    // Compute Energy
    if (m_memory_manager)
    {
-      m_tile->getMemoryManager()->computeEnergy();
+      m_tile->getMemoryManager()->computeEnergy(curr_time);
    }
 }
 
@@ -306,19 +299,12 @@ void TileEnergyMonitor::computeCacheEnergy()
 void TileEnergyMonitor::collectCacheEnergy()
 {
    getCacheDynamicEnergy();
-   getCacheStaticPower();
    getCacheStaticEnergy();
 
    // Store the Previous Total Energy
    m_cache_previous_total_energy = m_cache_current_total_energy;
-   /*m_l1i_cache_previous_total_energy = m_l1i_cache_current_total_energy;
-   m_l1d_cache_previous_total_energy = m_l1d_cache_current_total_energy;
-   m_l2_cache_previous_total_energy = m_l2_cache_current_total_energy;*/
    // Calculate the Current Total Energy
-   m_cache_current_total_energy = m_cache_total_dynamic_energy + m_cache_total_static_energy;
-   /*m_l1i_cache_current_total_energy = m_l1i_cache_total_dynamic_energy + m_l1i_cache_total_static_energy;
-   m_l1d_cache_current_total_energy = m_l1d_cache_total_dynamic_energy + m_l1d_cache_total_static_energy;
-   m_l2_cache_current_total_energy = m_l2_cache_total_dynamic_energy + m_l2_cache_total_static_energy;*/
+   m_cache_current_total_energy = m_cache_current_dynamic_energy + m_cache_current_static_energy;
 }
 
 //---------------------------------------------------------------------------
@@ -326,18 +312,12 @@ void TileEnergyMonitor::collectCacheEnergy()
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::calculateCachePower()
 {
+   calculateCacheDynamicPower();
+   calculateCacheStaticPower();
+
    m_cache_current_total_power = (m_cache_current_total_energy -
-                                      m_cache_previous_total_energy)/
-                                     (m_time_elapsed*1E-9);
-   /*m_l1i_cache_current_total_power = (m_l1i_cache_current_total_energy -
-                                      m_l1i_cache_previous_total_energy)/
-                                     (m_time_elapsed*1E-9);
-   m_l1d_cache_current_total_power = (m_l1d_cache_current_total_energy -
-                                      m_l1d_cache_previous_total_energy)/
-                                     (m_time_elapsed*1E-9);
-   m_l2_cache_current_total_power = (m_l2_cache_current_total_energy -
-                                     m_l2_cache_previous_total_energy)/
-                                    (m_time_elapsed*1E-9);*/
+                                  m_cache_previous_total_energy)/
+                                 (m_time_elapsed);
 }
 
 //---------------------------------------------------------------------------
@@ -345,31 +325,22 @@ void TileEnergyMonitor::calculateCachePower()
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::getCacheDynamicEnergy()
 {
-   m_cache_total_dynamic_energy = m_tile->getMemoryManager()->getDynamicEnergy();
-   /*m_l1i_cache_total_dynamic_energy = m_tile->getMemoryManager()->getL1ICache()->getDynamicEnergy();
-   m_l1d_cache_total_dynamic_energy = m_tile->getMemoryManager()->getL1DCache()->getDynamicEnergy();
-   m_l2_cache_total_dynamic_energy = m_tile->getMemoryManager()->getL2Cache()->getDynamicEnergy();*/
+   m_cache_previous_dynamic_energy = m_cache_current_dynamic_energy;
 
-   if (isnan(m_cache_total_dynamic_energy)) m_cache_total_dynamic_energy = 0;
-   /*if (isnan(m_l1i_cache_total_dynamic_energy)) m_l1i_cache_total_dynamic_energy = 0;
-   if (isnan(m_l1d_cache_total_dynamic_energy)) m_l1d_cache_total_dynamic_energy = 0;
-   if (isnan(m_l2_cache_total_dynamic_energy)) m_l2_cache_total_dynamic_energy = 0;*/
+   m_cache_current_dynamic_energy = m_tile->getMemoryManager()->getDynamicEnergy();
+
+   if (isnan(m_cache_current_dynamic_energy))
+      m_cache_current_dynamic_energy = m_cache_previous_dynamic_energy;
 }
 
 //---------------------------------------------------------------------------
-// Get Cache Static Power
+// Calculate Cache Dynamic Power
 //---------------------------------------------------------------------------
-void TileEnergyMonitor::getCacheStaticPower()
+void TileEnergyMonitor::calculateCacheDynamicPower()
 {
-   m_cache_static_power = m_tile->getMemoryManager()->getStaticPower();
-   /*m_l1i_cache_static_power = m_tile->getMemoryManager()->getL1ICache()->getStaticPower();
-   m_l1d_cache_static_power = m_tile->getMemoryManager()->getL1DCache()->getStaticPower();
-   m_l2_cache_static_power = m_tile->getMemoryManager()->getL2Cache()->getStaticPower();*/
-
-   if (isnan(m_cache_static_power)) m_cache_static_power = 0;
-   /*if (isnan(m_l1i_cache_static_power)) m_l1i_cache_static_power = 0;
-   if (isnan(m_l1d_cache_static_power)) m_l1d_cache_static_power = 0;
-   if (isnan(m_l2_cache_static_power)) m_l2_cache_static_power = 0;*/
+   m_cache_current_dynamic_power = (m_cache_current_dynamic_energy -
+                                    m_cache_previous_dynamic_energy)/
+                                   (m_time_elapsed);
 }
 
 //---------------------------------------------------------------------------
@@ -377,14 +348,22 @@ void TileEnergyMonitor::getCacheStaticPower()
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::getCacheStaticEnergy()
 {
-   m_cache_total_static_energy = m_cache_total_static_energy + 
-                                    (m_cache_static_power*m_time_elapsed*1E-9);
-   /*m_l1i_cache_total_static_energy = m_l1i_cache_total_static_energy + 
-                                    (m_l1i_cache_static_power*m_time_elapsed*1E-9);
-   m_l1d_cache_total_static_energy = m_l1d_cache_total_static_energy + 
-                                    (m_l1d_cache_static_power*m_time_elapsed*1E-9);
-   m_l2_cache_total_static_energy = m_l2_cache_total_static_energy + 
-                                   (m_l2_cache_static_power*m_time_elapsed*1E-9);*/
+   m_cache_previous_static_energy = m_cache_current_static_energy;
+
+   m_cache_current_static_energy = m_tile->getMemoryManager()->getLeakageEnergy();
+
+   if (isnan(m_cache_current_static_energy))
+      m_cache_current_static_energy = m_cache_previous_static_energy;
+}
+
+//---------------------------------------------------------------------------
+// Calculate Cache Static Power
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::calculateCacheStaticPower()
+{
+   m_cache_current_static_power = (m_cache_current_static_energy -
+                                   m_cache_previous_static_energy)/
+                                  (m_time_elapsed);
 }
 
 //---------------------------------------------------------------------------
@@ -394,12 +373,18 @@ void TileEnergyMonitor::initializeNetworkEnergyCounters()
 {
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
-      m_network_current_total_energy[i] = 0;
+      //    Total
       m_network_previous_total_energy[i] = 0;
+      m_network_current_total_energy[i] = 0;
       m_network_current_total_power[i] = 0;
-      m_network_total_dynamic_energy[i] = 0;
-      m_network_static_power[i] = 0;
-      m_network_total_static_energy[i] = 0;
+      //    Dynamic
+      m_network_previous_dynamic_energy[i] = 0;
+      m_network_current_dynamic_energy[i] = 0;
+      m_network_current_dynamic_power[i] = 0;
+      //    Static
+      m_network_previous_static_energy[i] = 0;
+      m_network_current_static_energy[i] = 0;
+      m_network_current_static_power[i] = 0;
    }
 }
 
@@ -409,7 +394,6 @@ void TileEnergyMonitor::initializeNetworkEnergyCounters()
 void TileEnergyMonitor::collectNetworkEnergy()
 {
    getNetworkDynamicEnergy();
-   getNetworkStaticPower();
    getNetworkStaticEnergy();
 
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
@@ -417,8 +401,8 @@ void TileEnergyMonitor::collectNetworkEnergy()
       // Store the Previous Total Energy
       m_network_previous_total_energy[i] = m_network_current_total_energy[i];
       // Calculate the Current Total Energy
-      m_network_current_total_energy[i] = m_network_total_dynamic_energy[i] +
-                                          m_network_total_static_energy[i];
+      m_network_current_total_energy[i] = m_network_current_dynamic_energy[i] +
+                                          m_network_current_static_energy[i];
    }
 }
 
@@ -427,11 +411,14 @@ void TileEnergyMonitor::collectNetworkEnergy()
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::calculateNetworkPower()
 {
+   calculateNetworkDynamicPower();
+   calculateNetworkStaticPower();
+
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
       m_network_current_total_power[i] = (m_network_current_total_energy[i] -
                                           m_network_previous_total_energy[i])/
-                                         (m_time_elapsed*1E-9);
+                                         (m_time_elapsed);
    }
 }
 
@@ -442,18 +429,22 @@ void TileEnergyMonitor::getNetworkDynamicEnergy()
 {
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
-      m_network_total_dynamic_energy[i] = m_network->getNetworkModel(i)->getDynamicEnergy();
+      m_network_previous_dynamic_energy[i] = m_network_current_dynamic_energy[i];
+
+      m_network_current_dynamic_energy[i] = m_network->getNetworkModel(i)->getDynamicEnergy();
    }
 }
 
 //---------------------------------------------------------------------------
-// Get Network Static Power
+// Calculate Network Dynamic Power
 //---------------------------------------------------------------------------
-void TileEnergyMonitor::getNetworkStaticPower()
+void TileEnergyMonitor::calculateNetworkDynamicPower()
 {
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
-      m_network_static_power[i] = m_network->getNetworkModel(i)->getStaticPower();
+      m_network_current_dynamic_power[i] = (m_network_current_dynamic_energy[i] -
+                                            m_network_previous_dynamic_energy[i])/
+                                           (m_time_elapsed);
    }
 }
 
@@ -464,8 +455,22 @@ void TileEnergyMonitor::getNetworkStaticEnergy()
 {
    for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
-      m_network_total_static_energy[i] = m_network_total_static_energy[i] + 
-                                  (m_network_static_power[i]*m_time_elapsed*1E-9);
+      m_network_previous_static_energy[i] = m_network_current_static_energy[i];
+
+      m_network_current_static_energy[i] = m_network->getNetworkModel(i)->getStaticEnergy();
+   }
+}
+
+//---------------------------------------------------------------------------
+// Calculate Network Static Power
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::calculateNetworkStaticPower()
+{
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      m_network_current_static_power[i] = (m_network_current_static_energy[i] -
+                                           m_network_previous_static_energy[i])/
+                                          (m_time_elapsed);
    }
 }
 
@@ -476,7 +481,7 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
 {
    // Set Last Time Variable
    // Check Core Cycle Count
-   m_last_time = m_core_model->getCurrTime().toCycles(m_tile->getCore()->getFrequency());
+   m_last_time = m_core_model->getCurrTime().toSec();
 
    if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
@@ -484,51 +489,28 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
       periodicallyCollectEnergy();
 
       out << "Tile Energy Monitor Summary: " << endl;
-      out << "  First Time (in ns): " << m_first_time << std::endl;
-      out << "  Last Time (in ns): " << m_last_time << std::endl;
-      out << "  Delta t (in ns): " << m_delta_t << std::endl;
-      out << "  Counter: " << m_counter << std::endl;
-      out << "  Current Time (in ns): " << m_current_time << std::endl;
-      out << "  Previous Time (in ns): " << m_previous_time << std::endl;
-      out << "  Time Elapsed (in ns): " << m_time_elapsed << std::endl;
+      //out << "  First Time (in ns): " << m_first_time << std::endl;
+      //out << "  Last Time (in ns): " << m_last_time << std::endl;
+      //out << "  Delta t (in ns): " << m_delta_t << std::endl;
+      //out << "  Counter: " << m_counter << std::endl;
+      //out << "  Current Time (in ns): " << m_current_time << std::endl;
+      //out << "  Previous Time (in ns): " << m_previous_time << std::endl;
+      //out << "  Time Elapsed (in ns): " << m_time_elapsed << std::endl;
       out << "  Core: " << endl;
-      out << "    Dynamic Energy (in J): " << m_core_total_dynamic_energy << std::endl;
-      out << "    Static Power (in W): " << m_core_static_power << std::endl;
-      out << "    Static Energy (in J): " << m_core_total_static_energy << std::endl;
+      out << "    Static Energy (in J): " << m_core_current_static_energy << std::endl;
+      out << "    Dynamic Energy (in J): " << m_core_current_dynamic_energy << std::endl;
       out << "    Total Energy (in J): " << m_core_current_total_energy << std::endl;
-      out << "    Current Power (in W): " << m_core_current_total_power << std::endl;
       out << "  Cache: " << endl;
-      out << "    Dynamic Energy (in J): " << m_cache_total_dynamic_energy << std::endl;
-      out << "    Static Power (in W): " << m_cache_static_power << std::endl;
-      out << "    Static Energy (in J): " << m_cache_total_static_energy << std::endl;
+      out << "    Static Energy (in J): " << m_cache_current_static_energy << std::endl;
+      out << "    Dynamic Energy (in J): " << m_cache_current_dynamic_energy << std::endl;
       out << "    Total Energy (in J): " << m_cache_current_total_energy << std::endl;
-      out << "    Current Power (in W): " << m_cache_current_total_power << std::endl;
-      /*out << "  Cache L1-I: " << endl;
-      out << "    Dynamic Energy (in J): " << m_l1i_cache_total_dynamic_energy << std::endl;
-      out << "    Static Power (in W): " << m_l1i_cache_static_power << std::endl;
-      out << "    Static Energy (in J): " << m_l1i_cache_total_static_energy << std::endl;
-      out << "    Total Energy (in J): " << m_l1i_cache_current_total_energy << std::endl;
-      out << "    Current Power (in W): " << m_l1i_cache_current_total_power << std::endl;
-      out << "  Cache L1-D: " << endl;
-      out << "    Dynamic Energy (in J): " << m_l1d_cache_total_dynamic_energy << std::endl;
-      out << "    Static Power (in W): " << m_l1d_cache_static_power << std::endl;
-      out << "    Static Energy (in J): " << m_l1d_cache_total_static_energy << std::endl;
-      out << "    Total Energy (in J): " << m_l1d_cache_current_total_energy << std::endl;
-      out << "    Current Power (in W): " << m_l1d_cache_current_total_power << std::endl;
-      out << "  Cache L2: " << endl;
-      out << "    Dynamic Energy (in J): " << m_l2_cache_total_dynamic_energy << std::endl;
-      out << "    Static Power (in W): " << m_l2_cache_static_power << std::endl;
-      out << "    Static Energy (in J): " << m_l2_cache_total_static_energy << std::endl;
-      out << "    Total Energy (in J): " << m_l2_cache_current_total_energy << std::endl;
-      out << "    Current Power (in W): " << m_l2_cache_current_total_power << std::endl;*/
       for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
       {
-         out << "  Network Model " << i << ": " << endl;
-         out << "    Dynamic Energy (in J): " << m_network_total_dynamic_energy[i] << std::endl;
-         out << "    Static Power (in W): " << m_network_static_power[i] << std::endl;
-         out << "    Static Energy (in J): " << m_network_total_static_energy[i] << std::endl;
+         if (i > STATIC_NETWORK_SYSTEM) break;
+         out << "  Network (" <<  m_network->getNetworkModel(i)->getNetworkName() << "): " << endl;
+         out << "    Static Energy (in J): " << m_network_current_static_energy[i] << std::endl;
+         out << "    Dynamic Energy (in J): " << m_network_current_dynamic_energy[i] << std::endl;
          out << "    Total Energy (in J): " << m_network_current_total_energy[i] << std::endl;
-         out << "    Current Power (in W): " << m_network_current_total_power[i] << std::endl;
       }
    }
 }

@@ -70,75 +70,81 @@ private:
 
    // Core Energy
    void initializeCoreEnergyCounters();
-   void computeCoreEnergy();
+   //    Total
+   void computeCoreEnergy(Time& curr_time);
    void collectCoreEnergy();
    void calculateCorePower();
+   //    Dynamic
    void getCoreDynamicEnergy();
-   void getCoreStaticPower();
+   void calculateCoreDynamicPower();
+   //    Static
    void getCoreStaticEnergy();
+   void calculateCoreStaticPower();
 
    // Core Energy Counters
-   double m_core_current_total_energy;
+   //    Total
    double m_core_previous_total_energy;
+   double m_core_current_total_energy;
    double m_core_current_total_power;
-   double m_core_total_dynamic_energy;
-   double m_core_static_power;
-   double m_core_total_static_energy;
+   //    Dynamic
+   double m_core_previous_dynamic_energy;
+   double m_core_current_dynamic_energy;
+   double m_core_current_dynamic_power;
+   //    Static
+   double m_core_previous_static_energy;
+   double m_core_current_static_energy;
+   double m_core_current_static_power;
 
    // Cache Energy
    void initializeCacheEnergyCounters();
-   void computeCacheEnergy();
+   //    Total
+   void computeCacheEnergy(Time& curr_time);
    void collectCacheEnergy();
    void calculateCachePower();
+   //    Dynamic
    void getCacheDynamicEnergy();
-   void getCacheStaticPower();
+   void calculateCacheDynamicPower();
+   //    Static
    void getCacheStaticEnergy();
+   void calculateCacheStaticPower();
 
    // Cache Energy Counters
-   double m_cache_current_total_energy;
+   //    Total
    double m_cache_previous_total_energy;
+   double m_cache_current_total_energy;
    double m_cache_current_total_power;
-   double m_cache_total_dynamic_energy;
-   double m_cache_static_power;
-   double m_cache_total_static_energy;
-
-   // L1-I Cache Energy Counters
-   double m_l1i_cache_current_total_energy;
-   double m_l1i_cache_previous_total_energy;
-   double m_l1i_cache_current_total_power;
-   double m_l1i_cache_total_dynamic_energy;
-   double m_l1i_cache_static_power;
-   double m_l1i_cache_total_static_energy;
-
-   // L1-D Cache Energy Counters
-   double m_l1d_cache_current_total_energy;
-   double m_l1d_cache_previous_total_energy;
-   double m_l1d_cache_current_total_power;
-   double m_l1d_cache_total_dynamic_energy;
-   double m_l1d_cache_static_power;
-   double m_l1d_cache_total_static_energy;
-
-   // L2 Cache Energy Counters
-   double m_l2_cache_current_total_energy;
-   double m_l2_cache_previous_total_energy;
-   double m_l2_cache_current_total_power;
-   double m_l2_cache_total_dynamic_energy;
-   double m_l2_cache_static_power;
-   double m_l2_cache_total_static_energy;
+   //    Dynamic
+   double m_cache_previous_dynamic_energy;
+   double m_cache_current_dynamic_energy;
+   double m_cache_current_dynamic_power;
+   //    Static
+   double m_cache_previous_static_energy;
+   double m_cache_current_static_energy;
+   double m_cache_current_static_power;
 
    // Nework Energy
    void initializeNetworkEnergyCounters();
+   //    Total
    void collectNetworkEnergy();
    void calculateNetworkPower();
+   //    Dynamic
    void getNetworkDynamicEnergy();
-   void getNetworkStaticPower();
+   void calculateNetworkDynamicPower();
+   //    Static
    void getNetworkStaticEnergy();
+   void calculateNetworkStaticPower();
 
    // Network Energy Counters
-   double m_network_current_total_energy[NUM_STATIC_NETWORKS];
+   //    Total
    double m_network_previous_total_energy[NUM_STATIC_NETWORKS];
+   double m_network_current_total_energy[NUM_STATIC_NETWORKS];
    double m_network_current_total_power[NUM_STATIC_NETWORKS];
-   double m_network_total_dynamic_energy[NUM_STATIC_NETWORKS];
-   double m_network_static_power[NUM_STATIC_NETWORKS];
-   double m_network_total_static_energy[NUM_STATIC_NETWORKS];
+   //    Dynamic
+   double m_network_previous_dynamic_energy[NUM_STATIC_NETWORKS];
+   double m_network_current_dynamic_energy[NUM_STATIC_NETWORKS];
+   double m_network_current_dynamic_power[NUM_STATIC_NETWORKS];
+   //    Static
+   double m_network_previous_static_energy[NUM_STATIC_NETWORKS];
+   double m_network_current_static_energy[NUM_STATIC_NETWORKS];
+   double m_network_current_static_power[NUM_STATIC_NETWORKS];
 };

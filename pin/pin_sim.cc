@@ -44,7 +44,7 @@
 #include "progress_trace.h"
 #include "clock_skew_minimization.h"
 #include "handle_threads.h"
-// #include "runtime_energy_monitoring.h"
+#include "runtime_energy_monitoring.h"
 
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
@@ -187,7 +187,7 @@ VOID instructionCallback(INS ins, void *v)
       // Scheduling
       addYield(ins);
       // Runtime Energy Monitoring
-      // addRuntimeEnergyMonitoring(ins);
+      addRuntimeEnergyMonitoring(ins);
    }
 
    if (Sim()->getConfig()->getSimulationMode() == Config::FULL)

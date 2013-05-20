@@ -45,7 +45,7 @@ namespace dsent_contrib
 
         // Create key
         UnstructuredBuffer input;
-        input << core_data_rate_ << link_data_rate_ << num_readers_ << max_readers_ << core_flit_width_
+        input << core_data_rate_ << link_data_rate_ << voltage_ << num_readers_ << max_readers_ << core_flit_width_
               << tuning_strategy_ << laser_type_;
         key.data = (char*) input.getBuffer();
         key.size = input.size();

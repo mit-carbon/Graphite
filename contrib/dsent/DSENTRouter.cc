@@ -44,7 +44,7 @@ namespace dsent_contrib
 
         // Create key
         UnstructuredBuffer input;
-        input << frequency_ << num_in_port_ << num_out_port_ << num_vclass_ << num_vchannel_ << num_buffers_ << flit_width_;
+        input << frequency_ << voltage_ << num_in_port_ << num_out_port_ << num_vclass_ << num_vchannel_ << num_buffers_ << flit_width_;
         key.data = (char*) input.getBuffer();
         key.size = input.size();
         

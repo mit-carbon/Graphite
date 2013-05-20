@@ -14,7 +14,8 @@ using namespace LibUtil;
 namespace dsent_contrib
 {
     DSENTRouter::DSENTRouter(
-            float frequency_,
+            double frequency_,
+            double voltage_,
             unsigned int num_in_port_,
             unsigned int num_out_port_,
             unsigned int num_vclass_,
@@ -25,6 +26,7 @@ namespace dsent_contrib
         )
     {
         assert(frequency_ > 0);
+        assert(voltage_ >= 0);
         assert((num_in_port_ == num_in_port_) && (num_in_port_ != 0));
         assert((num_out_port_ == num_out_port_) && (num_out_port_ != 0));
         assert((num_vclass_ == num_vclass_) && (num_vclass_ != 0));
@@ -54,7 +56,7 @@ namespace dsent_contrib
            m_dynamic_energy_xbar_ = new vector<double>();
 
             // Initialize everything else
-            init(frequency_, num_in_port_, num_out_port_, num_vclass_, num_vchannel_,
+            init(frequency_, voltage_, num_in_port_, num_out_port_, num_vclass_, num_vchannel_,
                  num_buffers_, flit_width_, dsent_interface_);
 
             // Create output
@@ -90,7 +92,8 @@ namespace dsent_contrib
     }
 
     void DSENTRouter::init(
-            float frequency_,
+            double frequency_,
+            double voltage_,
             unsigned int num_in_port_,
             unsigned int num_out_port_,
             unsigned int num_vclass_,
@@ -104,6 +107,8 @@ namespace dsent_contrib
         vector<String> eval = vector<String>();
         // Create DSENT overwrites vector
         vector<DSENTInterface::Overwrite> overwrites = vector<DSENTInterface::Overwrite>();
+        // Create DSENT tech overwrites vector
+        vector<DSENTInterface::Overwrite> overwrites_tech = vector<DSENTInterface::Overwrite>();
         // DSENT outputs
         vector<String> outputs;
 
@@ -137,9 +142,13 @@ namespace dsent_contrib
         overwrites.push_back(DSENTInterface::Overwrite("NumberBuffersPerVirtualChannel",
                     vectorToString<unsigned int>(vector<unsigned int>(num_vclass_, num_buffers_))));
         overwrites.push_back(DSENTInterface::Overwrite("NumberBitsPerFlit", String(flit_width_)));
+        
+        // Create tech overwrites
+        overwrites_tech.push_back(DSENTInterface::Overwrite("Vdd", String(voltage_)));
 
         // Run DSENT
-        outputs = dsent_interface_->run_dsent(dsent_interface_->get_router_cfg_file_path(), eval, overwrites);
+        outputs = dsent_interface_->run_dsent(dsent_interface_->get_router_cfg_file_path(),
+            eval, overwrites, overwrites_tech);
 
         // Check to make sure we get the expected number of outputs
         assert(outputs.size() == 8 + num_out_port_);

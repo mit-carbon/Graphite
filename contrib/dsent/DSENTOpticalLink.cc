@@ -17,9 +17,10 @@ namespace dsent_contrib
     // us from getting the breakdowns in the dynamic energy from DSENT
 
     DSENTOpticalLink::DSENTOpticalLink(
-            float core_data_rate_,
-            float link_data_rate_,
-            float length_,
+            double core_data_rate_,
+            double link_data_rate_,
+            double voltage_,
+            double length_,
             unsigned int num_readers_,
             unsigned int max_readers_,
             unsigned int core_flit_width_,
@@ -30,7 +31,8 @@ namespace dsent_contrib
     {
         assert(core_data_rate_ > 0);
         assert(link_data_rate_ > 0);
-        assert(length_ > 0);
+        assert(voltage_ >= 0);
+        assert(length_ >= 0);
         assert(core_flit_width_ > 0);
        
         // Get database
@@ -60,7 +62,7 @@ namespace dsent_contrib
             m_dynamic_energy_ = new vector<double>();
 
             // Initialize everything else
-            init(core_data_rate_, link_data_rate_, length_, num_readers_, max_readers_, core_flit_width_, 
+            init(core_data_rate_, link_data_rate_, voltage_, length_, num_readers_, max_readers_, core_flit_width_, 
                 tuning_strategy_, laser_type_, dsent_interface_);
 
             // Create output
@@ -94,9 +96,10 @@ namespace dsent_contrib
     }
 
     void DSENTOpticalLink::init(
-            float core_data_rate_,
-            float link_data_rate_,
-            float length_,
+            double core_data_rate_,
+            double link_data_rate_,
+            double voltage_,
+            double length_,
             unsigned int num_readers_,
             unsigned int max_readers_,
             unsigned int core_flit_width_,
@@ -109,6 +112,8 @@ namespace dsent_contrib
         vector<String> eval = vector<String>();
         // Create DSENT overwrites vector
         vector<DSENTInterface::Overwrite> overwrites = vector<DSENTInterface::Overwrite>();
+        // Create DSENT tech overwrites vector
+        vector<DSENTInterface::Overwrite> overwrites_tech = vector<DSENTInterface::Overwrite>();
         // DSENT outputs
         vector<String> outputs;
 
@@ -132,8 +137,12 @@ namespace dsent_contrib
         overwrites.push_back(DSENTInterface::Overwrite("RingTuningMethod", String(tuning_strategy_))); 
         overwrites.push_back(DSENTInterface::Overwrite("LaserType", String(laser_type_))); 
 
+        // Create tech overwrites
+        overwrites_tech.push_back(DSENTInterface::Overwrite("Vdd", String(voltage_)));
+
         // Run DSENT
-        outputs = dsent_interface_->run_dsent(dsent_interface_->get_op_link_cfg_file_path(), eval, overwrites);
+        outputs = dsent_interface_->run_dsent(dsent_interface_->get_op_link_cfg_file_path(),
+            eval, overwrites, overwrites_tech);
 
         // Check to make sure we get the expected number of outputs
         assert(outputs.size() == 3 + max_readers_);

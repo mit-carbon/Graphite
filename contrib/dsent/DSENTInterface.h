@@ -52,7 +52,8 @@ namespace dsent_contrib
             void add_global_tech_overwrite(const String& var_, const String& val_);
 
             // Run DSENT with some specified arguments, returning outputs
-            std::vector<String> run_dsent(const String& cfg_file_path_, const std::vector<String>& evals_, const std::vector<Overwrite>& overwrites_) const;
+            std::vector<String> run_dsent(const String& cfg_file_path_, const std::vector<String>& evals_,
+                const std::vector<Overwrite>& overwrites_, const std::vector<Overwrite>& overwrites_tech_) const;
 
             // Get BerkeleyDB database
             DB* getDatabase() const    { return m_database; }

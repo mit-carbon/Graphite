@@ -18,8 +18,10 @@ RouterPowerModel::RouterPowerModel(double frequency, double voltage, UInt32 num_
       double current_frequency = (*it).second;
 
       // Create DSENT router (and) save for future use
-      // FIXME: Doesn't DSENT expect frequency in Hz?
-      _dsent_router_map[current_voltage] =  new DSENTRouter(current_frequency, num_input_ports, num_output_ports,
+      // DSENT expects voltage in volts (V)
+      // DSENT expects frequency in hertz (Hz)
+      _dsent_router_map[current_voltage] =  new DSENTRouter(current_frequency * 1e9, current_voltage,
+                                                            num_input_ports, num_output_ports,
                                                             1, 1,
                                                             num_flits_per_port_buffer, flit_width,
                                                             DSENTInterface::getSingleton());

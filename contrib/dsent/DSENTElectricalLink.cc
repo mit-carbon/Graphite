@@ -12,9 +12,11 @@ using namespace LibUtil;
 
 namespace dsent_contrib
 {
-    DSENTElectricalLink::DSENTElectricalLink(float frequency_, double link_len_, unsigned int flit_width_, const DSENTInterface* dsent_interface_)
+    DSENTElectricalLink::DSENTElectricalLink(double frequency_, double voltage_, double link_len_, unsigned int flit_width_,
+        const DSENTInterface* dsent_interface_)
     {
         assert(frequency_ > 0);
+        assert(voltage_ >= 0);
         assert(link_len_ >= 0);
         assert(flit_width_ > 0);
      
@@ -36,7 +38,7 @@ namespace dsent_contrib
         UnstructuredBuffer output;
         if (DB_NOTFOUND == database->get(database, NULL, &key, &data, 0))
         {
-            init(frequency_, link_len_, flit_width_, dsent_interface_);
+            init(frequency_, voltage_, link_len_, flit_width_, dsent_interface_);
            
             // Create output
             output << m_dynamic_energy_per_flit_ << m_static_power_; 
@@ -60,12 +62,15 @@ namespace dsent_contrib
     DSENTElectricalLink::~DSENTElectricalLink()
     {}
 
-    void DSENTElectricalLink::init(float frequency_, double link_len_, unsigned int flit_width_, const DSENTInterface* dsent_interface_)
+    void DSENTElectricalLink::init(double frequency_, double voltage_, double link_len_, unsigned int flit_width_,
+        const DSENTInterface* dsent_interface_)
     {
         // Create DSENT evaluate
         vector<String> eval = vector<String>();
         // Create DSENT overwrites vector
         vector<DSENTInterface::Overwrite> overwrites = vector<DSENTInterface::Overwrite>();
+        // Create DSENT tech overwrites vector
+        vector<DSENTInterface::Overwrite> overwrites_tech = vector<DSENTInterface::Overwrite>();        
         // DSENT outputs
         vector<String> outputs;
 
@@ -77,8 +82,12 @@ namespace dsent_contrib
         overwrites.push_back(DSENTInterface::Overwrite("WireLength", String(link_len_)));
         overwrites.push_back(DSENTInterface::Overwrite("NumberBits", String(flit_width_)));
 
+        // Create tech overwrites
+        overwrites_tech.push_back(DSENTInterface::Overwrite("Vdd", String(voltage_)));
+
         // Run DSENT
-        outputs = dsent_interface_->run_dsent(dsent_interface_->get_el_link_cfg_file_path(), eval, overwrites);
+        outputs = dsent_interface_->run_dsent(dsent_interface_->get_el_link_cfg_file_path(),
+            eval, overwrites, overwrites_tech);
 
         // Check to make sure we get exactly 2 outputs
         assert(outputs.size() == 2);

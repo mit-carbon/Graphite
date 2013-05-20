@@ -72,6 +72,7 @@ namespace DSENT
         // Get technology parameters
         double vdd = get("Vdd");
         double temp = get("Temperature");
+        double char_vdd = get("Nmos->CharacterizedVdd");
         double char_temp = get("Nmos->CharacterizedTemperature");
         double min_off_current = get("Nmos->MinOffCurrent");
         double off_current = get("Nmos->OffCurrent");
@@ -83,11 +84,13 @@ namespace DSENT
         double dibl_swing = subthreshold_swing / dibl;
         
         //Calculate the leakage current factor
-        double leakage_current_factor = calculateLeakageCurrentFactor(num_stacks_, stacked_mos_widths_, input_vector_, vdd, subthreshold_swing, dibl_swing);
+        double leakage_current_factor = calculateLeakageCurrentFactor(num_stacks_, stacked_mos_widths_, input_vector_, char_vdd, vdd, subthreshold_swing, dibl_swing);
 
-        // Calcualte actual leakage current at characterized temperature
-        double leakage_current_char_tmp = stacked_mos_widths_[0] * off_current * std::pow(10.0, leakage_current_factor);
-        leakage_current_char_tmp = std::max(min_off_current, leakage_current_char_tmp);
+        // Min off current used to denote a minimum off current, where the off current does not shrink
+        // linearly with decreasing transistor widths anymore
+        double leakage_current_char_tmp = std::max(min_off_current, stacked_mos_widths_[0] * off_current);
+        // Calculate actual leakage current based on the transistor in a stack
+        leakage_current_char_tmp = leakage_current_char_tmp * std::pow(10.0, leakage_current_factor);
 
         // Calculate actual leakage current at temp
         double leakage_current = leakage_current_char_tmp * std::pow(10.0, (temp - char_temp) / temp_swing);
@@ -107,6 +110,7 @@ namespace DSENT
         // Get technology parameters
         double vdd = get("Vdd");
         double temp = get("Temperature");
+        double char_vdd = get("Pmos->CharacterizedVdd");
         double char_temp = get("Pmos->CharacterizedTemperature");
         double min_off_current = get("Pmos->MinOffCurrent");
         double off_current = get("Pmos->OffCurrent");
@@ -118,12 +122,14 @@ namespace DSENT
         double dibl_swing = subthreshold_swing / dibl;
         
         //Calculate the leakage current factor
-        double leakage_current_factor = calculateLeakageCurrentFactor(num_stacks_, stacked_mos_widths_, input_vector_, vdd, subthreshold_swing, dibl_swing);
+        double leakage_current_factor = calculateLeakageCurrentFactor(num_stacks_, stacked_mos_widths_, input_vector_, char_vdd, vdd, subthreshold_swing, dibl_swing);
 
-        // Calcualte actual leakage current at characterized temperature
-        double leakage_current_char_tmp = stacked_mos_widths_[0] * off_current * std::pow(10.0, leakage_current_factor);
-        leakage_current_char_tmp = std::max(min_off_current, leakage_current_char_tmp);
-
+        // Min off current used to denote a minimum off current, where the off current does not shrink
+        // linearly with decreasing transistor widths anymore
+        double leakage_current_char_tmp = std::max(min_off_current, stacked_mos_widths_[0] * off_current);
+        // Calculate actual leakage current based on the transistor in a stack
+        leakage_current_char_tmp = leakage_current_char_tmp * std::pow(10.0, leakage_current_factor);
+        
         // Calculate actual leakage current at temp
         double leakage_current = leakage_current_char_tmp * std::pow(10.0, (temp - char_temp) / temp_swing);
 
@@ -132,7 +138,7 @@ namespace DSENT
 
     //Returns the leakage current, given the transistor stakcing, transistor widths, input combination,
     //and technology information (vdd, subthreshold swing, subthreshold dibl swing)
-    double TechModel::calculateLeakageCurrentFactor(unsigned int num_stacks_, const vector<double>& stacked_mos_widths_, unsigned int input_vector_, double vdd_, double subthreshold_swing_, double dibl_swing_) const
+    double TechModel::calculateLeakageCurrentFactor(unsigned int num_stacks_, const vector<double>& stacked_mos_widths_, unsigned int input_vector_, double char_vdd_, double vdd_, double subthreshold_swing_, double dibl_swing_) const
     {
         // check everything is valid
         ASSERT(num_stacks_ >= 1, "[Error] Number of stacks must be >= 1!");
@@ -236,11 +242,14 @@ namespace DSENT
             }
         } while(!is_found_valid_v);
 
-        //Calculate the leakage current of the bottom transistor (first not in triode region)
+        // Calculate the leakage current of the bottom transistor (first not in triode region),
+        // which will give you leakage for the whole stack
         double vgs = vs[0] - v[0];
         double vds = v[1] - v[0];
-        double leakage_current_factor = vgs/s1 + (vds - vdd_)/s2;
-        //TODO - Check if the leakage current calculate for other transistors is identical
+        // Leakage current factor is the effect of VGS on leakage due to subthreshold swing,
+        // and the effect of VDS on leakage due to DIBL swing
+        double leakage_current_factor = vgs/s1 + (vds - char_vdd_)/s2;
+        //TODO - Check if the leakage current calculate for other transistors is identical, they should be
 
         return leakage_current_factor;
     }

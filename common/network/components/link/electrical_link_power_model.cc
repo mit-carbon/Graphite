@@ -18,7 +18,7 @@ ElectricalLinkPowerModel::ElectricalLinkPowerModel(string link_type, double freq
 
       // DSENT expects link length to be in meters(m)
       // DSENT expects link frequency to be in hertz (Hz)
-      _dsent_link_map[current_voltage] = new DSENTElectricalLink(current_frequency * 1e9,
+      _dsent_link_map[current_voltage] = new DSENTElectricalLink(current_frequency * 1e9, current_voltage,
                                                                  link_length / 1000, link_width,
                                                                  DSENTInterface::getSingleton());
    }

@@ -40,6 +40,7 @@ OpticalLinkPowerModel::OpticalLinkPowerModel(OpticalLinkModel::LaserModes laser_
       _dsent_data_link_map[current_voltage] = new DSENTOpticalLink(
                current_frequency * 1e9,        // Core data rate, convert to Hz (Right now, no serdes is assumed)
                current_frequency * 1e9,        // Link data rate, convert to Hz (Right now, no serdes is assumed)
+               current_voltage,                // Current voltage
                waveguide_length / 1e3,         // Link length, convert to meters (m)
                _num_readers_per_wavelength,    // Number of readers on the wavelength
                max_simultaneous_readers,       // Maximum number of simultaneous readers
@@ -63,6 +64,7 @@ OpticalLinkPowerModel::OpticalLinkPowerModel(OpticalLinkModel::LaserModes laser_
          _dsent_select_link_map[current_voltage] = new DSENTOpticalLink(
                    current_frequency * 1e9,        // Core data rate, convert to Hz (Right now, no serdes is assumed)
                    current_frequency * 1e9,        // Link data rate, convert to Hz (Right now, no serdes is assumed)
+                   current_voltage,                // Current voltage
                    waveguide_length / 1e3,         // Link length, convert to meters (m)
                    _num_readers_per_wavelength,    // Number of readers
                    _num_readers_per_wavelength,    // Maximum number of simultaneous readers

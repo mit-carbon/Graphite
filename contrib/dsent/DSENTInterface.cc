@@ -80,7 +80,8 @@ namespace dsent_contrib
        m_overwrites_tech_->push_back(Overwrite(var_, val_)); 
     }
 
-    vector<String> DSENTInterface::run_dsent(const String& cfg_file_path_, const vector<String>& evals_, const vector<Overwrite>& overwrites_) const
+    vector<String> DSENTInterface::run_dsent(const String& cfg_file_path_, const vector<String>& evals_,
+        const vector<Overwrite>& overwrites_, const vector<Overwrite>& overwrites_tech_) const
     {
         // Create String stream to pass to DSENT
         ostringstream dsent_ost;
@@ -117,7 +118,6 @@ namespace dsent_contrib
         // Add electrical technology model filename
         overwrites_str = "ElectricalTechModelFilename=" + get_elec_tech_file_path() + ";";
         overwrites_str += " PhotonicTechModelFilename=" + get_phot_tech_file_path() + ";";
-
         // Add other overwrites
         for (vector<Overwrite>::const_iterator it = overwrites_.begin(); it != overwrites_.end(); it++)
             overwrites_str += " " + it->get_string() + ";" ;
@@ -128,10 +128,13 @@ namespace dsent_contrib
         // Begin tech overwrites
         dsent_args->push_back("-overwrite_tech");
 
-        // Add tech overwrites
+        // Add global tech overwrites
         for (vector<Overwrite>::const_iterator it = m_overwrites_tech_->begin(); it != m_overwrites_tech_->end(); it++)
             overwrites_tech_str += " " + it->get_string() + ";" ;
-
+        // Add local tech overwrites
+        for (vector<Overwrite>::const_iterator it = overwrites_tech_.begin(); it != overwrites_tech_.end(); it++)
+            overwrites_tech_str += " " + it->get_string() + ";" ;
+            
         // Append full tech overwrites string
         dsent_args->push_back(overwrites_tech_str);
 

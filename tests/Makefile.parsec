@@ -16,7 +16,7 @@ freqmine_flags ?= kosarak_500k.dat 410
 raytrace_flags ?=
 swaptions_flags ?= -ns 32 -sm 20000 -nt 32                                                                      
 vips_flags ?= im_benchmark barbados_256x288.v output.v
-x264_flags ?= --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-pyramid --weightb --mixed-refs --no-fast-pskip --me umh --subme 7 --analyse b8x8,i4x4 --threads 64 -o eledream.264 eledream_640x360_32.y4m
+x264_flags ?= --quiet --qp 20 --partitions b8x8,i4x4 --ref 5 --direct auto --b-pyramid --weightb --mixed-refs --no-fast-pskip --me umh --subme 7 --analyse b8x8,i4x4 --threads 32 -o eledream.264 eledream_640x360_32.y4m
 
 # KERNELS
 

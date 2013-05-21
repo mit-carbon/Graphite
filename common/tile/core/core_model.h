@@ -23,7 +23,7 @@ public:
    CoreModel(Core* core);
    virtual ~CoreModel();
 
-   void processDynamicInstruction(Instruction* i);
+   void processDynamicInstruction(DynamicInstruction* i);
    void queueBasicBlock(BasicBlock *basic_block);
    void iterate();
 

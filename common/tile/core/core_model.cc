@@ -174,7 +174,7 @@ void CoreModel::updatePipelineStallCounters(Instruction* i, Time memory_stall_ti
    m_total_execution_unit_stall_time += execution_unit_stall_time;
 }
 
-void CoreModel::processDynamicInstruction(Instruction* i)
+void CoreModel::processDynamicInstruction(DynamicInstruction* i)
 {
    if (m_enabled)
    {

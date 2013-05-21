@@ -347,12 +347,6 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 }
 
 void
-L1CacheCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   //_outstanding_shmem_msg_time = convertCycleCount(_outstanding_shmem_msg_time, old_frequency, new_frequency);
-}
-
-void
 L1CacheCntlr::processExRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    IntPtr address = shmem_msg->getAddress();

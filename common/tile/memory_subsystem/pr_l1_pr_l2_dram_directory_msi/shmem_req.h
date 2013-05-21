@@ -18,8 +18,6 @@ namespace PrL1PrL2DramDirectoryMSI
       void setTime(Time time)     { _time = time; }
       void updateTime(Time time);
 
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-   
    private:
       ShmemMsg* _shmem_msg;
       Time _time;

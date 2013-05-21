@@ -58,9 +58,6 @@ namespace PrL1ShL2MSI
       void handleMsgFromCore(ShmemMsg* shmem_msg);
       void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
 
-      // Update internal variables when frequency is changed
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-
    private:
       MemoryManager* _memory_manager;
       Cache* _L1_icache;

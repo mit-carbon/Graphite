@@ -475,14 +475,14 @@ NetworkModelEMeshHopByHop::outputContentionModelsSummary(ostream& out)
    {
       out << "      Average EMesh Router Contention Delay: " << _mesh_router->getAverageContentionDelay(0, _num_mesh_router_ports-1) << endl;
       out << "      Average EMesh Router Link Utilization: " << _mesh_router->getAverageLinkUtilization(0, _num_mesh_router_ports-1) << endl;
-      out << "      Percentage Analytical Models Used: " << _mesh_router->getPercentAnalyticalModelsUsed(0, _num_mesh_router_ports-1) << endl;
+      out << "      Analytical Models Used (%): " << _mesh_router->getPercentAnalyticalModelsUsed(0, _num_mesh_router_ports-1) << endl;
    }
 
    else if (isSystemTile(_tile_id))
    {
       out << "      Average EMesh Router Contention Delay: " << endl;
       out << "      Average EMesh Router Link Utilization: " << endl;
-      out << "      Percentage Analytical Models Used: " << endl;
+      out << "      Analytical Models Used (%): " << endl;
    }
 
    else

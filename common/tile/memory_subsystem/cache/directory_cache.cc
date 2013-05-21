@@ -48,9 +48,10 @@ DirectoryCache::DirectoryCache(Tile* tile,
 
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
    _directory_access_latency = computeDirectoryAccessTime();
-   _directory_access_time = Time(Latency(computeDirectoryAccessTime(), _tile->getFrequency()));
+   _directory_access_time = Time(Latency(_directory_access_latency, _tile->getFrequency()));
   
-   LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)", _total_entries, directory_entry_size, _directory_access_time.toNanosec());
+   LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)",
+             _total_entries, directory_entry_size, _directory_access_time.toNanosec());
 
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
@@ -364,6 +365,12 @@ DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
       // _mcpat_cache_interface->computeEnergy(this, 10000);
       // _mcpat_cache_interface->outputSummary(out);
    }
+}
+
+void
+DirectoryCache::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+{
+   _directory_access_time = Time(Latency(_directory_access_latency, new_frequency));
 }
 
 void

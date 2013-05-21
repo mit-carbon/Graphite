@@ -54,8 +54,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       bool isUpgradeReply() const
       { return _upgrade_reply; }
   
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-
    private:
       ShmemMsg* _shmem_msg;
       

@@ -42,6 +42,8 @@ public:
    void enable() { _enabled = true; }
    void disable() { _enabled = false; }
 
+   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+
 private:
    Tile* _tile;
    Directory* _directory;

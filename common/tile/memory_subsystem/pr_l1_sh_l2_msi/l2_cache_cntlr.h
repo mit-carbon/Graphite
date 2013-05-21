@@ -48,9 +48,6 @@ namespace PrL1ShL2MSI
       // Output summary
       void outputSummary(ostream& out);
 
-      // Function to call when changing frequencies
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-
       void enable() { _enabled = true; }
       void disable() { _enabled = false; }
 

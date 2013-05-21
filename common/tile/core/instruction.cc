@@ -82,7 +82,7 @@ BranchInstruction::BranchInstruction(UInt64 opcode, OperandList &l)
 
 Time BranchInstruction::getCost(CoreModel* perf)
 {
-   volatile float frequency = perf->getCore()->getTile()->getFrequency();
+   float frequency = perf->getCore()->getTile()->getFrequency();
    BranchPredictor *bp = perf->getBranchPredictor();
 
    DynamicInstructionInfo &i = perf->getDynamicInstructionInfo();

@@ -218,18 +218,8 @@ void CoreModel::iterate()
       {
          for( ; m_current_ins_index < current_bb->size(); m_current_ins_index++)
          {
-            try
-            {
-               handleInstruction(current_bb->at(m_current_ins_index));
-            }
-            catch (AbortInstructionException)
-            {
-               // move on to next ...
-            }
+            handleInstruction(current_bb->at(m_current_ins_index));
          }
-
-         if (current_bb->isDynamic())
-            delete current_bb;
 
          m_basic_block_queue.pop();
          m_current_ins_index = 0; // move to beginning of next bb

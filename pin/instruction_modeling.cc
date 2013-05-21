@@ -1,7 +1,6 @@
 #include "instruction_modeling.h"
 #include "simulator.h"
 #include "core_model.h"
-#include "opcodes.h"
 #include "tile_manager.h"
 #include "tile.h"
 #include "core.h"

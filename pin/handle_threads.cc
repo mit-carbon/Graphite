@@ -2,7 +2,6 @@
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
-#include "opcodes.h"
 #include "thread_scheduler.h"
 
 static bool enabled()

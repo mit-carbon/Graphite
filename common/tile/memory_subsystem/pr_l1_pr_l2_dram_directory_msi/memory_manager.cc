@@ -9,8 +9,8 @@
 namespace PrL1PrL2DramDirectoryMSI
 {
 
-MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
-   : ::MemoryManager(tile, frequency, voltage)
+MemoryManager::MemoryManager(Tile* tile)
+   : ::MemoryManager(tile)
    , _dram_directory_cntlr(NULL)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
@@ -162,9 +162,7 @@ MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
             dram_directory_max_hw_sharers,
             dram_directory_type_str,
             dram_directory_access_cycles_str,
-            num_memory_controllers,
-            frequency,
-            voltage);
+            num_memory_controllers);
       
       LOG_PRINT("Instantiated Dram Directory Cntlr");
    }
@@ -190,9 +188,7 @@ MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
          L1_dcache_data_access_cycles,
          L1_dcache_tags_access_cycles,
          L1_dcache_perf_model_type,
-         L1_dcache_track_miss_types,
-         frequency,
-         voltage);
+         L1_dcache_track_miss_types);
    
    LOG_PRINT("Instantiated L1 Cache Cntlr");
 
@@ -207,9 +203,7 @@ MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
          L2_cache_data_access_cycles,
          L2_cache_tags_access_cycles,
          L2_cache_perf_model_type,
-         L2_cache_track_miss_types,
-         frequency,
-         voltage);
+         L2_cache_track_miss_types);
    LOG_PRINT("Instantiated L2 Cache Cntlr");
 
    _L1_cache_cntlr->setL2CacheCntlr(_L2_cache_cntlr);
@@ -480,7 +474,7 @@ MemoryManager::getDVFS(module_t module_type, double &frequency, double &voltage)
          getL2Cache()->getDVFS(frequency,voltage);
          break;
 
-      case L2_DIRECTORY:
+      case DIRECTORY:
          getDramDirectoryCache()->getDVFS(frequency,voltage);
          break;
 
@@ -509,7 +503,7 @@ MemoryManager::setDVFS(module_t module_type, double frequency, voltage_option_t 
          rc = getL2Cache()->setDVFS(frequency, voltage_flag, curr_time);
          break;
 
-      case L2_DIRECTORY:
+      case DIRECTORY:
          rc = getDramDirectoryCache()->setDVFS(frequency, voltage_flag, curr_time);
          break;
 

@@ -34,9 +34,7 @@ namespace PrL1PrL2DramDirectoryMOSI
                          UInt32 dram_directory_max_hw_sharers,
                          string dram_directory_type_str,
                          UInt32 num_dram_cntlrs,
-                         string dram_directory_access_cycles_str,
-                         double frequency,
-                         double voltage);
+                         string dram_directory_access_cycles_str);
 
       ~DramDirectoryCntlr();
 

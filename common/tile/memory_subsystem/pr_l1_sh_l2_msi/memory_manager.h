@@ -23,7 +23,7 @@ namespace PrL1ShL2MSI
    class MemoryManager : public ::MemoryManager
    {
    public:
-      MemoryManager(Tile* tile, double frequency, double voltage);
+      MemoryManager(Tile* tile);
       ~MemoryManager();
 
       UInt32 getCacheLineSize() { return _cache_line_size; }

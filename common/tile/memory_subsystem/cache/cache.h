@@ -80,8 +80,6 @@ public:
          UInt32 data_access_latency,
          UInt32 tags_access_latency,
          string perf_model_type,
-         double frequency,
-         double voltage,
          bool track_miss_types = false);
    ~Cache();
 

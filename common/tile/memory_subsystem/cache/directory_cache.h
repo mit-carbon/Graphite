@@ -28,9 +28,7 @@ public:
                   UInt32 max_hw_sharers,
                   UInt32 max_num_sharers,
                   UInt32 num_directory_slices,
-                  string directory_access_time_str,
-                  double frequency,
-                  double voltage);
+                  string directory_access_time_str);
    ~DirectoryCache();
 
    Directory* getDirectory() { return _directory; }

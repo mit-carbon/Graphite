@@ -17,9 +17,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
                                UInt32 max_hw_sharers,
                                UInt32 max_num_sharers,
                                UInt32 num_directory_slices,
-                               string directory_access_cycles_str,
-                               double frequency,
-                               double voltage)
+                               string directory_access_cycles_str)
    : _tile(tile)
    , _caching_protocol_type(caching_protocol_type)
    , _max_hw_sharers(max_hw_sharers)
@@ -31,8 +29,6 @@ DirectoryCache::DirectoryCache(Tile* tile,
    , _directory_access_cycles_str(directory_access_cycles_str)
    , _mcpat_cache_interface(NULL)
    , _enabled(false)
-   , _frequency(frequency)
-   , _voltage(voltage)
 {
    LOG_PRINT("Directory Cache ctor enter");
  
@@ -50,6 +46,12 @@ DirectoryCache::DirectoryCache(Tile* tile,
    UInt32 max_application_sharers = Config::getSingleton()->getApplicationTiles();
    UInt32 directory_entry_size = ceil(1.0 * DirectoryEntry::getSize(_directory_type, max_hw_sharers, max_application_sharers)  / 8);
    _directory_size = _total_entries * directory_entry_size;
+
+   //initialize frequency and voltage
+   _frequency = DVFSManager::getInitialFrequency(DIRECTORY);
+   int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+
 
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
    _directory_access_cycles = computeDirectoryAccessCycles();

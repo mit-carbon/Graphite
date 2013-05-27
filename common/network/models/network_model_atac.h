@@ -18,7 +18,7 @@ using namespace std;
 class NetworkModelAtac : public NetworkModel
 {
 public:
-   NetworkModelAtac(Network *net, SInt32 network_id, double frequency, double voltage);
+   NetworkModelAtac(Network *net, SInt32 network_id);
    ~NetworkModelAtac();
 
    void routePacket(const NetPacket &pkt, queue<Hop> &nextHops);

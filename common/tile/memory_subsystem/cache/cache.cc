@@ -24,8 +24,6 @@ Cache::Cache(string name,
              UInt32 data_access_latency,
              UInt32 tags_access_latency,
              string perf_model_type,
-             double frequency,
-             double voltage,
              bool track_miss_types)
    : _enabled(false)
    , _name(name)
@@ -35,8 +33,6 @@ Cache::Cache(string name,
    , _associativity(associativity)
    , _line_size(line_size)
    , _num_banks(num_banks)
-   , _frequency(frequency)
-   , _voltage(voltage)
    , _replacement_policy(replacement_policy)
    , _hash_fn(hash_fn)
    , _track_miss_types(track_miss_types)
@@ -52,8 +48,28 @@ Cache::Cache(string name,
       _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, _replacement_policy, _associativity, _line_size);
    }
 
+   //initialize frequency and voltage
+   if (_name == "L1-I"){
+      _frequency = DVFSManager::getInitialFrequency(L1_ICACHE);
+      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+   }
+   else if (_name == "L1-D"){
+      _frequency = DVFSManager::getInitialFrequency(L1_DCACHE);
+      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+   }
+   else if (_name == "L2"){
+      _frequency = DVFSManager::getInitialFrequency(L2_CACHE);
+      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+   }
+   else{
+      LOG_PRINT_ERROR("Unknown cache type (%s)", _name.c_str());
+   }
+
    // Instantiate performance model
-   _perf_model = CachePerfModel::create(perf_model_type, data_access_latency, tags_access_latency, frequency);
+   _perf_model = CachePerfModel::create(perf_model_type, data_access_latency, tags_access_latency, _frequency);
 
    // Instantiate area/power model
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())

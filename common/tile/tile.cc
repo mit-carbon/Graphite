@@ -23,11 +23,11 @@ Tile::Tile(tile_id_t id)
    int rc = DVFSManager::getVoltage(voltage, AUTO, frequency);
    LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", frequency);
 
-   _network = new Network(this, frequency, voltage);
-   _core = new MainCore(this, frequency, voltage);
+   _network = new Network(this);
+   _core = new MainCore(this);
    
    if (Config::getSingleton()->isSimulatingSharedMemory())
-      _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this, frequency, voltage);
+      _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this);
 
    if (Config::getSingleton()->getEnablePowerModeling())
       _tile_energy_monitor = new TileEnergyMonitor(this);

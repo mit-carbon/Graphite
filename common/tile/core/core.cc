@@ -14,14 +14,12 @@
 #include "config.h"
 #include "log.h"
 
-Core::Core(Tile *tile, core_type_t core_type, double frequency, double voltage)
+Core::Core(Tile *tile, core_type_t core_type)
    : _tile(tile)
    , _core_model(NULL)
    , _state(IDLE)
    , _pin_memory_manager(NULL)
    , _enabled(false)
-   , _frequency(frequency)
-   , _voltage(voltage)
 {
 
    _id = (core_id_t) {_tile->getId(), core_type};
@@ -37,6 +35,12 @@ Core::Core(Tile *tile, core_type_t core_type, double frequency, double voltage)
       _pin_memory_manager = new PinMemoryManager(this);
 
    initializeMemoryAccessLatencyCounters();
+
+
+   //initialize frequency and voltage
+   _frequency = DVFSManager::getInitialFrequency(CORE);
+   int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
 
    LOG_PRINT("Initialized Core.");
 }

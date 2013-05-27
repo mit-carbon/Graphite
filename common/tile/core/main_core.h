@@ -6,7 +6,7 @@
 class MainCore : public Core
 {
 public:
-   MainCore(Tile* tile, double frequency, double voltage) : Core(tile, MAIN_CORE_TYPE, frequency, voltage)  {}
+   MainCore(Tile* tile) : Core(tile, MAIN_CORE_TYPE)  {}
    ~MainCore() {}
 };
 

@@ -9,7 +9,7 @@
 class NetworkModelEMeshHopCounter : public NetworkModel
 {
 public:
-   NetworkModelEMeshHopCounter(Network *net, SInt32 network_id, double frequency, double voltage);
+   NetworkModelEMeshHopCounter(Network *net, SInt32 network_id);
    ~NetworkModelEMeshHopCounter();
 
    void routePacket(const NetPacket &pkt, queue<Hop> &next_hops);

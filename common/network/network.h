@@ -75,7 +75,7 @@ class Network
 {
 public:
    // -- Ctor, housekeeping, etc. -- //
-   Network(Tile *tile, double frequency, double voltage);
+   Network(Tile *tile);
    ~Network();
 
    Tile *getTile() const { return _tile; }

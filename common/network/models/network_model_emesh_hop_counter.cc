@@ -8,8 +8,8 @@
 #include "tile.h"
 #include "constants.h"
 
-NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 network_id, double frequency, double voltage)
-   : NetworkModel(net, network_id, frequency, voltage)
+NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 network_id)
+   : NetworkModel(net, network_id)
    , _router_power_model(NULL)
    , _electrical_link_power_model(NULL)
 {

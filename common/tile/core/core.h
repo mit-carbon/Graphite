@@ -49,7 +49,7 @@ public:
       WRITE
    };
 
-   Core(Tile *tile, core_type_t core_type, double frequency, double voltage);
+   Core(Tile *tile, core_type_t core_type);
    virtual ~Core();
 
    int coreSendW(int sender, int receiver, char *buffer, int size, carbon_network_t net_type);

@@ -41,9 +41,7 @@ namespace PrL1PrL2DramDirectoryMSI
                    UInt32 l1_dcache_data_access_cycles,
                    UInt32 l1_dcache_tags_access_cycles,
                    string l1_dcache_perf_model_type,
-                   bool l1_dcache_track_miss_types,
-                   double frequency,
-                   double voltage);
+                   bool l1_dcache_track_miss_types);
       ~L1CacheCntlr();
 
       Cache* getL1ICache() { return _l1_icache; }

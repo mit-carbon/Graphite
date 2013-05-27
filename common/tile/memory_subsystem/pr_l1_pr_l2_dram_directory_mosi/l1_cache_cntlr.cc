@@ -24,9 +24,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            UInt32 L1_dcache_data_access_cycles,
                            UInt32 L1_dcache_tags_access_cycles,
                            string L1_dcache_perf_model_type,
-                           bool L1_dcache_track_miss_types,
-                           double frequency,
-                           double voltage)
+                           bool L1_dcache_track_miss_types)
    : _memory_manager(memory_manager)
    , _L2_cache_cntlr(NULL)
 {
@@ -51,8 +49,6 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          L1_icache_data_access_cycles,
          L1_icache_tags_access_cycles,
          L1_icache_perf_model_type,
-         frequency,
-         voltage,
          L1_icache_track_miss_types);
    _L1_dcache = new Cache("L1-D",
          PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
@@ -68,8 +64,6 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          L1_dcache_data_access_cycles,
          L1_dcache_tags_access_cycles,
          L1_dcache_perf_model_type,
-         frequency,
-         voltage,
          L1_dcache_track_miss_types);
 }
 

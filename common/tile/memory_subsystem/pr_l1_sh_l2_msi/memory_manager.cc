@@ -10,8 +10,8 @@
 namespace PrL1ShL2MSI
 {
 
-MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
-   : ::MemoryManager(tile, frequency, voltage)
+MemoryManager::MemoryManager(Tile* tile)
+   : ::MemoryManager(tile)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
 {
@@ -169,9 +169,7 @@ MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
          L1_dcache_data_access_cycles,
          L1_dcache_tags_access_cycles,
          L1_dcache_perf_model_type,
-         L1_dcache_track_miss_types,
-         frequency,
-         voltage);
+         L1_dcache_track_miss_types);
    
    // Instantiate L2 cache cntlr
    _L2_cache_cntlr = new L2CacheCntlr(this,
@@ -184,9 +182,7 @@ MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
          L2_cache_data_access_cycles,
          L2_cache_tags_access_cycles,
          L2_cache_perf_model_type,
-         L2_cache_track_miss_types,
-         frequency,
-         voltage);
+         L2_cache_track_miss_types);
 }
 
 MemoryManager::~MemoryManager()

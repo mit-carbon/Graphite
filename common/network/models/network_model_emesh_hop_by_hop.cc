@@ -13,8 +13,8 @@ SInt32 NetworkModelEMeshHopByHop::_mesh_width;
 SInt32 NetworkModelEMeshHopByHop::_mesh_height;
 bool NetworkModelEMeshHopByHop::_contention_model_enabled;
 
-NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id, double frequency, double voltage)
-   : NetworkModel(net, network_id, frequency, voltage)
+NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 network_id)
+   : NetworkModel(net, network_id)
 {
    try
    {

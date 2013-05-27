@@ -14,8 +14,10 @@ using namespace std;
 #include "clock_converter.h"
 #include "log.h"
 
-NetworkModel::NetworkModel(Network *network, SInt32 network_id, double frequency, double voltage)
-   : _network(network)
+NetworkModel::NetworkModel(Network *network, SInt32 network_id)
+   :  _frequency(0)
+   , _voltage(0)
+   , _network(network)
    , _network_id(network_id)
    , _enabled(false)
 {
@@ -23,8 +25,16 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id, double frequency
    _network_name = g_static_network_name_list[network_id];
 
    // Initialize frequency, voltage
-   _frequency = frequency;
-   _voltage = voltage;
+   if (_network_id == STATIC_NETWORK_USER){
+      _frequency = DVFSManager::getInitialFrequency(NETWORK_USER);
+      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+   }
+   else if (_network_id == STATIC_NETWORK_MEMORY){
+      _frequency = DVFSManager::getInitialFrequency(NETWORK_MEMORY);
+      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+   }
 
    // Get the Tile ID
    _tile_id = _network->getTile()->getId();
@@ -46,21 +56,21 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id, double frequency
 }
 
 NetworkModel*
-NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type, double frequency, double voltage)
+NetworkModel::createModel(Network *net, SInt32 network_id, UInt32 model_type)
 {
    switch (model_type)
    {
    case NETWORK_MAGIC:
-      return new NetworkModelMagic(net, network_id, frequency, voltage);
+      return new NetworkModelMagic(net, network_id);
 
    case NETWORK_EMESH_HOP_COUNTER:
-      return new NetworkModelEMeshHopCounter(net, network_id, frequency, voltage);
+      return new NetworkModelEMeshHopCounter(net, network_id);
 
    case NETWORK_EMESH_HOP_BY_HOP:
-      return new NetworkModelEMeshHopByHop(net, network_id, frequency, voltage);
+      return new NetworkModelEMeshHopByHop(net, network_id);
 
    case NETWORK_ATAC:
-      return new NetworkModelAtac(net, network_id, frequency, voltage);
+      return new NetworkModelAtac(net, network_id);
 
    default:
       LOG_PRINT_ERROR("Unrecognized Network Model(%u)", model_type);

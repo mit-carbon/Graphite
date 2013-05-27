@@ -39,7 +39,7 @@ using std::pair;
 class NetworkModel
 {
 public:
-   NetworkModel(Network *network, SInt32 network_id, double frequency, double voltage);
+   NetworkModel(Network *network, SInt32 network_id);
    virtual ~NetworkModel() {}
 
    class Hop
@@ -87,7 +87,7 @@ public:
    void enable()                 { _enabled = true;   }
    void disable()                { _enabled = false;  }
 
-   static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type, double frequency, double voltage);
+   static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type);
    static UInt32 parseNetworkType(string str);
 
    static bool isTileCountPermissible(UInt32 network_type, SInt32 tile_count);

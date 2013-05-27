@@ -32,6 +32,7 @@ public:
    void doGetDVFS(module_t module_type, core_id_t requester);
    void doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, const Time& curr_time, core_id_t requester);
    static int getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency);
+   static double getInitialFrequency(module_t component);
 
    // Called to initialize DVFS voltage-frequency levels
    static void initializeDVFSLevels();

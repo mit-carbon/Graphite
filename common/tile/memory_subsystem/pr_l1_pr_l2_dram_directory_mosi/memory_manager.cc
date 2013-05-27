@@ -13,8 +13,8 @@ namespace PrL1PrL2DramDirectoryMOSI
 // Static variables
 ofstream MemoryManager::_cache_line_replication_file;
 
-MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
-   : ::MemoryManager(tile, frequency, voltage)
+MemoryManager::MemoryManager(Tile* tile)
+   : ::MemoryManager(tile)
    , _dram_directory_cntlr(NULL)
    , _dram_cntlr(NULL)
    , _dram_cntlr_present(false)
@@ -156,9 +156,7 @@ MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
             dram_directory_max_hw_sharers,
             dram_directory_type_str,
             num_memory_controllers,
-            dram_directory_access_cycles_str,
-            frequency,
-            voltage);
+            dram_directory_access_cycles_str);
    }
 
    _dram_directory_home_lookup = new AddressHomeLookup(dram_directory_home_lookup_param, tile_list_with_memory_controllers, getCacheLineSize());
@@ -180,9 +178,7 @@ MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
          L1_dcache_data_access_cycles,
          L1_dcache_tags_access_cycles,
          L1_dcache_perf_model_type,
-         L1_dcache_track_miss_types,
-         frequency,
-         voltage);
+         L1_dcache_track_miss_types);
    
    _L2_cache_cntlr = new L2CacheCntlr(this,
          _L1_cache_cntlr,
@@ -195,9 +191,7 @@ MemoryManager::MemoryManager(Tile* tile, double frequency, double voltage)
          L2_cache_data_access_cycles,
          L2_cache_tags_access_cycles,
          L2_cache_perf_model_type,
-         L2_cache_track_miss_types,
-         frequency,
-         voltage);
+         L2_cache_track_miss_types);
 
    _L1_cache_cntlr->setL2CacheCntlr(_L2_cache_cntlr);
 }
@@ -638,7 +632,7 @@ MemoryManager::getDVFS(module_t module_type, double &frequency, double &voltage)
          getL2Cache()->getDVFS(frequency,voltage);
          break;
 
-      case L2_DIRECTORY:
+      case DIRECTORY:
          getDramDirectoryCache()->getDVFS(frequency,voltage);
          break;
 
@@ -667,7 +661,7 @@ MemoryManager::setDVFS(module_t module_type, double frequency, voltage_option_t 
          rc = getL2Cache()->setDVFS(frequency,voltage_flag, curr_time);
          break;
 
-      case L2_DIRECTORY:
+      case DIRECTORY:
          rc = getDramDirectoryCache()->setDVFS(frequency,voltage_flag, curr_time);
          break;
 

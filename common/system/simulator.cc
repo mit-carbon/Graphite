@@ -102,6 +102,7 @@ void Simulator::start()
 
    // Initialize the DVFS levels
    DVFSManager::initializeDVFSLevels();
+   DVFSManager::initializeDVFSDomainMap();
 
    m_tile_manager = new TileManager();
    m_thread_manager = new ThreadManager(m_tile_manager);

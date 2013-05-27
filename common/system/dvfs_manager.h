@@ -1,8 +1,10 @@
 #pragma once
 
 #include <list>
+#include <map>
 using std::list;
 using std::pair;
+using std::map;
 
 #include "fixed_types.h"
 #include "dvfs.h"
@@ -34,17 +36,25 @@ public:
    // Called to initialize DVFS voltage-frequency levels
    static void initializeDVFSLevels();
 
+   // Called to initialize DVFS domains 
+   static void initializeDVFSDomainMap();
+
    // Get DVFS Levels
    static const DVFSLevels& getDVFSLevels();
 
    // Called from the McPAT interfaces
    static double getMaxFrequency(double voltage);
+
+   // Returns true if the components belong to the same domain
+   bool checkDVFSDomain(module_t component_1, module_t component_2);
  
 private:
-   // Voltage, Frequency Multiplier
+   // Voltage, Frequency Multiplier, Domain Map
    static DVFSLevels _dvfs_levels;
    static volatile double _max_frequency;
+   static map<module_t, int> _dvfs_domain_map;
    Tile* _tile;
    
    static double getMinVoltage(double frequency);
+
 };

@@ -52,7 +52,7 @@ private:
    // Voltage, Frequency Multiplier, Domain Map
    static DVFSLevels _dvfs_levels;
    static volatile double _max_frequency;
-   static map<module_t, int> _dvfs_domain_map;
+   static map<module_t, pair<int, double> > _dvfs_domain_map;
    Tile* _tile;
    
    static double getMinVoltage(double frequency);

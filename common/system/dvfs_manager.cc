@@ -14,7 +14,7 @@ using std::make_pair;
 
 DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
 volatile double DVFSManager::_max_frequency;
-map<module_t, int> DVFSManager::_dvfs_domain_map;
+map<module_t, pair<int, double> > DVFSManager::_dvfs_domain_map;
 
 DVFSManager::DVFSManager(UInt32 technology_node, Tile* tile):
    _tile(tile)
@@ -330,32 +330,32 @@ DVFSManager::initializeDVFSDomainMap()
    
                if (component == "CORE"){
                   LOG_ASSERT_ERROR(_dvfs_domain_map.find(CORE) == _dvfs_domain_map.end(),"DVFS component (%s) must be listed only once", component.c_str());
-                  _dvfs_domain_map[CORE] = domain_number;
+                  _dvfs_domain_map[CORE] = pair<int, double>(domain_number, frequency);
                }
                else if (component == "L1_ICACHE"){
                   LOG_ASSERT_ERROR(_dvfs_domain_map.find(L1_ICACHE) == _dvfs_domain_map.end(),"DVFS component (%s) must be listed only once", component.c_str());
-                  _dvfs_domain_map[L1_ICACHE] = domain_number;
+                  _dvfs_domain_map[L1_ICACHE] = pair<int, double>(domain_number, frequency);
                }
                else if (component == "L1_DCACHE"){
                   LOG_ASSERT_ERROR(_dvfs_domain_map.find(L1_DCACHE) == _dvfs_domain_map.end(),"DVFS component (%s) must be listed only once", component.c_str());
                   assert(_dvfs_domain_map.find(L1_DCACHE) == _dvfs_domain_map.end());
-                  _dvfs_domain_map[L1_DCACHE] = domain_number;
+                  _dvfs_domain_map[L1_DCACHE] = pair<int, double>(domain_number, frequency);
                } 
                else if (component == "L2_CACHE"){
                   LOG_ASSERT_ERROR(_dvfs_domain_map.find(L2_CACHE) == _dvfs_domain_map.end(),"DVFS component (%s) must be listed only once", component.c_str());
-                  _dvfs_domain_map[L2_CACHE] = domain_number;
+                  _dvfs_domain_map[L2_CACHE] = pair<int, double>(domain_number, frequency);
                }
                else if (component == "DIRECTORY"){
                   LOG_ASSERT_ERROR(_dvfs_domain_map.find(DIRECTORY) == _dvfs_domain_map.end(),"DVFS component (%s) must be listed only once", component.c_str());
-                  _dvfs_domain_map[DIRECTORY] = domain_number;
+                  _dvfs_domain_map[DIRECTORY] = pair<int, double>(domain_number, frequency);
                }
                else if (component == "NETWORK_USER"){
                   LOG_ASSERT_ERROR(_dvfs_domain_map.find(NETWORK_USER) == _dvfs_domain_map.end(),"DVFS component (%s) must be listed only once", component.c_str());
-                  _dvfs_domain_map[NETWORK_USER] = domain_number;
+                  _dvfs_domain_map[NETWORK_USER] = pair<int, double>(domain_number, frequency);
                }
                else if (component == "NETWORK_MEMORY"){
                   LOG_ASSERT_ERROR(_dvfs_domain_map.find(NETWORK_MEMORY) == _dvfs_domain_map.end(),"DVFS component (%s) must be listed only once", component.c_str());
-                  _dvfs_domain_map[NETWORK_MEMORY] = domain_number;
+                  _dvfs_domain_map[NETWORK_MEMORY] = pair<int, double>(domain_number, frequency);
                }
                else{
                   fprintf(stderr, "Unrecognized DVFS component (%s)\n", component.c_str());
@@ -366,6 +366,7 @@ DVFSManager::initializeDVFSDomainMap()
       }
    }
 
+   // check if all components are listed 
    LOG_ASSERT_ERROR(_dvfs_domain_map.find(CORE) != _dvfs_domain_map.end(),"DVFS component CORE must be listed in a DVFS domain");
    LOG_ASSERT_ERROR(_dvfs_domain_map.find(L1_ICACHE) != _dvfs_domain_map.end(),"DVFS component L1_ICACHE must be listed in a DVFS domain");
    LOG_ASSERT_ERROR(_dvfs_domain_map.find(L1_DCACHE) != _dvfs_domain_map.end(),"DVFS component L1_DCACHE must be listed in a DVFS domain");

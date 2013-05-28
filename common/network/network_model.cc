@@ -33,6 +33,8 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id)
       int rc = DVFSManager::getInitialFrequencyAndVoltage(NETWORK_MEMORY, _frequency, _voltage);
       LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
    }
+   
+   _synchronization_delay = Time(Latency(2, _frequency));
 
    // Get the Tile ID
    _tile_id = _network->getTile()->getId();
@@ -486,6 +488,7 @@ NetworkModel::setDVFS(double frequency, voltage_option_t voltage_flag, const Tim
    {
       _frequency = frequency;
       setDVFS(_frequency, _voltage, curr_time);
+      _synchronization_delay = Time(Latency(2, _frequency));
    }
    return rc;
 }

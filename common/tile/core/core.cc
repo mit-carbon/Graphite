@@ -40,6 +40,8 @@ Core::Core(Tile *tile, core_type_t core_type)
    //initialize frequency and voltage
    int rc = DVFSManager::getInitialFrequencyAndVoltage(CORE, _frequency, _voltage);
    LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+   
+   _synchronization_delay = Time(Latency(2, _frequency));
 
    LOG_PRINT("Initialized Core.");
 }
@@ -346,6 +348,7 @@ Core::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_
    {
       _core_model->setDVFS(_frequency, _voltage, frequency, curr_time);
       _frequency = frequency;
+      _synchronization_delay = Time(Latency(2, _frequency));
    }
    return rc;
 }

@@ -12,6 +12,7 @@ CachePerfModel::CachePerfModel(UInt64 data_access_cycles, UInt64 tags_access_cyc
 { 
    _data_access_latency = Time(Latency(data_access_cycles, frequency));
    _tags_access_latency = Time(Latency(tags_access_cycles, frequency));
+   _synchronization_delay = Time(Latency(2, frequency));
 }
 
 
@@ -42,6 +43,7 @@ CachePerfModel::setDVFS(double frequency)
 {
    _data_access_latency = Time(Latency(_data_access_cycles, frequency));
    _tags_access_latency = Time(Latency(_tags_access_cycles, frequency));
+   _synchronization_delay = Time(Latency(2, frequency));
 }
 
 CachePerfModel::ModelType 

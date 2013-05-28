@@ -55,6 +55,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
    _directory_access_cycles = computeDirectoryAccessCycles();
    _directory_access_latency = Time(Latency(_directory_access_cycles, _frequency));
+   _synchronization_delay = Time(Latency(2, _frequency));
   
    LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)",
          _total_entries, directory_entry_size, _directory_access_latency.toNanosec());
@@ -425,6 +426,7 @@ DirectoryCache::setDVFS(double frequency, voltage_option_t voltage_flag, const T
    {
       _frequency = frequency;
       _directory_access_latency = Time(Latency(_directory_access_cycles, _frequency));
+      _synchronization_delay = Time(Latency(2, _frequency));
    }
 
    return rc;

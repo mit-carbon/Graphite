@@ -78,6 +78,7 @@ private:
    string _directory_access_cycles_str;
    UInt64 _directory_access_cycles;
    Time _directory_access_latency;
+   Time _synchronization_delay;
 
    // Dram Directory Cache Power and Area Models (through McPAT)
    McPATCacheInterface* _mcpat_cache_interface;

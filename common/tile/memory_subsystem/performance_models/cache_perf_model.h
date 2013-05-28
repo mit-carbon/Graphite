@@ -40,4 +40,5 @@ protected:
    UInt64 _tags_access_cycles;
    Time _data_access_latency;
    Time _tags_access_latency;
+   Time _synchronization_delay;
 };

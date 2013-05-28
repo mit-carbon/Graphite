@@ -109,6 +109,7 @@ private:
 
    double _frequency;
    double _voltage;
+   Time _synchronization_delay;
 };
 
 #endif

@@ -135,6 +135,8 @@ protected:
    tile_id_t _tile_id;
    // Tile Width
    volatile double _tile_width;
+   // Synchronization delay
+   Time _synchronization_delay;
 
    Network *getNetwork()   { return _network; }
    SInt32 getNetworkID()   { return _network_id; }

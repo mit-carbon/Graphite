@@ -26,13 +26,11 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id)
 
    // Initialize frequency, voltage
    if (_network_id == STATIC_NETWORK_USER){
-      _frequency = DVFSManager::getInitialFrequency(NETWORK_USER);
-      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      int rc = DVFSManager::getInitialFrequencyAndVoltage(NETWORK_USER, _frequency, _voltage);
       LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
    }
    else if (_network_id == STATIC_NETWORK_MEMORY){
-      _frequency = DVFSManager::getInitialFrequency(NETWORK_MEMORY);
-      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      int rc = DVFSManager::getInitialFrequencyAndVoltage(NETWORK_MEMORY, _frequency, _voltage);
       LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
    }
 

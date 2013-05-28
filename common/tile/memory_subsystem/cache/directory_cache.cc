@@ -48,8 +48,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    _directory_size = _total_entries * directory_entry_size;
 
    //initialize frequency and voltage
-   _frequency = DVFSManager::getInitialFrequency(DIRECTORY);
-   int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(DIRECTORY, _frequency, _voltage);
    LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
 
 

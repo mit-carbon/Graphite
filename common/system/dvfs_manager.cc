@@ -404,10 +404,12 @@ DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag,
    return rc;
 }
 
-double
-DVFSManager::getInitialFrequency(module_t component)
+int
+DVFSManager::getInitialFrequencyAndVoltage(module_t component, volatile double &frequency, volatile double &voltage)
 {
-   return _dvfs_domain_map[component].second;
+   frequency = _dvfs_domain_map[component].second;
+   int rc = DVFSManager::getVoltage(voltage, AUTO, frequency);
+   return rc;
 }
 
 const DVFSManager::DVFSLevels&

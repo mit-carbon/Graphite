@@ -50,18 +50,15 @@ Cache::Cache(string name,
 
    //initialize frequency and voltage
    if (_name == "L1-I"){
-      _frequency = DVFSManager::getInitialFrequency(L1_ICACHE);
-      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      int rc = DVFSManager::getInitialFrequencyAndVoltage(L1_ICACHE, _frequency, _voltage);
       LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
    }
    else if (_name == "L1-D"){
-      _frequency = DVFSManager::getInitialFrequency(L1_DCACHE);
-      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      int rc = DVFSManager::getInitialFrequencyAndVoltage(L1_DCACHE, _frequency, _voltage);
       LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
    }
    else if (_name == "L2"){
-      _frequency = DVFSManager::getInitialFrequency(L2_CACHE);
-      int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+      int rc = DVFSManager::getInitialFrequencyAndVoltage(L2_CACHE, _frequency, _voltage);
       LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
    }
    else{

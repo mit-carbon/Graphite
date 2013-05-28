@@ -38,8 +38,7 @@ Core::Core(Tile *tile, core_type_t core_type)
 
 
    //initialize frequency and voltage
-   _frequency = DVFSManager::getInitialFrequency(CORE);
-   int rc = DVFSManager::getVoltage(_voltage, AUTO, _frequency);
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(CORE, _frequency, _voltage);
    LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
 
    LOG_PRINT("Initialized Core.");

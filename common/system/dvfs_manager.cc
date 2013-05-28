@@ -430,6 +430,12 @@ DVFSManager::getMaxFrequency(double voltage)
    return 0.0;
 }
 
+bool
+DVFSManager::hasSameDVFSDomain(module_t component1, module_t component2)
+{
+   return _dvfs_domain_map[component1].first == _dvfs_domain_map[component2].first;
+}
+
 double
 DVFSManager::getMinVoltage(double frequency) 
 {

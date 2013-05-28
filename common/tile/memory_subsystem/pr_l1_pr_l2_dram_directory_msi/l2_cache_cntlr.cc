@@ -179,6 +179,15 @@ L2CacheCntlr::insertCacheLineInHierarchy(IntPtr address, CacheState::Type cstate
 pair<bool,Cache::MissType>
 L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, Core::mem_op_t mem_op_type, IntPtr address)
 {
+
+   // L1 Cache synchronization delay
+   if (mem_component == MemComponent::L1_ICACHE){
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(L1_ICACHE));
+   }
+   else if (mem_component == MemComponent::L1_DCACHE){
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(L1_DCACHE));
+   }
+   
    LOG_PRINT("processShmemRequestFromL1Cache[Mem Component(%u), Mem Op Type(%u), Address(%#llx)]",
              mem_component, mem_op_type, address);
 
@@ -223,6 +232,7 @@ L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, C
 void
 L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
 {
+
    IntPtr address = shmem_msg->getAddress();
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
@@ -232,10 +242,22 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
 
    assert(_outstanding_shmem_msg.getAddress() == INVALID_ADDRESS);
 
+   // L1 Cache synchronization delay
+   if (sender_mem_component == MemComponent::L1_ICACHE){
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(L1_ICACHE));
+   }
+   else if (sender_mem_component == MemComponent::L1_DCACHE){
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(L1_DCACHE));
+   }
+   else{
+      LOG_PRINT_ERROR("Unrecognized memory component (%u)", sender_mem_component);
+   }
+
    // Set outstanding shmem msg parameters
    _outstanding_shmem_msg.setAddress(address);
    _outstanding_shmem_msg.setSenderMemComponent(sender_mem_component);
    _outstanding_shmem_msg_time = getShmemPerfModel()->getCurrTime();
+
    
    switch (shmem_msg_type)
    {

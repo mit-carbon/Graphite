@@ -128,6 +128,8 @@ public:
    int getDVFS(double &frequency, double &voltage);
    int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
+   // Synchronization delay
+   Time getSynchronizationDelay(module_t component);
 
 private:
    // Is enabled?
@@ -148,6 +150,7 @@ private:
    UInt32 _log_line_size;
    volatile double _frequency;
    volatile double _voltage;
+   module_t _component;
 
    // Computing replacement policy and hash function
    CacheReplacementPolicy* _replacement_policy;
@@ -215,4 +218,5 @@ private:
    
    // Update counters that record the state of cache lines
    void updateCacheLineStateCounters(CacheState::Type old_cstate, CacheState::Type new_cstate);
+
 };

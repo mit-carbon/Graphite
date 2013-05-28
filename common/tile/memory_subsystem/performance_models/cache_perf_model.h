@@ -35,6 +35,8 @@ public:
 
    void setDVFS(double frequency);
 
+   Time getSynchronizationDelay(){ return _synchronization_delay; }
+
 protected:
    UInt64 _data_access_cycles;
    UInt64 _tags_access_cycles;

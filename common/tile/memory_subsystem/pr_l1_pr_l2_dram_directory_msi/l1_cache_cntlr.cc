@@ -97,6 +97,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
    bool l1_cache_hit = true;
    UInt32 access_num = 0;
 
+   // Core synchronization delay
+   getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(CORE));
+
    while(1)
    {
       access_num ++;
@@ -143,6 +146,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
          // L1 Cache
          getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
+         // L2 Cache syncronization delay 
+         getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
+
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
          return false;
@@ -150,6 +156,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       // Increment shared mem perf model curr time
       getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
+
+      // L2 Cache syncronization delay 
+      getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
       
       // Is the miss type modeled? If yes, all the msgs' created by this miss are modeled 
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());

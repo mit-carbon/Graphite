@@ -47,7 +47,7 @@ public:
    static double getMaxFrequency(double voltage);
 
    // Returns true if the components belong to the same domain
-   bool checkDVFSDomain(module_t component_1, module_t component_2);
+   static bool hasSameDVFSDomain(module_t component_1, module_t component_2);
  
 private:
    // Voltage, Frequency Multiplier, Domain Map

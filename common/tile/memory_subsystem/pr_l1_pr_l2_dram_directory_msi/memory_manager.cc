@@ -320,7 +320,29 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
    NetPacket packet(msg_time, SHARED_MEM,
          getTile()->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
-   getNetwork()->netSend(packet);
+
+   if (getTile()->getId() == receiver){
+      getNetwork()->netSend(packet);
+   }
+   else{
+      switch (shmem_msg.getSenderMemComponent()){
+         case MemComponent::L1_ICACHE:
+            getNetwork()->netSend(L1_ICACHE, packet);
+            break;
+         case MemComponent::L1_DCACHE:
+            getNetwork()->netSend(L1_DCACHE, packet);
+            break;
+         case MemComponent::L2_CACHE:
+            getNetwork()->netSend(L2_CACHE, packet);
+            break;
+         case MemComponent::DRAM_DIRECTORY:
+            getNetwork()->netSend(DIRECTORY, packet);
+            break;
+         default:
+            getNetwork()->netSend(packet);
+            break;
+      }
+   }
 
    // Delete the Msg Buf
    delete [] msg_buf;

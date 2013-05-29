@@ -108,6 +108,9 @@ public:
    // Tracing Network Injection/Ejection Rate
    void popCurrentUtilizationStatistics(UInt64& total_flits_sent, UInt64& total_flits_broadcasted, UInt64& total_flits_received);
 
+   // Synchronization delay
+   Time getSynchronizationDelay(module_t component);
+
 protected:
    class NextDest
    {
@@ -137,6 +140,8 @@ protected:
    volatile double _tile_width;
    // Synchronization delay
    Time _synchronization_delay;
+   // DVFS module
+   module_t _component;
 
    Network *getNetwork()   { return _network; }
    SInt32 getNetworkID()   { return _network_id; }

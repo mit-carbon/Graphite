@@ -19,6 +19,7 @@ Return codes for all DVFS API functions:
 
 typedef enum
 {
+   INVALID_MODULE = 0,
    CORE = 0x1,
    L1_ICACHE = 0x2,
    L1_DCACHE = 0x4,

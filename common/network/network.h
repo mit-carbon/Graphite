@@ -16,6 +16,7 @@ using std::list;
 #include "semaphore.h"
 #include "transport.h"
 #include "time_types.h"
+#include "dvfs.h"
 
 class Tile;
 class Network;
@@ -96,6 +97,7 @@ public:
    // -- Main interface -- //
 
    SInt32 netSend(NetPacket& packet);
+   SInt32 netSend(module_t componentk, NetPacket& packet);
    NetPacket netRecv(const NetMatch &match);
 
    // -- Wrappers -- //

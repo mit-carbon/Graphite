@@ -208,6 +208,15 @@ SInt32 Network::netSend(NetPacket& packet)
    return packet.length;
 }
 
+SInt32 Network::netSend(module_t component, NetPacket& packet)
+{
+
+   NetworkModel* model = getNetworkModelFromPacketType(packet.type);
+   packet.time += model->getSynchronizationDelay(component);
+   return netSend(packet);
+}
+
+
 SInt32 Network::forwardPacket(const NetPacket& packet)
 {
    // Create a buffer suitable for forwarding

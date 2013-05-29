@@ -300,7 +300,6 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
-
    // add synchronization cost
    if (sender == getTileId()){
       getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(DIRECTORY));

@@ -242,22 +242,10 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
 
    assert(_outstanding_shmem_msg.getAddress() == INVALID_ADDRESS);
 
-   // L1 Cache synchronization delay
-   if (sender_mem_component == MemComponent::L1_ICACHE){
-      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(L1_ICACHE));
-   }
-   else if (sender_mem_component == MemComponent::L1_DCACHE){
-      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(L1_DCACHE));
-   }
-   else{
-      LOG_PRINT_ERROR("Unrecognized memory component (%u)", sender_mem_component);
-   }
-
    // Set outstanding shmem msg parameters
    _outstanding_shmem_msg.setAddress(address);
    _outstanding_shmem_msg.setSenderMemComponent(sender_mem_component);
    _outstanding_shmem_msg_time = getShmemPerfModel()->getCurrTime();
-
    
    switch (shmem_msg_type)
    {
@@ -312,6 +300,15 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+
+   // add synchronization cost
+   if (sender == getTileId()){
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(DIRECTORY));
+   }
+   else{
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(NETWORK_MEMORY));
+   }
+
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    switch (shmem_msg_type)
    {

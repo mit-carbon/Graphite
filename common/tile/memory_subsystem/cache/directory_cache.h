@@ -45,6 +45,7 @@ public:
 
    int getDVFS(double &frequency, double &voltage);
    int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
+   Time getSynchronizationDelay(module_t component);
 
 private:
    Tile* _tile;

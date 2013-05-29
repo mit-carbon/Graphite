@@ -42,6 +42,14 @@ DramDirectoryCntlr::~DramDirectoryCntlr()
 void
 DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   // add synchronization cost
+   if (sender == _memory_manager->getTile()->getId()){
+      getShmemPerfModel()->incrCurrTime(_dram_directory_cache->getSynchronizationDelay(L2_CACHE));
+   }
+   else{
+      getShmemPerfModel()->incrCurrTime(_dram_directory_cache->getSynchronizationDelay(NETWORK_MEMORY));
+   }
+
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    Time msg_time = getShmemPerfModel()->getCurrTime();
 

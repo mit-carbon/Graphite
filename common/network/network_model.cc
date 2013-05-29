@@ -13,9 +13,10 @@ using namespace std;
 #include "config.h"
 #include "clock_converter.h"
 #include "log.h"
+#include "dvfs_manager.h"
 
 NetworkModel::NetworkModel(Network *network, SInt32 network_id)
-   :  _frequency(0)
+   : _frequency(0)
    , _voltage(0)
    , _component(INVALID_MODULE)
    , _network(network)
@@ -37,7 +38,7 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id)
       LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
    }
    
-   _synchronization_delay = Time(Latency(2, _frequency));
+   _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
 
    // Get the Tile ID
    _tile_id = _network->getTile()->getId();
@@ -491,7 +492,7 @@ NetworkModel::setDVFS(double frequency, voltage_option_t voltage_flag, const Tim
    {
       _frequency = frequency;
       setDVFS(_frequency, _voltage, curr_time);
-      _synchronization_delay = Time(Latency(2, _frequency));
+      _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
    }
    return rc;
 }

@@ -48,6 +48,9 @@ public:
 
    // Returns true if the components belong to the same domain
    static bool hasSameDVFSDomain(module_t component_1, module_t component_2);
+
+   // returns synchronization delay
+   static UInt32 getSynchronizationDelay(){return _synchronization_delay_cycles; }
  
 private:
    // Voltage, Frequency Multiplier, Domain Map
@@ -58,4 +61,5 @@ private:
    
    static double getMinVoltage(double frequency);
 
+   static UInt32 _synchronization_delay_cycles;
 };

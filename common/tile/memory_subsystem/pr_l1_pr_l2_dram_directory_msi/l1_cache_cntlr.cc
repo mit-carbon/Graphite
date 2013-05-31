@@ -137,17 +137,18 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       pair<bool,Cache::MissType> l2_cache_miss_info = _l2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, mem_op_type, ca_address);
       bool l2_cache_miss = l2_cache_miss_info.first;
 
+
       // Is cache hit?
       if (!l2_cache_miss)
       {
+         // L2 Cache synchronization delay 
+         getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
          // Increment Shared Mem Perf model curr time
          // L2 Cache
          getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
          // L1 Cache
          getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
-         // L2 Cache syncronization delay 
-         getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
@@ -157,9 +158,6 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       // Increment shared mem perf model curr time
       getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
 
-      // L2 Cache syncronization delay 
-      getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
-      
       // Is the miss type modeled? If yes, all the msgs' created by this miss are modeled 
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
@@ -169,6 +167,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       getMemoryManager()->sendMsg(getTileId(), shmem_msg);
 
       _memory_manager->waitForSimThread();
+
+      // L2 Cache synchronization delay 
+      getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
    }
 
    LOG_PRINT_ERROR("Should not reach here");
@@ -298,6 +299,12 @@ L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr addre
       l1_cache_line_info.invalidate();
       l1_cache->setCacheLineInfo(address, &l1_cache_line_info);
    }
+}
+
+void
+L1CacheCntlr::addSynchronizationCost(MemComponent::Type mem_component, module_t module)
+{
+   getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(module));
 }
 
 ShmemMsg::Type

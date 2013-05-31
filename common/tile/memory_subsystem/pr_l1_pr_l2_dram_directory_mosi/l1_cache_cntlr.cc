@@ -97,6 +97,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
    bool L1_cache_hit = true;
    UInt32 access_num = 0;
 
+   // Core synchronization delay
+   getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(CORE));
+
    while(1)
    {
       access_num ++;
@@ -129,8 +132,13 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       pair<bool,Cache::MissType> L2_cache_miss_info = _L2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, mem_op_type, ca_address);
       bool L2_cache_miss = L2_cache_miss_info.first;
+
       if (!L2_cache_miss)
       {
+
+         // L2 Cache synchronization delay 
+         getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
+
          // Increment Shared Mem Perf model current time
          // L2 Cache
          getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
@@ -144,7 +152,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       // Increment shared mem perf model current time 
       getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
-      
+
       // Send out a request to the network thread for the cache data
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
 
@@ -154,6 +162,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       getMemoryManager()->sendMsg(getTileId(), shmem_msg);
 
       _memory_manager->waitForSimThread();
+
+      // L2 Cache synchronization delay 
+      getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
    }
 
    LOG_PRINT_ERROR("Should not reach here");
@@ -270,6 +281,12 @@ L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr addre
    // Invalidate cache line
    L1_cache_line_info.invalidate();
    L1_cache->setCacheLineInfo(address, &L1_cache_line_info);
+}
+
+void
+L1CacheCntlr::addSynchronizationCost(MemComponent::Type mem_component, module_t module)
+{
+   getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(module));
 }
 
 ShmemMsg::Type

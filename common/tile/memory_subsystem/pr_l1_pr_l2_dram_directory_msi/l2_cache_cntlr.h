@@ -101,6 +101,9 @@ namespace PrL1PrL2DramDirectoryMSI
 
       // Dram Directory Home Lookup
       tile_id_t getHome(IntPtr address) { return _dram_directory_home_lookup->getHome(address); }
+
+      // Synchronization delay
+      void addSynchronizationCost(MemComponent::Type mem_component);
    };
 
 }

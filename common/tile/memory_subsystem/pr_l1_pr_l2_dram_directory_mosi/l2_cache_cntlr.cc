@@ -226,6 +226,9 @@ L2CacheCntlr::insertCacheLineInHierarchy(IntPtr address, CacheState::Type cstate
 pair<bool,Cache::MissType>
 L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, Core::mem_op_t mem_op_type, IntPtr address)
 {
+   // L1 Cache synchronization delay
+   addSynchronizationCost(mem_component);
+
    PrL2CacheLineInfo L2_cache_line_info;
    _L2_cache->getCacheLineInfo(address, &L2_cache_line_info);
    CacheState::Type L2_cstate = L2_cache_line_info.getCState();
@@ -284,6 +287,14 @@ L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   // add synchronization cost
+   if (sender == getTileId()){
+      getShmemPerfModel()->incrCurrTime(_L2_cache->getSynchronizationDelay(DIRECTORY));
+   }
+   else{
+      getShmemPerfModel()->incrCurrTime(_L2_cache->getSynchronizationDelay(NETWORK_MEMORY));
+   }
+
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    switch (shmem_msg_type)
    {
@@ -422,9 +433,15 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
 
       LOG_PRINT("Address(%#lx), Cached Loc(%s)", address, SPELL_MEMCOMP(L2_cache_line_info.getCachedLoc()));
       updateInvalidationCounters();
+
+      // add synchronization delay: L2->L1
+      _L1_cache_cntlr->addSynchronizationCost(L2_cache_line_info.getCachedLoc(), L2_CACHE);
      
       // Invalidate the line in L1 Cache
       invalidateCacheLineInL1(L2_cache_line_info.getCachedLoc(), address);
+
+      // add synchronization delay: L1->L2
+      addSynchronizationCost(L2_cache_line_info.getCachedLoc());
       
       // Invalidate the line in the L2 cache
       invalidateCacheLine(address, L2_cache_line_info);
@@ -471,8 +488,14 @@ L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem
       LOG_PRINT("Address(%#lx), Cached Loc(%s)", address, SPELL_MEMCOMP(L2_cache_line_info.getCachedLoc()));
       updateInvalidationCounters();
 
+      // add synchronization delay: L2->L1
+      _L1_cache_cntlr->addSynchronizationCost(L2_cache_line_info.getCachedLoc(), L2_CACHE);
+
       // Invalidate the line in L1 Cache
       invalidateCacheLineInL1(L2_cache_line_info.getCachedLoc(), address);
+
+      // add synchronization delay: L1->L2
+      addSynchronizationCost(L2_cache_line_info.getCachedLoc());
 
       // Flush the line
       Byte data_buf[getCacheLineSize()];
@@ -523,9 +546,15 @@ L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
 
       // MODIFIED -> OWNED, OWNED -> OWNED, SHARED -> SHARED
       CacheState::Type new_cstate = (cstate == CacheState::MODIFIED) ? CacheState::OWNED : cstate;
+
+      // add synchronization delay: L2->L1
+      _L1_cache_cntlr->addSynchronizationCost(L2_cache_line_info.getCachedLoc(), L2_CACHE);
       
       // Set the Appropriate Cache State in the L1 cache
       setCacheLineStateInL1(L2_cache_line_info.getCachedLoc(), address, new_cstate);
+
+      // add synchronization delay: L1->L2
+      addSynchronizationCost(L2_cache_line_info.getCachedLoc());
 
       // Write-Back the line
       Byte data_buf[getCacheLineSize()];

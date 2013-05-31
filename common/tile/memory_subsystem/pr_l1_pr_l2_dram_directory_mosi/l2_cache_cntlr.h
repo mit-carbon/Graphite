@@ -126,6 +126,9 @@ namespace PrL1PrL2DramDirectoryMOSI
       void initializeInvalidationCounters();
       void updateEvictionCounters(CacheState::Type inserted_cstate, CacheState::Type evicted_cstate);
       void updateInvalidationCounters();
+
+      // Synchronization delay
+      void addSynchronizationCost(MemComponent::Type mem_component);
    };
 
 }

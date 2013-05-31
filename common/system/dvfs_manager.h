@@ -9,6 +9,7 @@ using std::map;
 #include "fixed_types.h"
 #include "dvfs.h"
 #include "network.h"
+#include "mem_component.h"
 
 // Called over the network (callbacks)
 void getDVFSCallback(void* obj, NetPacket packet);
@@ -51,6 +52,9 @@ public:
 
    // returns synchronization delay
    static UInt32 getSynchronizationDelay(){return _synchronization_delay_cycles; }
+
+   // returns synchronization delay
+   static module_t convertToModule(MemComponent::Type component);
  
 private:
    // Voltage, Frequency Multiplier, Domain Map

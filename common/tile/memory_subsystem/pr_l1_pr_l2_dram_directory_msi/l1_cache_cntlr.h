@@ -64,6 +64,8 @@ namespace PrL1PrL2DramDirectoryMSI
       void setCacheLineState(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
       void invalidateCacheLine(MemComponent::Type mem_component, IntPtr address);
 
+      void addSynchronizationCost(MemComponent::Type mem_component, module_t module);
+
    private:
       MemoryManager* _memory_manager;
       Cache* _l1_icache;

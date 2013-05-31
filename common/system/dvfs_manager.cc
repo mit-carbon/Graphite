@@ -436,6 +436,24 @@ DVFSManager::hasSameDVFSDomain(module_t component1, module_t component2)
    return _dvfs_domain_map[component1].first == _dvfs_domain_map[component2].first;
 }
 
+module_t
+DVFSManager::convertToModule(MemComponent::Type component){
+   switch(component){
+      case MemComponent::L1_ICACHE:
+         return L1_ICACHE;
+      case MemComponent::L1_DCACHE:
+         return L1_DCACHE;
+      case MemComponent::L2_CACHE:
+         return L2_CACHE;
+      case MemComponent::DRAM_DIRECTORY:
+         return DIRECTORY;
+      default:
+         LOG_PRINT_ERROR("Unknown memory component.");
+         break;
+   }
+   return INVALID_MODULE;
+}
+
 double
 DVFSManager::getMinVoltage(double frequency) 
 {

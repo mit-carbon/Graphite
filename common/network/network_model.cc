@@ -27,17 +27,20 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id)
    _network_name = g_static_network_name_list[network_id];
 
    // Initialize frequency, voltage
-   if (_network_id == STATIC_NETWORK_USER){
-      _component = NETWORK_USER;
+   switch(_network_id){
+      case STATIC_NETWORK_USER:
+         _component = NETWORK_USER;
+         break;
+      case STATIC_NETWORK_MEMORY:
+         _component = NETWORK_MEMORY;
+         break;
+      default:
+         _component = INVALID_MODULE;
    }
-   else if (_network_id == STATIC_NETWORK_MEMORY){
-      _component = NETWORK_MEMORY;
-   }
-   if (_component != INVALID_MODULE){
-      int rc = DVFSManager::getInitialFrequencyAndVoltage(_component, _frequency, _voltage);
-      LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
-   }
-   
+
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(_component, _frequency, _voltage);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
 
    // Get the Tile ID

@@ -291,6 +291,9 @@ DVFSManager::initializeDVFSLevels()
 void
 DVFSManager::initializeDVFSDomainMap()
 {
+   double DEFAULT_FREQUENCY = 1.0;
+   _dvfs_domain_map[INVALID_MODULE] = pair<int, double>(0, DEFAULT_FREQUENCY);
+
    string dvfs_domains_list_str;
    try
    {

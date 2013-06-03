@@ -300,16 +300,18 @@ L1CacheCntlr::handleMsgFromCore(ShmemMsg* shmem_msg)
                            shmem_msg->isModeled());
    tile_id_t receiver = _L2_cache_home_lookup->getHome(address);
    getMemoryManager()->sendMsg(receiver, send_shmem_msg);
-
-   // L2 Cache synchronization delay 
-   if (receiver != getTileId())
-      getShmemPerfModel()->incrCurrTime(getL1Cache(shmem_msg->getSenderMemComponent())->getSynchronizationDelay(L2_CACHE));
-      
 }
 
 void
 L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   // L2 Cache synchronization delay 
+   if (sender == getTileId())
+      getShmemPerfModel()->incrCurrTime(getL1Cache(shmem_msg->getReceiverMemComponent())->getSynchronizationDelay(L2_CACHE));
+   else{
+      getShmemPerfModel()->incrCurrTime(getL1Cache(shmem_msg->getReceiverMemComponent())->getSynchronizationDelay(NETWORK_MEMORY));
+   }
+
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    switch (shmem_msg_type)
    {
@@ -323,27 +325,12 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       processUpgradeRepFromL2Cache(sender, shmem_msg);
       break;
    case ShmemMsg::INV_REQ:
-
-      // L2 Cache synchronization delay 
-      if (sender != getTileId())
-         getShmemPerfModel()->incrCurrTime(getL1Cache(shmem_msg->getReceiverMemComponent())->getSynchronizationDelay(L2_CACHE));
-
       processInvReqFromL2Cache(sender, shmem_msg);
       break;
    case ShmemMsg::FLUSH_REQ:
-
-      // L2 Cache synchronization delay 
-      if (sender != getTileId())
-         getShmemPerfModel()->incrCurrTime(getL1Cache(shmem_msg->getReceiverMemComponent())->getSynchronizationDelay(L2_CACHE));
-
       processFlushReqFromL2Cache(sender, shmem_msg);
       break;
    case ShmemMsg::WB_REQ:
-
-      // L2 Cache synchronization delay 
-      if (sender != getTileId())
-         getShmemPerfModel()->incrCurrTime(getL1Cache(shmem_msg->getReceiverMemComponent())->getSynchronizationDelay(L2_CACHE));
-
       processWbReqFromL2Cache(sender, shmem_msg);
       break;
    default:

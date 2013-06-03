@@ -13,6 +13,7 @@
 #include "clock_converter.h"
 #include "config.h"
 #include "log.h"
+#include "dvfs_manager.h"
 
 Core::Core(Tile *tile, core_type_t core_type)
    : _tile(tile)
@@ -22,6 +23,8 @@ Core::Core(Tile *tile, core_type_t core_type)
    , _enabled(false)
    , _component(CORE)
 {
+
+   DVFSManager::getSynchronizationDelay();
 
    _id = (core_id_t) {_tile->getId(), core_type};
    if (Config::getSingleton()->getEnableCoreModeling())

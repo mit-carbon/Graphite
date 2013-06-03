@@ -35,6 +35,9 @@ public:
    static int getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency);
    static int getInitialFrequencyAndVoltage(module_t component, volatile double &frequency, volatile double &voltage);
 
+   // Called to initialize DVFS
+   static void initializeDVFS();
+
    // Called to initialize DVFS voltage-frequency levels
    static void initializeDVFSLevels();
 
@@ -51,7 +54,7 @@ public:
    static bool hasSameDVFSDomain(module_t component_1, module_t component_2);
 
    // returns synchronization delay
-   static UInt32 getSynchronizationDelay(){return _synchronization_delay_cycles; }
+   static UInt32 getSynchronizationDelay();
 
    // returns synchronization delay
    static module_t convertToModule(MemComponent::Type component);

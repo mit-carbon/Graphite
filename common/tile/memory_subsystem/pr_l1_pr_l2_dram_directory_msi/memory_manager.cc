@@ -325,23 +325,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
       getNetwork()->netSend(packet);
    }
    else{
-      switch (shmem_msg.getSenderMemComponent()){
-         case MemComponent::L1_ICACHE:
-            getNetwork()->netSend(L1_ICACHE, packet);
-            break;
-         case MemComponent::L1_DCACHE:
-            getNetwork()->netSend(L1_DCACHE, packet);
-            break;
-         case MemComponent::L2_CACHE:
-            getNetwork()->netSend(L2_CACHE, packet);
-            break;
-         case MemComponent::DRAM_DIRECTORY:
-            getNetwork()->netSend(DIRECTORY, packet);
-            break;
-         default:
-            getNetwork()->netSend(packet);
-            break;
-      }
+      getNetwork()->netSend(DVFSManager::convertToModule(shmem_msg.getSenderMemComponent()), packet);
    }
 
    // Delete the Msg Buf

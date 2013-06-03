@@ -304,7 +304,9 @@ L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr addre
 void
 L1CacheCntlr::addSynchronizationCost(MemComponent::Type mem_component, module_t module)
 {
-   getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(module));
+   if (mem_component != MemComponent::INVALID){
+      getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(module));
+   }
 }
 
 ShmemMsg::Type

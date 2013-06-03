@@ -547,8 +547,10 @@ L2CacheCntlr::getShmemPerfModel()
 void
 L2CacheCntlr::addSynchronizationCost(MemComponent::Type mem_component)
 {
-   module_t module = DVFSManager::convertToModule(mem_component);
-   getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(module));
+   if (mem_component != MemComponent::INVALID){
+      module_t module = DVFSManager::convertToModule(mem_component);
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(module));
+   }
 }
 
 }

@@ -100,9 +100,8 @@ void Simulator::start()
   
    m_transport = Transport::create();
 
-   // Initialize the DVFS levels
-   DVFSManager::initializeDVFSLevels();
-   DVFSManager::initializeDVFSDomainMap();
+   // Initialize the DVFS
+   DVFSManager::initializeDVFS();
 
    m_tile_manager = new TileManager();
    m_thread_manager = new ThreadManager(m_tile_manager);

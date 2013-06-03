@@ -15,6 +15,7 @@ using std::make_pair;
 DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
 volatile double DVFSManager::_max_frequency;
 map<module_t, pair<int, double> > DVFSManager::_dvfs_domain_map;
+UInt32 DVFSManager::_synchronization_delay_cycles;
 
 DVFSManager::DVFSManager(UInt32 technology_node, Tile* tile):
    _tile(tile)
@@ -238,6 +239,15 @@ setDVFSCallback(void* obj, NetPacket packet)
    dvfs_manager->doSetDVFS(module_mask, frequency, voltage_flag, curr_time, packet.sender);
 }
 
+// Called to initialize DVFS
+void
+DVFSManager::initializeDVFS()
+{
+   DVFSManager::initializeDVFSLevels();
+   DVFSManager::initializeDVFSDomainMap();
+   _synchronization_delay_cycles =  Sim()->getCfg()->getInt("dvfs/synchronization_delay");
+}
+
 // Called to initialize DVFS Levels
 void
 DVFSManager::initializeDVFSLevels()
@@ -377,6 +387,10 @@ DVFSManager::initializeDVFSDomainMap()
 
 }
 
+UInt32 DVFSManager::getSynchronizationDelay()
+{
+   return _synchronization_delay_cycles;
+}
 
 int
 DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency) 

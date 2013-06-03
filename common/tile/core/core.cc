@@ -24,8 +24,6 @@ Core::Core(Tile *tile, core_type_t core_type)
    , _component(CORE)
 {
 
-   DVFSManager::getSynchronizationDelay();
-
    _id = (core_id_t) {_tile->getId(), core_type};
    if (Config::getSingleton()->getEnableCoreModeling())
       _core_model = CoreModel::create(this);
@@ -234,11 +232,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
    incrTotalMemoryAccessLatency(mem_component, memory_access_time);
 
    // Add synchronization delay
-   if (mem_component == MemComponent::L1_ICACHE)
-      memory_access_time += getSynchronizationDelay(L1_ICACHE);
-   if (mem_component == MemComponent::L1_DCACHE)
-      memory_access_time += getSynchronizationDelay(L1_DCACHE);
-   
+   memory_access_time += getSynchronizationDelay(DVFSManager::convertToModule(mem_component));
 
    if (push_info)
    {

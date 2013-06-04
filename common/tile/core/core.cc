@@ -218,6 +218,9 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
 
       // Increment the buffer head
       curr_data_buffer_head += curr_size;
+
+      // Add synchronization delay
+      curr_time += getSynchronizationDelay(DVFSManager::convertToModule(mem_component));
    }
 
    // Get the final cycle time
@@ -230,9 +233,6 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
    // Calculate the round-trip time
    Time memory_access_time = final_time - initial_time;
    incrTotalMemoryAccessLatency(mem_component, memory_access_time);
-
-   // Add synchronization delay
-   memory_access_time += getSynchronizationDelay(DVFSManager::convertToModule(mem_component));
 
    if (push_info)
    {

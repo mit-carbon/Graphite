@@ -97,7 +97,7 @@ public:
    // -- Main interface -- //
 
    SInt32 netSend(NetPacket& packet);
-   SInt32 netSend(module_t componentk, NetPacket& packet);
+   SInt32 netSend(module_t module, NetPacket& packet);
    NetPacket netRecv(const NetMatch &match);
 
    // -- Wrappers -- //

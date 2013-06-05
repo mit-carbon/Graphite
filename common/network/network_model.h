@@ -109,7 +109,7 @@ public:
    void popCurrentUtilizationStatistics(UInt64& total_flits_sent, UInt64& total_flits_broadcasted, UInt64& total_flits_received);
 
    // Synchronization delay
-   Time getSynchronizationDelay(module_t component);
+   Time getSynchronizationDelay(module_t module);
 
 protected:
    class NextDest
@@ -141,7 +141,7 @@ protected:
    // Synchronization delay
    Time _synchronization_delay;
    // DVFS module
-   module_t _component;
+   module_t _module;
 
    Network *getNetwork()   { return _network; }
    SInt32 getNetworkID()   { return _network_id; }

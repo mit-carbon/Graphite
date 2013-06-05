@@ -433,9 +433,9 @@ DirectoryCache::setDVFS(double frequency, voltage_option_t voltage_flag, const T
 }
 
 Time
-DirectoryCache::getSynchronizationDelay(module_t component)
+DirectoryCache::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(DIRECTORY, component)){
+   if (!DVFSManager::hasSameDVFSDomain(DIRECTORY, module)){
       return _synchronization_delay;
    }
    return Time(0);

@@ -129,7 +129,7 @@ public:
    int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
    // Synchronization delay
-   Time getSynchronizationDelay(module_t component);
+   Time getSynchronizationDelay(module_t module);
 
 private:
    // Is enabled?
@@ -150,7 +150,7 @@ private:
    UInt32 _log_line_size;
    volatile double _frequency;
    volatile double _voltage;
-   module_t _component;
+   module_t _module;
 
    // Computing replacement policy and hash function
    CacheReplacementPolicy* _replacement_policy;

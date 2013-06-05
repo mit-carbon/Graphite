@@ -317,8 +317,8 @@ DVFSManager::initializeDVFSDomainMap()
       SInt32 param_num = 0; 
       double frequency = 0; 
       module_t domain_mask = INVALID_MODULE;
-      vector<module_t> domain_components;
-      vector<string> domain_components_str;
+      vector<module_t> domain_modules;
+      vector<string> domain_modules_str;
       for (vector<string>::iterator param_it = dvfs_parameter_tuple.begin();
             param_it != dvfs_parameter_tuple.end(); param_it ++)
       {
@@ -332,38 +332,38 @@ DVFSManager::initializeDVFSDomainMap()
          }
          else{
             // create domain mask
-            string component = trimSpaces(*param_it);
-            domain_components_str.push_back(component);
-            if (component == "CORE"){
+            string module = trimSpaces(*param_it);
+            domain_modules_str.push_back(module);
+            if (module == "CORE"){
                domain_mask = (module_t) (domain_mask | CORE);
-               domain_components.push_back(CORE);
+               domain_modules.push_back(CORE);
             }
-            else if (component == "L1_ICACHE"){
+            else if (module == "L1_ICACHE"){
                domain_mask = (module_t) (domain_mask | L1_ICACHE);
-               domain_components.push_back(L1_ICACHE);
+               domain_modules.push_back(L1_ICACHE);
             }
-            else if (component == "L1_DCACHE"){
+            else if (module == "L1_DCACHE"){
                domain_mask = (module_t) (domain_mask | L1_DCACHE);
-               domain_components.push_back(L1_DCACHE);
+               domain_modules.push_back(L1_DCACHE);
             }
-            else if (component == "L2_CACHE"){
+            else if (module == "L2_CACHE"){
                domain_mask = (module_t) (domain_mask | L2_CACHE);
-               domain_components.push_back(L2_CACHE);
+               domain_modules.push_back(L2_CACHE);
             }
-            else if (component == "DIRECTORY"){
+            else if (module == "DIRECTORY"){
                domain_mask = (module_t) (domain_mask | DIRECTORY);
-               domain_components.push_back(DIRECTORY);
+               domain_modules.push_back(DIRECTORY);
             }
-            else if (component == "NETWORK_USER"){
+            else if (module == "NETWORK_USER"){
                domain_mask = (module_t) (domain_mask | NETWORK_USER);
-               domain_components.push_back(NETWORK_USER);
+               domain_modules.push_back(NETWORK_USER);
             }
-            else if (component == "NETWORK_MEMORY"){
+            else if (module == "NETWORK_MEMORY"){
                domain_mask = (module_t) (domain_mask | NETWORK_MEMORY);
-               domain_components.push_back(NETWORK_MEMORY);
+               domain_modules.push_back(NETWORK_MEMORY);
             }
             else{
-               fprintf(stderr, "Unrecognized DVFS component (%s)\n", component.c_str());
+               fprintf(stderr, "Unrecognized DVFS module (%s)\n", module.c_str());
                exit(EXIT_FAILURE);
             }
          }
@@ -372,22 +372,22 @@ DVFSManager::initializeDVFSDomainMap()
       }
 
       pair<module_t,double> domain_value(domain_mask, frequency);
-      for (unsigned int i=0; i<domain_components.size(); i++){
-         LOG_ASSERT_ERROR(_dvfs_domain_map.find(domain_components[i]) ==
-            _dvfs_domain_map.end(), "DVFS component (%s) can only be listed once",
-            domain_components_str[i].c_str());
-         _dvfs_domain_map[domain_components[i]] = domain_value;
+      for (unsigned int i=0; i<domain_modules.size(); i++){
+         LOG_ASSERT_ERROR(_dvfs_domain_map.find(domain_modules[i]) ==
+            _dvfs_domain_map.end(), "DVFS module (%s) can only be listed once",
+            domain_modules_str[i].c_str());
+         _dvfs_domain_map[domain_modules[i]] = domain_value;
       }
    }
 
-   // check if all components are listed 
-   LOG_ASSERT_ERROR(_dvfs_domain_map.find(CORE) != _dvfs_domain_map.end(),"DVFS component CORE must be listed in a DVFS domain");
-   LOG_ASSERT_ERROR(_dvfs_domain_map.find(L1_ICACHE) != _dvfs_domain_map.end(),"DVFS component L1_ICACHE must be listed in a DVFS domain");
-   LOG_ASSERT_ERROR(_dvfs_domain_map.find(L1_DCACHE) != _dvfs_domain_map.end(),"DVFS component L1_DCACHE must be listed in a DVFS domain");
-   LOG_ASSERT_ERROR(_dvfs_domain_map.find(L2_CACHE) != _dvfs_domain_map.end(),"DVFS component L2_CACHE must be listed in a DVFS domain");
-   LOG_ASSERT_ERROR(_dvfs_domain_map.find(DIRECTORY) != _dvfs_domain_map.end(),"DVFS component DIRECTORY must be listed in a DVFS domain");
-   LOG_ASSERT_ERROR(_dvfs_domain_map.find(NETWORK_USER) != _dvfs_domain_map.end(),"DVFS component NETWORK_USER must be listed in a DVFS domain");
-   LOG_ASSERT_ERROR(_dvfs_domain_map.find(NETWORK_MEMORY) != _dvfs_domain_map.end(),"DVFS component NETWORK_MEMORY must be listed in a DVFS domain");
+   // check if all modules are listed 
+   LOG_ASSERT_ERROR(_dvfs_domain_map.find(CORE) != _dvfs_domain_map.end(),"DVFS module CORE must be listed in a DVFS domain");
+   LOG_ASSERT_ERROR(_dvfs_domain_map.find(L1_ICACHE) != _dvfs_domain_map.end(),"DVFS module L1_ICACHE must be listed in a DVFS domain");
+   LOG_ASSERT_ERROR(_dvfs_domain_map.find(L1_DCACHE) != _dvfs_domain_map.end(),"DVFS module L1_DCACHE must be listed in a DVFS domain");
+   LOG_ASSERT_ERROR(_dvfs_domain_map.find(L2_CACHE) != _dvfs_domain_map.end(),"DVFS module L2_CACHE must be listed in a DVFS domain");
+   LOG_ASSERT_ERROR(_dvfs_domain_map.find(DIRECTORY) != _dvfs_domain_map.end(),"DVFS module DIRECTORY must be listed in a DVFS domain");
+   LOG_ASSERT_ERROR(_dvfs_domain_map.find(NETWORK_USER) != _dvfs_domain_map.end(),"DVFS module NETWORK_USER must be listed in a DVFS domain");
+   LOG_ASSERT_ERROR(_dvfs_domain_map.find(NETWORK_MEMORY) != _dvfs_domain_map.end(),"DVFS module NETWORK_MEMORY must be listed in a DVFS domain");
 
 }
 
@@ -423,9 +423,9 @@ DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag,
 }
 
 int
-DVFSManager::getInitialFrequencyAndVoltage(module_t component, volatile double &frequency, volatile double &voltage)
+DVFSManager::getInitialFrequencyAndVoltage(module_t module, volatile double &frequency, volatile double &voltage)
 {
-   frequency = _dvfs_domain_map[component].second;
+   frequency = _dvfs_domain_map[module].second;
    int rc = DVFSManager::getVoltage(voltage, AUTO, frequency);
    return rc;
 }
@@ -456,9 +456,9 @@ DVFSManager::getMaxFrequency(double voltage)
 }
 
 bool
-DVFSManager::hasSameDVFSDomain(module_t component1, module_t component2)
+DVFSManager::hasSameDVFSDomain(module_t module1, module_t module2)
 {
-   return _dvfs_domain_map[component1].first == _dvfs_domain_map[component2].first;
+   return _dvfs_domain_map[module1].first == _dvfs_domain_map[module2].first;
 }
 
 module_t

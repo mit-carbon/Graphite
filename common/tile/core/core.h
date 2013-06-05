@@ -109,10 +109,10 @@ private:
 
    double _frequency;
    double _voltage;
-   module_t _component;
+   module_t _module;
    Time _synchronization_delay;
 
-   Time getSynchronizationDelay(module_t component);
+   Time getSynchronizationDelay(module_t module);
 };
 
 #endif

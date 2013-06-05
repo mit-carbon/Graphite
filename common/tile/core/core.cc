@@ -21,7 +21,7 @@ Core::Core(Tile *tile, core_type_t core_type)
    , _state(IDLE)
    , _pin_memory_manager(NULL)
    , _enabled(false)
-   , _component(CORE)
+   , _module(CORE)
 {
 
    _id = (core_id_t) {_tile->getId(), core_type};
@@ -359,9 +359,9 @@ Core::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_
 }
 
 Time
-Core::getSynchronizationDelay(module_t component)
+Core::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(_component, component)){
+   if (!DVFSManager::hasSameDVFSDomain(_module, module)){
       return _synchronization_delay;
    }
    return Time(0);

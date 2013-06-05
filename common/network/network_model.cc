@@ -18,7 +18,7 @@ using namespace std;
 NetworkModel::NetworkModel(Network *network, SInt32 network_id)
    : _frequency(0)
    , _voltage(0)
-   , _component(INVALID_MODULE)
+   , _module(INVALID_MODULE)
    , _network(network)
    , _network_id(network_id)
    , _enabled(false)
@@ -29,16 +29,16 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id)
    // Initialize frequency, voltage
    switch(_network_id){
       case STATIC_NETWORK_USER:
-         _component = NETWORK_USER;
+         _module = NETWORK_USER;
          break;
       case STATIC_NETWORK_MEMORY:
-         _component = NETWORK_MEMORY;
+         _module = NETWORK_MEMORY;
          break;
       default:
-         _component = INVALID_MODULE;
+         _module = INVALID_MODULE;
    }
 
-   int rc = DVFSManager::getInitialFrequencyAndVoltage(_component, _frequency, _voltage);
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
    LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
 
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
@@ -519,9 +519,9 @@ NetworkModel::popCurrentUtilizationStatistics(UInt64& flits_sent, UInt64& flits_
 }
 
 Time
-NetworkModel::getSynchronizationDelay(module_t component)
+NetworkModel::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(_component, component)){
+   if (!DVFSManager::hasSameDVFSDomain(_module, module)){
       return _synchronization_delay;
    }
    return Time(0);

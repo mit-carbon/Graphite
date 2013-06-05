@@ -50,18 +50,18 @@ Cache::Cache(string name,
 
    //initialize frequency and voltage
    if (_name == "L1-I"){
-      _component = L1_ICACHE;
+      _module = L1_ICACHE;
    }
    else if (_name == "L1-D"){
-      _component = L1_DCACHE;
+      _module = L1_DCACHE;
    }
    else if (_name == "L2"){
-      _component = L2_CACHE;
+      _module = L2_CACHE;
    }
    else{
       LOG_PRINT_ERROR("Unknown cache type (%s)", _name.c_str());
    }
-   int rc = DVFSManager::getInitialFrequencyAndVoltage(_component, _frequency, _voltage);
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
    LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
 
    // Instantiate performance model
@@ -531,9 +531,9 @@ Cache::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr
 }
 
 Time
-Cache::getSynchronizationDelay(module_t component)
+Cache::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(_component, component)){
+   if (!DVFSManager::hasSameDVFSDomain(_module, module)){
       return _perf_model->getSynchronizationDelay();
    }
    return Time(0);

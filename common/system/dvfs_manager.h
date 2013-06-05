@@ -33,7 +33,7 @@ public:
    void doGetDVFS(module_t module_type, core_id_t requester);
    void doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, const Time& curr_time, core_id_t requester);
    static int getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency);
-   static int getInitialFrequencyAndVoltage(module_t component, volatile double &frequency, volatile double &voltage);
+   static int getInitialFrequencyAndVoltage(module_t module, volatile double &frequency, volatile double &voltage);
 
    // Called to initialize DVFS
    static void initializeDVFS();
@@ -53,8 +53,8 @@ public:
    // Called from the McPAT interfaces
    static double getMaxFrequency(double voltage);
 
-   // Returns true if the components belong to the same domain
-   static bool hasSameDVFSDomain(module_t component_1, module_t component_2);
+   // Returns true if the modules belong to the same domain
+   static bool hasSameDVFSDomain(module_t module1, module_t modules2);
 
    // returns synchronization delay
    static UInt32 getSynchronizationDelay();

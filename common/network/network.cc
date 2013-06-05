@@ -208,11 +208,11 @@ SInt32 Network::netSend(NetPacket& packet)
    return packet.length;
 }
 
-SInt32 Network::netSend(module_t component, NetPacket& packet)
+SInt32 Network::netSend(module_t module, NetPacket& packet)
 {
 
    NetworkModel* model = getNetworkModelFromPacketType(packet.type);
-   packet.time += model->getSynchronizationDelay(component);
+   packet.time += model->getSynchronizationDelay(module);
    return netSend(packet);
 }
 

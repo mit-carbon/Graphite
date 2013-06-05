@@ -13,29 +13,29 @@ int CarbonGetDVFSDomain(module_t module_type)
 }
 
 // Get DVFS
-int CarbonGetDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage)
+int CarbonGetDVFS(tile_id_t tile_id, module_t module_mask, double* frequency, double* voltage)
 {
    int rc;
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   rc = tile->getDVFSManager()->getDVFS(tile_id, module_type, frequency, voltage);
+   rc = tile->getDVFSManager()->getDVFS(tile_id, module_mask, frequency, voltage);
    return rc;
 }
 
-int CarbonGetFrequency(tile_id_t tile_id, module_t module_type, double* frequency)
+int CarbonGetFrequency(tile_id_t tile_id, module_t module_mask, double* frequency)
 {
    int rc;
    double voltage;
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   rc = tile->getDVFSManager()->getDVFS(tile_id, module_type, frequency, &voltage);
+   rc = tile->getDVFSManager()->getDVFS(tile_id, module_mask, frequency, &voltage);
    return rc;
 }
 
-int CarbonGetVoltage(tile_id_t tile_id, module_t module_type, double* voltage)
+int CarbonGetVoltage(tile_id_t tile_id, module_t module_mask, double* voltage)
 {
    int rc;
    double frequency;
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   rc = tile->getDVFSManager()->getDVFS(tile_id, module_type, &frequency, voltage);
+   rc = tile->getDVFSManager()->getDVFS(tile_id, module_mask, &frequency, voltage);
    return rc;
 }
 

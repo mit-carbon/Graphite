@@ -14,7 +14,7 @@ using std::make_pair;
 
 DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
 volatile double DVFSManager::_max_frequency;
-map<module_t, pair<module_t, double> > DVFSManager::_dvfs_domain_map;
+DVFSManager::DomainType DVFSManager::_dvfs_domain_map;
 UInt32 DVFSManager::_synchronization_delay_cycles;
 
 DVFSManager::DVFSManager(UInt32 technology_node, Tile* tile):
@@ -34,19 +34,27 @@ DVFSManager::~DVFSManager()
 
 // Called from common/user/dvfs
 int
-DVFSManager::getDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage)
+DVFSManager::getDVFS(tile_id_t tile_id, module_t module_mask, double* frequency, double* voltage)
 {
    // Invalid tile id error
    if (tile_id < 0 || (unsigned int) tile_id >= Config::getSingleton()->getApplicationTiles())
    {
-      *frequency = 0;
-      *voltage = 0;
       return -1;
    }
 
+   // Invalid domain error
+   bool valid_domain = false;
+   for (DomainType::iterator it = _dvfs_domain_map.begin(); it != _dvfs_domain_map.end(); it++){
+      if (module_mask == it->second.first){
+         valid_domain = true;
+         break;
+      }
+   }
+   if (!valid_domain) return -2;
+
    // send request
    UnstructuredBuffer send_buffer;
-   send_buffer << module_type;
+   send_buffer << module_mask;
    core_id_t remote_core_id = {tile_id, MAIN_CORE_TYPE};
    _tile->getNetwork()->netSend(remote_core_id, DVFS_GET_REQUEST, send_buffer.getBuffer(), send_buffer.size());
 
@@ -71,6 +79,17 @@ DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, volta
    if (tile_id < 0 || (unsigned int) tile_id >= Config::getSingleton()->getApplicationTiles())
       return -1;
 
+   // Invalid domain error
+   bool valid_domain = false;
+   for (DomainType::iterator it = _dvfs_domain_map.begin(); it != _dvfs_domain_map.end(); it++){
+      if (module_mask == it->second.first){
+         valid_domain = true;
+         break;
+      }
+   }
+   if (!valid_domain) return -2;
+   
+
    // Get current time
    Time curr_time = _tile->getCore()->getModel()->getCurrTime();
 
@@ -93,51 +112,35 @@ DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, volta
 }
 
 void
-DVFSManager::doGetDVFS(module_t module_type, core_id_t requester)
+DVFSManager::doGetDVFS(module_t module_mask, core_id_t requester)
 {
    double frequency, voltage;
    int rc = 0;
-   switch (module_type)
-   {
-      case CORE:
-         _tile->getCore()->getDVFS(frequency, voltage);
-         break;
-
-      case L1_ICACHE:
-         rc = _tile->getMemoryManager()->getDVFS(L1_ICACHE, frequency, voltage);
-         break;
-
-      case L1_DCACHE:
-         rc = _tile->getMemoryManager()->getDVFS(L1_DCACHE, frequency, voltage);
-         break;
-
-      case L2_CACHE:
-         rc = _tile->getMemoryManager()->getDVFS(L2_CACHE, frequency, voltage);
-         break;
-
-      case DIRECTORY:
-         rc = _tile->getMemoryManager()->getDVFS(DIRECTORY, frequency, voltage);
-         break;
-
-      case NETWORK_USER:
-      {
-         NetworkModel* user_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(USER);
-         rc = user_network_model->getDVFS(frequency, voltage);
-         break;
-      }
-
-      case NETWORK_MEMORY:
-      {
-         NetworkModel* mem_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(SHARED_MEM);
-         rc = mem_network_model->getDVFS(frequency, voltage);
-         break;
-      }
-      
-      default:
-         rc = -2;
-         frequency = 0;
-         voltage = 0;
-         break;
+   if (module_mask & CORE){
+      rc = _tile->getCore()->getDVFS(frequency, voltage);
+   }
+   else if (module_mask & L1_ICACHE){
+      rc = _tile->getMemoryManager()->getDVFS(L1_ICACHE, frequency, voltage);
+   }
+   else if (module_mask & L1_DCACHE){
+      rc = _tile->getMemoryManager()->getDVFS(L1_DCACHE, frequency, voltage);
+   }
+   else if (module_mask & L2_CACHE){
+      rc = _tile->getMemoryManager()->getDVFS(L2_CACHE, frequency, voltage);
+   }
+   else if (module_mask & DIRECTORY){
+      rc = _tile->getMemoryManager()->getDVFS(DIRECTORY, frequency, voltage);
+   }
+   else if (module_mask & NETWORK_USER){
+      NetworkModel* user_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(USER);
+      rc = user_network_model->getDVFS(frequency, voltage);
+   }
+   else if (module_mask & NETWORK_MEMORY){
+      NetworkModel* mem_network_model = _tile->getNetwork()->getNetworkModelFromPacketType(SHARED_MEM);
+      rc = mem_network_model->getDVFS(frequency, voltage);
+   }
+   else{
+      rc = -2;
    }
 
    UnstructuredBuffer send_buffer;
@@ -150,13 +153,8 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
 {
    int rc = 0, rc_tmp = 0;
 
-   // Invalid module mask
-   if (module_mask <= 0 || module_mask>=MAX_MODULE_TYPES){ 
-      rc = -2;
-   }
-
    // Invalid voltage option
-   else if (voltage_flag != HOLD && voltage_flag != AUTO){ 
+   if (voltage_flag != HOLD && voltage_flag != AUTO){ 
       rc = -3;
    }
 

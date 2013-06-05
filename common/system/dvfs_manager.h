@@ -63,10 +63,11 @@ public:
    static module_t convertToModule(MemComponent::Type component);
  
 private:
+   typedef map<module_t, pair<module_t, double> > DomainType;
    // Voltage, Frequency Multiplier, Domain Map
    static DVFSLevels _dvfs_levels;
    static volatile double _max_frequency;
-   static map<module_t, pair<module_t, double> > _dvfs_domain_map;
+   static DomainType _dvfs_domain_map;
    Tile* _tile;
    
    static double getMinVoltage(double frequency);

@@ -66,6 +66,7 @@ void replacementDisableCacheCounters(CONTEXT *ctxt);
 void replacementCarbonGetTime(CONTEXT *ctxt);
 
 // DVFS
+void replacementCarbonGetDVFSDomain(CONTEXT *ctxt);
 void replacementCarbonGetDVFS(CONTEXT *ctxt);
 void replacementCarbonGetFrequency(CONTEXT *ctxt);
 void replacementCarbonGetVoltage(CONTEXT *ctxt);

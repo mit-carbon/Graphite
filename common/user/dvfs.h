@@ -38,6 +38,7 @@ typedef enum
 } voltage_option_t;
  
 // Get DVFS
+int CarbonGetDVFSDomain(module_t module_type);
 int CarbonGetDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage);
 int CarbonGetFrequency(tile_id_t tile_id, module_t module_type, double* frequency);
 int CarbonGetVoltage(tile_id_t tile_id, module_t module_type, double* voltage);

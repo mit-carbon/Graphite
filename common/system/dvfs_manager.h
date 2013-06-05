@@ -47,6 +47,9 @@ public:
    // Get DVFS Levels
    static const DVFSLevels& getDVFSLevels();
 
+   // Get DVFS Domain
+   static module_t getDVFSDomain(module_t module_type);
+
    // Called from the McPAT interfaces
    static double getMaxFrequency(double voltage);
 

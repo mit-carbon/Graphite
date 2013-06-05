@@ -97,6 +97,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonGetTime") msg_ptr = AFUNPTR(replacementCarbonGetTime);
 
    // For DVFS
+   else if (name == "CarbonGetDVFSDomain") msg_ptr = AFUNPTR(replacementCarbonGetDVFSDomain);
    else if (name == "CarbonGetDVFS") msg_ptr = AFUNPTR(replacementCarbonGetDVFS);
    else if (name == "CarbonGetFrequency") msg_ptr = AFUNPTR(replacementCarbonGetFrequency);
    else if (name == "CarbonGetVoltage") msg_ptr = AFUNPTR(replacementCarbonGetVoltage);
@@ -865,6 +866,19 @@ void replacementDisableModels(CONTEXT* ctxt)
 void replacementCarbonGetTime(CONTEXT *ctxt)
 {
    UInt64 ret_val = CarbonGetTime();
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonGetDVFSDomain(CONTEXT *ctxt)
+{
+   module_t module_type;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &module_type,
+         CARBON_IARG_END);
+
+   ADDRINT ret_val = CarbonGetDVFSDomain(module_type);
 
    retFromReplacedRtn(ctxt, ret_val);
 }

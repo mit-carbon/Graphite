@@ -438,6 +438,13 @@ DVFSManager::getDVFSLevels()
    return _dvfs_levels;
 }
 
+module_t DVFSManager::getDVFSDomain(module_t module_type)
+{
+   LOG_ASSERT_ERROR(_dvfs_domain_map.find(module_type) != _dvfs_domain_map.end(),
+      "Cannot get DVFS domain: Invalid module(%d).", module_type);
+   return _dvfs_domain_map[module_type].first;
+}
+
 double
 DVFSManager::getMaxFrequency(double voltage) 
 {

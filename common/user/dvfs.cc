@@ -6,6 +6,12 @@
 #include "tile.h"
 #include "simulator.h"
 
+
+int CarbonGetDVFSDomain(module_t module_type)
+{
+   return DVFSManager::getDVFSDomain(module_type);
+}
+
 // Get DVFS
 int CarbonGetDVFS(tile_id_t tile_id, module_t module_type, double* frequency, double* voltage)
 {

@@ -376,7 +376,7 @@ DVFSManager::initializeDVFSDomainMap()
       pair<module_t,double> domain_value(domain_mask, frequency);
       for (unsigned int i=0; i<domain_components.size(); i++){
          LOG_ASSERT_ERROR(_dvfs_domain_map.find(domain_components[i]) ==
-            _dvfs_domain_map.end(), "DVFS component (%s) must be listed only once",
+            _dvfs_domain_map.end(), "DVFS component (%s) can only be listed once",
             domain_components_str[i].c_str());
          _dvfs_domain_map[domain_components[i]] = domain_value;
       }

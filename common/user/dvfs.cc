@@ -7,7 +7,7 @@
 #include "simulator.h"
 
 
-int CarbonGetDVFSDomain(module_t module_type)
+module_t CarbonGetDVFSDomain(module_t module_type)
 {
    return DVFSManager::getDVFSDomain(module_type);
 }

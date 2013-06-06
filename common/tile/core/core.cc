@@ -43,7 +43,10 @@ Core::Core(Tile *tile, core_type_t core_type)
    int rc = DVFSManager::getInitialFrequencyAndVoltage(CORE, _frequency, _voltage);
    LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
    
+
+   // asynchronous communication
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   DVFSManager::initializeAsynchronousMap(_asynchronous_map);
 
    LOG_PRINT("Initialized Core.");
 }
@@ -264,6 +267,8 @@ Core::outputSummary(ostream& os, const Time& target_completion_time)
    if (_core_model)
       _core_model->outputSummary(os, target_completion_time);
    
+   DVFSManager::printAsynchronousMap(os, _asynchronous_map);
+   
    UInt64 total_instruction_memory_access_latency_in_ns = _total_instruction_memory_access_latency.toNanosec();
    UInt64 total_data_memory_access_latency_in_ns = _total_data_memory_access_latency.toNanosec();
    
@@ -362,6 +367,7 @@ Time
 Core::getSynchronizationDelay(module_t module)
 {
    if (!DVFSManager::hasSameDVFSDomain(_module, module)){
+      _asynchronous_map[module] += _synchronization_delay;
       return _synchronization_delay;
    }
    return Time(0);

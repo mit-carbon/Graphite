@@ -20,6 +20,9 @@ class DVFSManager
 public:
    // DVFS Levels type
    typedef list<pair<volatile double,volatile double> > DVFSLevels;
+
+   // asynchronous map type
+   typedef map<module_t, Time> AsynchronousMap;
    
    // Parse the cfg file to get DVFS voltage levels and frequency of operation
    DVFSManager(UInt32 technology_node, Tile* tile);
@@ -56,11 +59,15 @@ public:
    // Returns true if the modules belong to the same domain
    static bool hasSameDVFSDomain(module_t module1, module_t modules2);
 
-   // returns synchronization delay
+   // returns synchronization delay in cycles
    static UInt32 getSynchronizationDelay();
 
-   // returns synchronization delay
+   // converts from MemComponent to module_t
    static module_t convertToModule(MemComponent::Type component);
+
+   // asynchronous communication
+   static void initializeAsynchronousMap(AsynchronousMap &asynchronous_map);
+   static void printAsynchronousMap(ostream& os, AsynchronousMap &asynchronous_map);
  
 private:
    typedef map<module_t, pair<module_t, double> > DomainType;

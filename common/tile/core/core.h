@@ -111,6 +111,7 @@ private:
    double _voltage;
    module_t _module;
    Time _synchronization_delay;
+   DVFSManager::AsynchronousMap _asynchronous_map;
 
    Time getSynchronizationDelay(module_t module);
 };

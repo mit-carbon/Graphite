@@ -479,6 +479,49 @@ DVFSManager::convertToModule(MemComponent::Type component){
    return INVALID_MODULE;
 }
 
+void
+DVFSManager::initializeAsynchronousMap(AsynchronousMap &asynchronous_map)
+{
+   asynchronous_map[CORE] = Time(0); 
+   asynchronous_map[L1_ICACHE] = Time(0); 
+   asynchronous_map[L1_DCACHE] = Time(0); 
+   asynchronous_map[L2_CACHE] = Time(0); 
+   asynchronous_map[DIRECTORY] = Time(0); 
+   asynchronous_map[NETWORK_USER] = Time(0); 
+   asynchronous_map[NETWORK_MEMORY] = Time(0); 
+}
+
+void
+DVFSManager::printAsynchronousMap(ostream& os, AsynchronousMap &asynchronous_map)
+{
+   bool is_empty = true;
+   for (AsynchronousMap::iterator it = asynchronous_map.begin();
+      it != asynchronous_map.end(); it++){
+      if (it->second > Time(0)){
+         is_empty = false;
+         break;
+      }
+   }
+
+   if (is_empty)
+      return;
+
+   os << "  Asynchronous communication: " << endl;
+   if (asynchronous_map[L1_ICACHE] > Time(0))
+      os << "     L1-I Cache (in ns): " << asynchronous_map[L1_ICACHE].toNanosec() << endl;
+   if (asynchronous_map[L1_DCACHE] > Time(0))
+      os << "     L1-D Cache (in ns): " << asynchronous_map[L1_DCACHE].toNanosec() << endl;
+   if (asynchronous_map[L2_CACHE] > Time(0))
+      os << "     L2 Cache (in ns): " << asynchronous_map[L2_CACHE].toNanosec() << endl;
+   if (asynchronous_map[DIRECTORY] > Time(0))
+      os << "     Directory (in ns): " << asynchronous_map[DIRECTORY].toNanosec() << endl;
+   if (asynchronous_map[NETWORK_USER] > Time(0))
+      os << "     User Nework (in ns): " << asynchronous_map[NETWORK_USER].toNanosec() << endl;
+   if (asynchronous_map[NETWORK_MEMORY] > Time(0))
+      os << "     Memory Nework (in ns): " << asynchronous_map[NETWORK_MEMORY].toNanosec() << endl;
+
+}
+
 double
 DVFSManager::getMinVoltage(double frequency) 
 {

@@ -46,7 +46,8 @@ Core::Core(Tile *tile, core_type_t core_type)
 
    // asynchronous communication
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
-   DVFSManager::initializeAsynchronousMap(_asynchronous_map);
+   _asynchronous_map[L1_ICACHE] = Time(0);
+   _asynchronous_map[L1_DCACHE] = Time(0);
 
    LOG_PRINT("Initialized Core.");
 }
@@ -267,7 +268,7 @@ Core::outputSummary(ostream& os, const Time& target_completion_time)
    if (_core_model)
       _core_model->outputSummary(os, target_completion_time);
    
-   DVFSManager::printAsynchronousMap(os, _asynchronous_map);
+   DVFSManager::printAsynchronousMap(os, _module, _asynchronous_map);
    
    UInt64 total_instruction_memory_access_latency_in_ns = _total_instruction_memory_access_latency.toNanosec();
    UInt64 total_data_memory_access_latency_in_ns = _total_data_memory_access_latency.toNanosec();

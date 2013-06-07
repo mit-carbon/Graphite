@@ -140,6 +140,8 @@ protected:
    volatile double _tile_width;
    // Synchronization delay
    Time _synchronization_delay;
+   //Asynchronous_map
+   DVFSManager::AsynchronousMap _asynchronous_map;
    // DVFS module
    module_t _module;
 

@@ -13,6 +13,7 @@ using std::ostream;
 #include "directory_type.h"
 #include "caching_protocol_type.h"
 #include "dvfs.h"
+#include "dvfs_manager.h"
 
 class McPATCacheInterface;
 
@@ -112,4 +113,6 @@ private:
 
    volatile double _frequency;
    volatile double _voltage;
+   module_t _module;
+   DVFSManager::AsynchronousMap _asynchronous_map;
 };

@@ -7,6 +7,7 @@
 #include "mcpat_cache_interface.h"
 #include "utils.h"
 #include "log.h"
+#include "memory_manager.h"
 
 // Cache class
 // constructors/destructors
@@ -48,15 +49,31 @@ Cache::Cache(string name,
       _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, _replacement_policy, _associativity, _line_size);
    }
 
-   //initialize frequency and voltage
+   //initialize frequency, voltage and asynchronous boundaries
    if (_name == "L1-I"){
       _module = L1_ICACHE;
+      _asynchronous_map[CORE] = Time(0);
+      _asynchronous_map[L2_CACHE] = Time(0);
+      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+         _asynchronous_map[NETWORK_MEMORY] = Time(0);
+      }
    }
    else if (_name == "L1-D"){
       _module = L1_DCACHE;
+      _asynchronous_map[CORE] = Time(0);
+      _asynchronous_map[L2_CACHE] = Time(0);
+      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+         _asynchronous_map[NETWORK_MEMORY] = Time(0);
+      }
    }
    else if (_name == "L2"){
       _module = L2_CACHE;
+      _asynchronous_map[L1_ICACHE] = Time(0);
+      _asynchronous_map[L1_DCACHE] = Time(0);
+      _asynchronous_map[NETWORK_MEMORY] = Time(0);
+      if (MemoryManager::getCachingProtocolType() != PR_L1_SH_L2_MSI){
+         _asynchronous_map[DIRECTORY] = Time(0);
+      }
    }
    else{
       LOG_PRINT_ERROR("Unknown cache type (%s)", _name.c_str());
@@ -82,6 +99,7 @@ Cache::Cache(string name,
    initializeTagAndDataArrayCounters();
    // Cache line state counters
    initializeCacheLineStateCounters();
+
 }
 
 Cache::~Cache()
@@ -448,6 +466,9 @@ Cache::outputSummary(ostream& out, const Time& target_completion_time)
    out << "      Tag Array Writes: " << _event_counters[TAG_ARRAY_WRITE] << endl;
    out << "      Data Array Reads: " << _event_counters[DATA_ARRAY_READ] << endl;
    out << "      Data Array Writes: " << _event_counters[DATA_ARRAY_WRITE] << endl;
+
+   // Asynchronous communication
+   DVFSManager::printAsynchronousMap(out, _module, _asynchronous_map);
 }
 
 void Cache::computeEnergy(const Time& curr_time)
@@ -534,7 +555,9 @@ Time
 Cache::getSynchronizationDelay(module_t module)
 {
    if (!DVFSManager::hasSameDVFSDomain(_module, module)){
+      _asynchronous_map[module] += _perf_model->getSynchronizationDelay();
       return _perf_model->getSynchronizationDelay();
+;
    }
    return Time(0);
 }

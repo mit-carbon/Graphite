@@ -6,7 +6,6 @@
 #include "log.h"
 #include "mcpat_cache_interface.h"
 #include "utils.h"
-#include "dvfs_manager.h"
 
 DirectoryCache::DirectoryCache(Tile* tile,
                                CachingProtocolType caching_protocol_type,
@@ -29,6 +28,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    , _directory_access_cycles_str(directory_access_cycles_str)
    , _mcpat_cache_interface(NULL)
    , _enabled(false)
+   , _module(DIRECTORY)
 {
    LOG_PRINT("Directory Cache ctor enter");
  
@@ -55,7 +55,11 @@ DirectoryCache::DirectoryCache(Tile* tile,
    // Calculate access time based on size of directory entry and total number of entries (or) user specified
    _directory_access_cycles = computeDirectoryAccessCycles();
    _directory_access_latency = Time(Latency(_directory_access_cycles, _frequency));
+
+   // asynchronous communication
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   _asynchronous_map[L2_CACHE] = Time(0);
+   _asynchronous_map[NETWORK_MEMORY] = Time(0);
   
    LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)",
          _total_entries, directory_entry_size, _directory_access_latency.toNanosec());
@@ -356,6 +360,9 @@ DirectoryCache::outputSummary(ostream& out)
       // _mcpat_cache_interface->computeEnergy(this, 10000);
       // _mcpat_cache_interface->outputSummary(out);
    }
+
+   // Asynchronous communication
+   DVFSManager::printAsynchronousMap(out, _module, _asynchronous_map);
 }
 
 void
@@ -402,6 +409,7 @@ DirectoryCache::dummyPrintAutogenDirectorySizeAndAccessCycles(ostream& out)
    {
       out << "    Access Time (in clock cycles) [auto-generated]: " << endl;
    }
+
 }
 
 ShmemPerfModel*
@@ -436,6 +444,7 @@ Time
 DirectoryCache::getSynchronizationDelay(module_t module)
 {
    if (!DVFSManager::hasSameDVFSDomain(DIRECTORY, module)){
+      _asynchronous_map[module] += _synchronization_delay;
       return _synchronization_delay;
    }
    return Time(0);

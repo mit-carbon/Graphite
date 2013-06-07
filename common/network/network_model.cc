@@ -41,7 +41,17 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id)
    int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
    LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
 
+   // Asynchronous communication
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   _asynchronous_map[L2_CACHE] = Time(0);
+   if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+      _asynchronous_map[L1_ICACHE] = Time(0);
+      _asynchronous_map[L1_DCACHE] = Time(0);
+   }
+   else{
+      _asynchronous_map[DIRECTORY] = Time(0);
+   }
+   
 
    // Get the Tile ID
    _tile_id = _network->getTile()->getId();
@@ -324,6 +334,10 @@ NetworkModel::outputSummary(ostream& out, const Time& target_completion_time)
       out << "    Average Contention Delay (in clock cycles): 0" << endl;
       out << "    Average Contention Delay (in ns): 0" << endl;
    }
+   
+   // Asynchronous communication
+   if (_module != INVALID_MODULE)
+      DVFSManager::printAsynchronousMap(out, _module, _asynchronous_map);
 }
 
 UInt32 
@@ -522,6 +536,7 @@ Time
 NetworkModel::getSynchronizationDelay(module_t module)
 {
    if (!DVFSManager::hasSameDVFSDomain(_module, module)){
+      _asynchronous_map[module] += _synchronization_delay;
       return _synchronization_delay;
    }
    return Time(0);

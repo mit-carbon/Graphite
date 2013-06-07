@@ -219,4 +219,6 @@ private:
    // Update counters that record the state of cache lines
    void updateCacheLineStateCounters(CacheState::Type old_cstate, CacheState::Type new_cstate);
 
+   // Asynchronous communication
+   DVFSManager::AsynchronousMap _asynchronous_map;
 };

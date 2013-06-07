@@ -480,45 +480,36 @@ DVFSManager::convertToModule(MemComponent::Type component){
 }
 
 void
-DVFSManager::initializeAsynchronousMap(AsynchronousMap &asynchronous_map)
+DVFSManager::printAsynchronousMap(ostream& os, module_t module, AsynchronousMap &asynchronous_map)
 {
-   asynchronous_map[CORE] = Time(0); 
-   asynchronous_map[L1_ICACHE] = Time(0); 
-   asynchronous_map[L1_DCACHE] = Time(0); 
-   asynchronous_map[L2_CACHE] = Time(0); 
-   asynchronous_map[DIRECTORY] = Time(0); 
-   asynchronous_map[NETWORK_USER] = Time(0); 
-   asynchronous_map[NETWORK_MEMORY] = Time(0); 
-}
-
-void
-DVFSManager::printAsynchronousMap(ostream& os, AsynchronousMap &asynchronous_map)
-{
-   bool is_empty = true;
-   for (AsynchronousMap::iterator it = asynchronous_map.begin();
-      it != asynchronous_map.end(); it++){
-      if (it->second > Time(0)){
-         is_empty = false;
-         break;
-      }
-   }
-
-   if (is_empty)
+   if (asynchronous_map.empty())
       return;
 
-   os << "  Asynchronous communication: " << endl;
-   if (asynchronous_map[L1_ICACHE] > Time(0))
-      os << "     L1-I Cache (in ns): " << asynchronous_map[L1_ICACHE].toNanosec() << endl;
-   if (asynchronous_map[L1_DCACHE] > Time(0))
-      os << "     L1-D Cache (in ns): " << asynchronous_map[L1_DCACHE].toNanosec() << endl;
-   if (asynchronous_map[L2_CACHE] > Time(0))
-      os << "     L2 Cache (in ns): " << asynchronous_map[L2_CACHE].toNanosec() << endl;
-   if (asynchronous_map[DIRECTORY] > Time(0))
-      os << "     Directory (in ns): " << asynchronous_map[DIRECTORY].toNanosec() << endl;
-   if (asynchronous_map[NETWORK_USER] > Time(0))
-      os << "     User Nework (in ns): " << asynchronous_map[NETWORK_USER].toNanosec() << endl;
-   if (asynchronous_map[NETWORK_MEMORY] > Time(0))
-      os << "     Memory Nework (in ns): " << asynchronous_map[NETWORK_MEMORY].toNanosec() << endl;
+   string padding("  ");
+   if (module == CORE)
+      padding = "";
+   os << padding + "  Asynchronous communication: " << endl;
+   if (asynchronous_map.find(CORE) != asynchronous_map.end() && 
+         !hasSameDVFSDomain(module, CORE))
+      os << padding + "    Core (in ns): " << asynchronous_map[CORE].toNanosec() << endl;
+   if (asynchronous_map.find(L1_ICACHE) != asynchronous_map.end() &&
+         !hasSameDVFSDomain(module, L1_ICACHE))
+      os << padding + "    L1-I Cache (in ns): " << asynchronous_map[L1_ICACHE].toNanosec() << endl;
+   if (asynchronous_map.find(L1_DCACHE) != asynchronous_map.end() &&
+         !hasSameDVFSDomain(module, L1_DCACHE))
+      os << padding + "    L1-D Cache (in ns): " << asynchronous_map[L1_DCACHE].toNanosec() << endl;
+   if (asynchronous_map.find(L2_CACHE) != asynchronous_map.end() &&
+         !hasSameDVFSDomain(module, L2_CACHE))
+      os << padding + "    L2 Cache (in ns): " << asynchronous_map[L2_CACHE].toNanosec() << endl;
+   if (asynchronous_map.find(DIRECTORY) != asynchronous_map.end() &&
+         !hasSameDVFSDomain(module, DIRECTORY))
+      os << padding + "    Directory (in ns): " << asynchronous_map[DIRECTORY].toNanosec() << endl;
+   if (asynchronous_map.find(NETWORK_USER) != asynchronous_map.end() &&
+         !hasSameDVFSDomain(module, NETWORK_USER))
+      os << padding + "    User Nework (in ns): " << asynchronous_map[NETWORK_USER].toNanosec() << endl;
+   if (asynchronous_map.find(NETWORK_MEMORY) != asynchronous_map.end() &&
+         !hasSameDVFSDomain(module, NETWORK_MEMORY))
+      os << padding + "    Memory Nework (in ns): " << asynchronous_map[NETWORK_MEMORY].toNanosec() << endl;
 
 }
 

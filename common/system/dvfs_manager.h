@@ -66,8 +66,7 @@ public:
    static module_t convertToModule(MemComponent::Type component);
 
    // asynchronous communication
-   static void initializeAsynchronousMap(AsynchronousMap &asynchronous_map);
-   static void printAsynchronousMap(ostream& os, AsynchronousMap &asynchronous_map);
+   static void printAsynchronousMap(ostream& os, module_t, AsynchronousMap &asynchronous_map);
  
 private:
    typedef map<module_t, pair<module_t, double> > DomainType;

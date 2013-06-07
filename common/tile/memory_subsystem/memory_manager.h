@@ -64,6 +64,8 @@ public:
    virtual int getDVFS(module_t module, double &frequency, double &voltage) = 0;
    virtual int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag, const Time& curr_time) = 0;
 
+   static CachingProtocolType getCachingProtocolType(){return _caching_protocol_type;}
+
 protected:
    Network* getNetwork() { return _network; }
 

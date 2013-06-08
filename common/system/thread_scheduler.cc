@@ -381,7 +381,6 @@ bool ThreadScheduler::schedSetAffinity(thread_id_t tid, unsigned int cpusetsize,
                                  };
 
    Network *net = core->getTile()->getNetwork();
-   core_id_t mcp_core = Config::getSingleton()->getMCPCoreId();
    net->netSend(Config::getSingleton()->getMCPCoreId(),
                 MCP_REQUEST_TYPE,
                 &req,
@@ -433,7 +432,6 @@ bool ThreadScheduler::schedGetAffinity(thread_id_t tid, unsigned int cpusetsize,
                                  };
 
    Network *net = core->getTile()->getNetwork();
-   core_id_t mcp_core = Config::getSingleton()->getMCPCoreId();
    net->netSend(Config::getSingleton()->getMCPCoreId(),
                 MCP_REQUEST_TYPE,
                 &req,
@@ -655,7 +653,6 @@ void ThreadScheduler::yieldThread(bool is_pre_emptive)
       };
 
       Network *net = core->getTile()->getNetwork();
-      core_id_t mcp_core = Config::getSingleton()->getMCPCoreId();
       net->netSend(Config::getSingleton()->getMCPCoreId(),
             MCP_REQUEST_TYPE,
             &req,

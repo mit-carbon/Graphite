@@ -2,7 +2,7 @@
 #include <assert.h>
 
 PinThread::PinThread(ThreadFunc func, void *param)
-   : m_thread_p(NULL)
+   : m_thread_p((THREADID) NULL)
    , m_func(func)
    , m_param(param)
  {

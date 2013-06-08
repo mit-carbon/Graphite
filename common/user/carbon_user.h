@@ -14,9 +14,13 @@ extern "C"
 #include "performance_counter_support.h"
 #include "dynamic_frequency_scaling.h"
 
+// Start the simulation (allocate the simulation models and create the simulation threads)
 SInt32 CarbonStartSim(int argc, char **argv);
+// Stop the simulation (join the simulation threads and release the simulation models)
 void CarbonStopSim();
+// Gets the tile-ID on which the thread is running
 tile_id_t CarbonGetTileId();
+// Get the current time (in nanoseconds)
 UInt64 CarbonGetTime();
 
 #ifdef __cplusplus

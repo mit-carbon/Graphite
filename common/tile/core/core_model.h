@@ -13,7 +13,6 @@ class BranchPredictor;
 #include "instruction.h"
 #include "basic_block.h"
 #include "fixed_types.h"
-#include "lock.h"
 #include "dynamic_instruction_info.h"
 #include "time_types.h"
 
@@ -24,7 +23,7 @@ public:
    virtual ~CoreModel();
 
    void processDynamicInstruction(DynamicInstruction* i);
-   void queueBasicBlock(BasicBlock *basic_block);
+   void queueInstruction(Instruction* instruction);
    void iterate();
 
    virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
@@ -71,7 +70,7 @@ protected:
    friend class SpawnInstruction;
 
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
-   typedef std::queue<BasicBlock *> BasicBlockQueue;
+   typedef std::queue<Instruction*> InstructionQueue;
 
    Core* m_core;
 
@@ -98,13 +97,8 @@ private:
 
    bool m_enabled;
 
-   BasicBlockQueue m_basic_block_queue;
-   Lock m_basic_block_queue_lock;
-
+   InstructionQueue m_instruction_queue;
    DynamicInstructionInfoQueue m_dynamic_info_queue;
-   Lock m_dynamic_info_queue_lock;
-
-   UInt32 m_current_ins_index;
 
    BranchPredictor *m_bp;
 

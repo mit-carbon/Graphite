@@ -7,7 +7,7 @@
 #include "core.h"
 #include "core_model.h"
 
-void handleBasicBlock(BasicBlock *sim_basic_block)
+void handleInstruction(Instruction* instruction)
 {
    if (!Sim()->isEnabled())
       return;
@@ -15,7 +15,7 @@ void handleBasicBlock(BasicBlock *sim_basic_block)
    CoreModel *core_model = Sim()->getTileManager()->getCurrentCore()->getModel();
    assert(core_model);
    
-   core_model->queueBasicBlock(sim_basic_block);
+   core_model->queueInstruction(instruction);
 
    //FIXME: put this in a thread
    core_model->iterate();
@@ -159,7 +159,7 @@ VOID fillOperandList(OperandList *list, INS ins)
 
 VOID addInstructionModeling(INS ins)
 {
-   BasicBlock *basic_block = new BasicBlock();
+   Instruction* instruction;
 
    OperandList list;
    fillOperandList(&list, ins);
@@ -167,7 +167,7 @@ VOID addInstructionModeling(INS ins)
    // branches
    if (INS_IsBranch(ins) && INS_HasFallThrough(ins))
    {
-      basic_block->push_back(new BranchInstruction(INS_Opcode(ins), list));
+      instruction = new BranchInstruction(INS_Opcode(ins), list);
 
       INS_InsertCall(
          ins, IPOINT_TAKEN_BRANCH, (AFUNPTR)handleBranch,
@@ -188,24 +188,25 @@ VOID addInstructionModeling(INS ins)
       switch(INS_Opcode(ins))
       {
       case OPCODE_DIV:
-         basic_block->push_back(new ArithInstruction(INST_DIV, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_DIV, INS_Opcode(ins), list);
          break;
       case OPCODE_MUL:
-         basic_block->push_back(new ArithInstruction(INST_MUL, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_MUL, INS_Opcode(ins), list);
          break;
       case OPCODE_FDIV:
-         basic_block->push_back(new ArithInstruction(INST_FDIV, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_FDIV, INS_Opcode(ins), list);
          break;
       case OPCODE_FMUL:
-         basic_block->push_back(new ArithInstruction(INST_FMUL, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_FMUL, INS_Opcode(ins), list);
          break;
       default:
-         basic_block->push_back(new GenericInstruction(INS_Opcode(ins), list));
+         instruction = new GenericInstruction(INS_Opcode(ins), list);
+         break;
       }
    }
 
-   basic_block->front()->setAddress(INS_Address(ins));
-   basic_block->front()->setSize(INS_Size(ins));
+   instruction->setAddress(INS_Address(ins));
+   instruction->setSize(INS_Size(ins));
 
-   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
+   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleInstruction), IARG_PTR, instruction, IARG_END);
 }

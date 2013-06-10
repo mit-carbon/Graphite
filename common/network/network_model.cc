@@ -51,7 +51,6 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id)
    else{
       _asynchronous_map[DIRECTORY] = Time(0);
    }
-   
 
    // Get the Tile ID
    _tile_id = _network->getTile()->getId();
@@ -535,7 +534,8 @@ NetworkModel::popCurrentUtilizationStatistics(UInt64& flits_sent, UInt64& flits_
 Time
 NetworkModel::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(_module, module)){
+   if (!DVFSManager::hasSameDVFSDomain(_module, module) &&
+         _network->getTile()->getMemoryManager()->getShmemPerfModel()->isEnabled()){
       _asynchronous_map[module] += _synchronization_delay;
       return _synchronization_delay;
    }

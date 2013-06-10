@@ -367,7 +367,7 @@ Core::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_
 Time
 Core::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(_module, module)){
+   if (!DVFSManager::hasSameDVFSDomain(_module, module) && _enabled){
       _asynchronous_map[module] += _synchronization_delay;
       return _synchronization_delay;
    }

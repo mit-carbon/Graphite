@@ -43,7 +43,8 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
          L2_cache_data_access_cycles,
          L2_cache_tags_access_cycles,
          L2_cache_perf_model_type,
-         L2_cache_track_miss_types);
+         L2_cache_track_miss_types,
+         getShmemPerfModel());
 
    initializeEvictionCounters();
    initializeInvalidationCounters();

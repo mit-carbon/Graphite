@@ -104,6 +104,7 @@ namespace PrL1PrL2DramDirectoryMSI
 
       // Synchronization delay
       void addSynchronizationCost(MemComponent::Type mem_component);
+      ShmemPerfModel* _shmem_perf_model;
    };
 
 }

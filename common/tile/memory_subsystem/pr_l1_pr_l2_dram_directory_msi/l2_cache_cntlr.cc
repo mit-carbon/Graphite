@@ -42,7 +42,8 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
          l2_cache_data_access_cycles,
          l2_cache_tags_access_cycles,
          l2_cache_perf_model_type,
-         l2_cache_track_miss_types);
+         l2_cache_track_miss_types,
+         getShmemPerfModel());
 }
 
 L2CacheCntlr::~L2CacheCntlr()

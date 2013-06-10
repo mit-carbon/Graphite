@@ -29,7 +29,8 @@ public:
                   UInt32 max_hw_sharers,
                   UInt32 max_num_sharers,
                   UInt32 num_directory_slices,
-                  string directory_access_time_str);
+                  string directory_access_time_str,
+                  ShmemPerfModel* shmem_perf_model);
    ~DirectoryCache();
 
    Directory* getDirectory() { return _directory; }
@@ -115,4 +116,5 @@ private:
    volatile double _voltage;
    module_t _module;
    DVFSManager::AsynchronousMap _asynchronous_map;
+   ShmemPerfModel* _shmem_perf_model;
 };

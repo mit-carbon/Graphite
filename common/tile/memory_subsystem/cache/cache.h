@@ -80,7 +80,8 @@ public:
          UInt32 data_access_latency,
          UInt32 tags_access_latency,
          string perf_model_type,
-         bool track_miss_types = false);
+         bool track_miss_types = false,
+         ShmemPerfModel* shmem_perf_model = NULL);
    ~Cache();
 
    // Cache operations
@@ -221,4 +222,5 @@ private:
 
    // Asynchronous communication
    DVFSManager::AsynchronousMap _asynchronous_map;
+   ShmemPerfModel* _shmem_perf_model;
 };

@@ -16,7 +16,8 @@ DirectoryCache::DirectoryCache(Tile* tile,
                                UInt32 max_hw_sharers,
                                UInt32 max_num_sharers,
                                UInt32 num_directory_slices,
-                               string directory_access_cycles_str)
+                               string directory_access_cycles_str,
+                               ShmemPerfModel* shmem_perf_model)
    : _tile(tile)
    , _caching_protocol_type(caching_protocol_type)
    , _max_hw_sharers(max_hw_sharers)
@@ -29,6 +30,7 @@ DirectoryCache::DirectoryCache(Tile* tile,
    , _mcpat_cache_interface(NULL)
    , _enabled(false)
    , _module(DIRECTORY)
+   , _shmem_perf_model(shmem_perf_model)
 {
    LOG_PRINT("Directory Cache ctor enter");
  
@@ -443,7 +445,7 @@ DirectoryCache::setDVFS(double frequency, voltage_option_t voltage_flag, const T
 Time
 DirectoryCache::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(DIRECTORY, module)){
+   if (!DVFSManager::hasSameDVFSDomain(DIRECTORY, module) && _shmem_perf_model->isEnabled()){
       _asynchronous_map[module] += _synchronization_delay;
       return _synchronization_delay;
    }

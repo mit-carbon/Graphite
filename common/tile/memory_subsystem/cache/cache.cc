@@ -25,7 +25,8 @@ Cache::Cache(string name,
              UInt32 data_access_latency,
              UInt32 tags_access_latency,
              string perf_model_type,
-             bool track_miss_types)
+             bool track_miss_types,
+             ShmemPerfModel* shmem_perf_model)
    : _enabled(false)
    , _name(name)
    , _cache_category(cache_category)
@@ -38,6 +39,7 @@ Cache::Cache(string name,
    , _hash_fn(hash_fn)
    , _track_miss_types(track_miss_types)
    , _mcpat_cache_interface(NULL)
+   , _shmem_perf_model(shmem_perf_model)
 {
    _num_sets = _cache_size / (_associativity * _line_size);
    _log_line_size = floorLog2(_line_size);
@@ -99,7 +101,6 @@ Cache::Cache(string name,
    initializeTagAndDataArrayCounters();
    // Cache line state counters
    initializeCacheLineStateCounters();
-
 }
 
 Cache::~Cache()
@@ -554,7 +555,7 @@ Cache::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr
 Time
 Cache::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(_module, module)){
+   if (!DVFSManager::hasSameDVFSDomain(_module, module) && _shmem_perf_model->isEnabled()){
       _asynchronous_map[module] += _perf_model->getSynchronizationDelay();
       return _perf_model->getSynchronizationDelay();
 ;

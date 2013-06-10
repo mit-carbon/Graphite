@@ -49,7 +49,9 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          l1_icache_data_access_cycles,
          l1_icache_tags_access_cycles,
          l1_icache_perf_model_type,
-         l1_icache_track_miss_types);
+         l1_icache_track_miss_types,
+         getShmemPerfModel());
+
    _l1_dcache = new Cache("L1-D",
          PR_L1_PR_L2_DRAM_DIRECTORY_MSI,
          Cache::DATA_CACHE,
@@ -64,7 +66,8 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          l1_dcache_data_access_cycles,
          l1_dcache_tags_access_cycles,
          l1_dcache_perf_model_type,
-         l1_icache_track_miss_types);
+         l1_icache_track_miss_types,
+         getShmemPerfModel());
 }
 
 L1CacheCntlr::~L1CacheCntlr()

@@ -513,6 +513,24 @@ void routineCallback(RTN rtn, void* v)
    }
 
    // Dynamic voltage frequency updating
+   else if (rtn_name == "CarbonGetDVFSDomain")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(int),
+            CALLINGSTD_DEFAULT,
+            "CarbonGetDVFSDomain",
+            PIN_PARG_ENUM(module_t),
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonGetDVFSDomain),
+            IARG_PROTOTYPE, proto,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_END);
+
+      PROTO_Free(proto);
+   }
+
+   // Dynamic voltage frequency updating
    else if (rtn_name == "CarbonGetDVFS")
    {
       PROTO proto = PROTO_Allocate(PIN_PARG(int),

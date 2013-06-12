@@ -534,8 +534,7 @@ NetworkModel::popCurrentUtilizationStatistics(UInt64& flits_sent, UInt64& flits_
 Time
 NetworkModel::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(_module, module) &&
-         _network->getTile()->getMemoryManager()->getShmemPerfModel()->isEnabled()){
+   if (!DVFSManager::hasSameDVFSDomain(_module, module) && _enabled){
       _asynchronous_map[module] += _synchronization_delay;
       return _synchronization_delay;
    }

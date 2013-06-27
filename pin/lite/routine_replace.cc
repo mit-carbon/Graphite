@@ -650,11 +650,10 @@ void routineCallback(RTN rtn, void* v)
             PIN_PARG_END());
 
       RTN_ReplaceSignature(rtn,
-            AFUNPTR(CarbonGetTileFrequency),
+            AFUNPTR(CarbonGetTileEnergy),
             IARG_PROTOTYPE, proto,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
             IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
-            IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
             IARG_END);
 
       PROTO_Free(proto);

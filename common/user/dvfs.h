@@ -45,6 +45,7 @@ int CarbonGetVoltage(tile_id_t tile_id, module_t module_type, double* voltage);
 // Set DVFS
 int CarbonSetDVFS(tile_id_t tile_id, int module_mask, double* frequency, voltage_option_t voltage_flag);
 int CarbonSetDVFSAllTiles(int module_mask, double* frequency, voltage_option_t voltage_flag);
+int CarbonGetTileEnergy(tile_id_t tile_id, double* energy);
  
 #ifdef __cplusplus
 }

@@ -103,6 +103,7 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    else if (name == "CarbonGetVoltage") msg_ptr = AFUNPTR(replacementCarbonGetVoltage);
    else if (name == "CarbonSetDVFS") msg_ptr = AFUNPTR(replacementCarbonSetDVFS);
    else if (name == "CarbonSetDVFSAllTiles") msg_ptr = AFUNPTR(replacementCarbonSetDVFSAllTiles);
+   else if (name == "CarbonGetTileEnergy") msg_ptr = AFUNPTR(replacementCarbonGetTileEnergy);
 
    // Turn off performance modeling at _start()
    if (name == "_start")
@@ -1009,6 +1010,31 @@ void replacementCarbonSetDVFSAllTiles(CONTEXT *ctxt)
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
 
    ADDRINT ret_val = CarbonSetDVFSAllTiles(module_mask, &frequency_buf, voltage_flag);
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonGetTileEnergy(CONTEXT *ctxt)
+{
+   tile_id_t tile_id;
+   double* energy;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_PTR, &energy,
+         CARBON_IARG_END);
+
+   double energy_buf;
+
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+
+   // read energy
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) energy, (char*) &energy_buf, sizeof(energy_buf));
+
+   ADDRINT ret_val = CarbonGetTileEnergy(tile_id, &energy_buf);
+
+   // write voltage
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) energy, (char*) &energy_buf, sizeof(energy_buf));
 
    retFromReplacedRtn(ctxt, ret_val);
 }

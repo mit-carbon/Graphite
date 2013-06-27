@@ -70,3 +70,16 @@ int CarbonSetDVFSAllTiles(int module_mask, double* frequency, voltage_option_t v
    }
    return rc;
 }
+
+// Get Tile Energy
+int CarbonGetTileEnergy(tile_id_t tile_id, double *energy)
+{
+   // Floating Point Save/Restore
+   FloatingPointHandler floating_point_handler;
+
+   Tile* tile = Sim()->getTileManager()->getCurrentTile();
+
+   tile->getDVFSManager()->getTileEnergy(tile_id, energy);
+   
+   return 0;
+}

@@ -11,6 +11,7 @@ using std::make_pair;
 #include "core_model.h"
 #include "packetize.h"
 #include "utils.h"
+#include "tile_energy_monitor.h"
 
 DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
 volatile double DVFSManager::_max_frequency;
@@ -23,6 +24,7 @@ DVFSManager::DVFSManager(UInt32 technology_node, Tile* tile):
    // register callbacks
    _tile->getNetwork()->registerCallback(DVFS_SET_REQUEST, setDVFSCallback, this);
    _tile->getNetwork()->registerCallback(DVFS_GET_REQUEST, getDVFSCallback, this);
+   _tile->getNetwork()->registerCallback(GET_TILE_ENERGY_REQUEST, getTileEnergyCallback, this);
 }
 
 DVFSManager::~DVFSManager()
@@ -30,6 +32,7 @@ DVFSManager::~DVFSManager()
    // unregister callback
    _tile->getNetwork()->unregisterCallback(DVFS_SET_REQUEST);
    _tile->getNetwork()->unregisterCallback(DVFS_GET_REQUEST);
+   _tile->getNetwork()->unregisterCallback(GET_TILE_ENERGY_REQUEST);
 }
 
 // Called from common/user/dvfs
@@ -237,6 +240,7 @@ setDVFSCallback(void* obj, NetPacket packet)
    dvfs_manager->doSetDVFS(module_mask, frequency, voltage_flag, curr_time, packet.sender);
 }
 
+
 // Called to initialize DVFS
 void
 DVFSManager::initializeDVFS()
@@ -428,6 +432,43 @@ DVFSManager::getInitialFrequencyAndVoltage(module_t module, volatile double &fre
    frequency = _dvfs_domain_map[module].second;
    int rc = DVFSManager::getVoltage(voltage, AUTO, frequency);
    return rc;
+}
+
+void
+DVFSManager::getTileEnergy(tile_id_t tile_id, double *energy)
+{
+
+   // send request
+   UnstructuredBuffer send_buffer;
+   core_id_t remote_core_id = {tile_id, MAIN_CORE_TYPE};
+   _tile->getNetwork()->netSend(remote_core_id, GET_TILE_ENERGY_REQUEST, send_buffer.getBuffer(), send_buffer.size());
+
+   // receive reply
+   core_id_t this_core_id = {_tile->getId(), MAIN_CORE_TYPE};
+   NetPacket packet = _tile->getNetwork()->netRecv(remote_core_id, this_core_id, GET_TILE_ENERGY_REPLY);
+   UnstructuredBuffer recv_buffer;
+   recv_buffer << std::make_pair(packet.data, packet.length);
+
+   recv_buffer >> *energy;
+}
+
+void DVFSManager::doGetTileEnergy(core_id_t requester)
+{
+
+   double energy = _tile->getTileEnergyMonitor()->getTileEnergy();
+
+   UnstructuredBuffer send_buffer;
+   send_buffer << energy;
+
+   _tile->getNetwork()->netSend(requester, GET_TILE_ENERGY_REPLY, send_buffer.getBuffer(), send_buffer.size());
+}
+
+void
+getTileEnergyCallback(void* obj, NetPacket packet)
+{
+
+   DVFSManager* dvfs_manager = (DVFSManager* ) obj;
+   dvfs_manager->doGetTileEnergy(packet.sender);
 }
 
 const DVFSManager::DVFSLevels&

@@ -14,6 +14,7 @@ using std::map;
 // Called over the network (callbacks)
 void getDVFSCallback(void* obj, NetPacket packet);
 void setDVFSCallback(void* obj, NetPacket packet);   
+void getTileEnergyCallback(void* obj, NetPacket packet);   
 
 class DVFSManager
 {
@@ -35,8 +36,13 @@ public:
    // Internal functions called after figuring out voltage/frequency
    void doGetDVFS(module_t module_type, core_id_t requester);
    void doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, const Time& curr_time, core_id_t requester);
+
    static int getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency);
    static int getInitialFrequencyAndVoltage(module_t module, volatile double &frequency, volatile double &voltage);
+
+   // Get tile energy
+   void getTileEnergy(tile_id_t tile_id, double *energy);
+   void doGetTileEnergy(core_id_t requester);
 
    // Called to initialize DVFS
    static void initializeDVFS();
@@ -59,14 +65,16 @@ public:
    // Returns true if the modules belong to the same domain
    static bool hasSameDVFSDomain(module_t module1, module_t modules2);
 
-   // returns synchronization delay in cycles
+   // Returns synchronization delay in cycles
    static UInt32 getSynchronizationDelay();
 
-   // converts from MemComponent to module_t
+   // Converts from MemComponent to module_t
    static module_t convertToModule(MemComponent::Type component);
 
-   // asynchronous communication
+   // Asynchronous communication
    static void printAsynchronousMap(ostream& os, module_t, AsynchronousMap &asynchronous_map);
+
+
  
 private:
    typedef map<module_t, pair<module_t, double> > DomainType;

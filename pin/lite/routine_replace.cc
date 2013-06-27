@@ -639,6 +639,26 @@ void routineCallback(RTN rtn, void* v)
 
       PROTO_Free(proto);
    }
+
+   else if (rtn_name == "CarbonGetTileEnergy")
+   {
+      PROTO proto = PROTO_Allocate(PIN_PARG(int),
+            CALLINGSTD_DEFAULT,
+            "CarbonGetTileEnergy",
+            PIN_PARG(tile_id_t),
+            PIN_PARG(double*),
+            PIN_PARG_END());
+
+      RTN_ReplaceSignature(rtn,
+            AFUNPTR(CarbonGetTileFrequency),
+            IARG_PROTOTYPE, proto,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 0,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 1,
+            IARG_FUNCARG_ENTRYPOINT_VALUE, 2,
+            IARG_END);
+
+      PROTO_Free(proto);
+   }
 }
 
 AFUNPTR getFunptr(CONTEXT* context, string func_name)

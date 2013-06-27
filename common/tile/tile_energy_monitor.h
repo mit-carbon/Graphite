@@ -31,6 +31,9 @@ public:
    Network* getNetwork()               { return m_network; }
    MemoryManager* getMemoryManager()   { return m_memory_manager; }
 
+   // Get Energy Information
+   double getTileEnergy();
+
    // Periodically Collect Energy
    void periodicallyCollectEnergy();
 

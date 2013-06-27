@@ -12,6 +12,9 @@
 McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 load_buffer_size, UInt32 store_buffer_size)
    : _last_energy_compute_time(Time(0))
 {
+
+   LOG_ASSERT_ERROR(frequency!=0 && voltage != 0, "Frequency and voltage must be greater than zero.");
+
    UInt32 technology_node = 0;
    UInt32 temperature = 0;
    try

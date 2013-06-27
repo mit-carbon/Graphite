@@ -24,6 +24,10 @@ Core::Core(Tile *tile, core_type_t core_type)
    , _module(CORE)
 {
 
+   //initialize frequency and voltage
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(CORE, _frequency, _voltage);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+
    _id = (core_id_t) {_tile->getId(), core_type};
    if (Config::getSingleton()->getEnableCoreModeling())
       _core_model = CoreModel::create(this);
@@ -37,12 +41,6 @@ Core::Core(Tile *tile, core_type_t core_type)
       _pin_memory_manager = new PinMemoryManager(this);
 
    initializeMemoryAccessLatencyCounters();
-
-
-   //initialize frequency and voltage
-   int rc = DVFSManager::getInitialFrequencyAndVoltage(CORE, _frequency, _voltage);
-   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
-   
 
    // asynchronous communication
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));

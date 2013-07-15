@@ -51,37 +51,8 @@ Cache::Cache(string name,
       _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, _replacement_policy, _associativity, _line_size);
    }
 
-   //initialize frequency, voltage and asynchronous boundaries
-   if (_name == "L1-I"){
-      _module = L1_ICACHE;
-      _asynchronous_map[CORE] = Time(0);
-      _asynchronous_map[L2_CACHE] = Time(0);
-      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
-         _asynchronous_map[NETWORK_MEMORY] = Time(0);
-      }
-   }
-   else if (_name == "L1-D"){
-      _module = L1_DCACHE;
-      _asynchronous_map[CORE] = Time(0);
-      _asynchronous_map[L2_CACHE] = Time(0);
-      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
-         _asynchronous_map[NETWORK_MEMORY] = Time(0);
-      }
-   }
-   else if (_name == "L2"){
-      _module = L2_CACHE;
-      _asynchronous_map[L1_ICACHE] = Time(0);
-      _asynchronous_map[L1_DCACHE] = Time(0);
-      _asynchronous_map[NETWORK_MEMORY] = Time(0);
-      if (MemoryManager::getCachingProtocolType() != PR_L1_SH_L2_MSI){
-         _asynchronous_map[DIRECTORY] = Time(0);
-      }
-   }
-   else{
-      LOG_PRINT_ERROR("Unknown cache type (%s)", _name.c_str());
-   }
-   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
-   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+   // Initialize DVFS variables
+   initializeDVFS();
 
    // Instantiate performance model
    _perf_model = CachePerfModel::create(perf_model_type, data_access_latency, tags_access_latency, _frequency);
@@ -310,6 +281,42 @@ Cache::initializeCacheLineStateCounters()
 {
    _cache_line_state_counters.resize(CacheState::NUM_STATES, 0);
 }
+
+void
+Cache::initializeDVFS()
+{
+   // Initialize frequency and voltage
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+
+   // Initialize asynchronous boundaries
+   if (_name == "L1-I"){
+      _module = L1_ICACHE;
+      _asynchronous_map[CORE] = Time(0);
+      _asynchronous_map[L2_CACHE] = Time(0);
+      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+         _asynchronous_map[NETWORK_MEMORY] = Time(0);
+      }
+   }
+   else if (_name == "L1-D"){
+      _module = L1_DCACHE;
+      _asynchronous_map[CORE] = Time(0);
+      _asynchronous_map[L2_CACHE] = Time(0);
+      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+         _asynchronous_map[NETWORK_MEMORY] = Time(0);
+      }
+   }
+   else if (_name == "L2"){
+      _module = L2_CACHE;
+      _asynchronous_map[L1_ICACHE] = Time(0);
+      _asynchronous_map[L1_DCACHE] = Time(0);
+      _asynchronous_map[NETWORK_MEMORY] = Time(0);
+      if (MemoryManager::getCachingProtocolType() != PR_L1_SH_L2_MSI){
+         _asynchronous_map[DIRECTORY] = Time(0);
+      }
+   }
+}
+
 
 Cache::MissType
 Cache::updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache_miss)

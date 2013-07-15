@@ -189,6 +189,7 @@ private:
    virtual void processReceivedPacket(NetPacket &pkt);
  
    // DVFS 
+   void initializeDVFS();
    virtual void setDVFS(double frequency, double voltage, const Time& curr_time) {}
 
    // Process Corner Cases
@@ -202,6 +203,7 @@ private:
    void initializeEventCounters();
    // Trace of Injection/Ejection Rate
    void initializeCurrentUtilizationStatistics();
+
 };
 
 #endif // NETWORK_MODEL_H

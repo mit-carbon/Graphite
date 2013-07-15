@@ -73,8 +73,6 @@ public:
 
    // Asynchronous communication
    static void printAsynchronousMap(ostream& os, module_t, AsynchronousMap &asynchronous_map);
-
-
  
 private:
    typedef map<module_t, pair<module_t, double> > DomainType;

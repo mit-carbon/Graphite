@@ -26,31 +26,8 @@ NetworkModel::NetworkModel(Network *network, SInt32 network_id)
    assert(network_id >= 0 && network_id < NUM_STATIC_NETWORKS);
    _network_name = g_static_network_name_list[network_id];
 
-   // Initialize frequency, voltage
-   switch(_network_id){
-      case STATIC_NETWORK_USER:
-         _module = NETWORK_USER;
-         break;
-      case STATIC_NETWORK_MEMORY:
-         _module = NETWORK_MEMORY;
-         break;
-      default:
-         _module = INVALID_MODULE;
-   }
-
-   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
-   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
-
-   // Asynchronous communication
-   _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
-   _asynchronous_map[L2_CACHE] = Time(0);
-   if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
-      _asynchronous_map[L1_ICACHE] = Time(0);
-      _asynchronous_map[L1_DCACHE] = Time(0);
-   }
-   else{
-      _asynchronous_map[DIRECTORY] = Time(0);
-   }
+   // Initialize DVFS
+   initializeDVFS();
 
    // Get the Tile ID
    _tile_id = _network->getTile()->getId();
@@ -489,6 +466,38 @@ NetworkModel::processCornerCases(const NetPacket& pkt, queue<Hop>& next_hops)
 
    // Completed processing corner cases
    return true;
+}
+
+void NetworkModel::initializeDVFS()
+{
+   // Initialize frequency, voltage
+   switch(_network_id){
+      case STATIC_NETWORK_USER:
+         _module = NETWORK_USER;
+         break;
+      case STATIC_NETWORK_MEMORY:
+         _module = NETWORK_MEMORY;
+         break;
+      default:
+         _module = INVALID_MODULE;
+   }
+
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+
+   // Asynchronous communication
+   _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+
+   // Asynchronous communication
+   _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   _asynchronous_map[L2_CACHE] = Time(0);
+   if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+      _asynchronous_map[L1_ICACHE] = Time(0);
+      _asynchronous_map[L1_DCACHE] = Time(0);
+   }
+   else{
+      _asynchronous_map[DIRECTORY] = Time(0);
+   }
 }
 
 int

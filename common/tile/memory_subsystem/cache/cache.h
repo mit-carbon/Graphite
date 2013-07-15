@@ -209,6 +209,9 @@ private:
    // Cache line state counters
    void initializeCacheLineStateCounters();
 
+   // DVFS
+   void initializeDVFS();
+
    // Get cache line info
    CacheLineInfo* getCacheLineInfo(IntPtr address);
 

@@ -28,6 +28,7 @@ CFLAGS += $(CXXFLAGS)
 SOURCES = $(shell ls $(SIM_ROOT)/pin/*.cc $(SIM_ROOT)/pin/lite/*.cc)
 
 OBJECTS = $(SOURCES:%.cc=%.o)
+DEPENDENCIES = $(SOURCES:%.cc=%.d)
 
 ## build rules
 TARGET = $(SIM_ROOT)/lib/pin_sim.so
@@ -42,7 +43,11 @@ $(TARGET): $(OBJECTS)
 	@echo $(TARGET)
 	$(CXX) $(TOOL_LDFLAGS) $(LD_FLAGS) -o $@ $(OBJECTS) $(TOOL_LPATHS) $(TOOL_LIBS) $(LD_LIBS) $(DEBUG)
 
+ifneq ($(MAKECMDGOALS),clean)
+include $(OBJECTS:%.o=%.d)
+endif
+
 ifneq ($(CLEAN),)
 clean:
-	-rm -f $(TARGET) $(OBJECTS)
+	-rm -f $(TARGET) $(OBJECTS) $(DEPENDENCIES)
 endif

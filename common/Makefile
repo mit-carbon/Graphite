@@ -27,6 +27,10 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS) $(CONTRIB_LIBS)
 	ar rcs $@ $(OBJECTS)
 
+ifneq ($(MAKECMDGOALS),clean)
+include $(OBJECTS:%.o=%.d)
+endif
+
 $(DSENT_LIB):
 	$(MAKE) -C $(SIM_ROOT)/contrib/dsent
 

@@ -61,23 +61,6 @@ CXXFLAGS += -c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
 %.d: %.c
 	$(CC) -MM -MG $(CFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
 
-ifneq ($(MAKECMDGOALS),clean)
-include $(OBJECTS:%.o=%.d)
-endif
-
-# Build rules for object generation
-%.o : %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $<
-
-%.o : %.cc
-	$(CXX) $(CXXFLAGS) -o $@ $<
-
-%.o : %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-# targets
-all: $(OBJECTS)
-
 ifneq ($(CLEAN),)
 clean:
 	-rm -f *.o *.d

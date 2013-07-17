@@ -30,10 +30,6 @@ SOURCES = $(shell ls $(SIM_ROOT)/pin/*.cc $(SIM_ROOT)/pin/lite/*.cc)
 OBJECTS = $(SOURCES:%.cc=%.o)
 DEPENDENCIES = $(SOURCES:%.cc=%.d)
 
-# build rules for dependency files
-%.d: %.cc
-	$(CXX) -MM -MG $(CXXFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
-
 ## build rules
 TARGET = $(SIM_ROOT)/lib/pin_sim.so
 

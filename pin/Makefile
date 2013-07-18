@@ -1,16 +1,12 @@
 # this gives us default build rules and dependency handling
 SIM_ROOT ?= $(CURDIR)/..
 
-LD_LIBS += -lcarbon_sim
-
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
 ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common
+include $(SIM_ROOT)/contrib/Makefile.common
 endif
-
-# Use these files for auto targets
-.SUFFIXES:  .o .c .h .cc
 
 # Use the pin flags for building
 include $(SIM_ROOT)/Makefile.config
@@ -35,19 +31,21 @@ TARGET = $(SIM_ROOT)/lib/pin_sim.so
 
 all: $(TARGET)
 
-$(SIM_ROOT)/lib/libcarbon_sim.a:
-	$(MAKE) -C $(SIM_ROOT)/common
+$(CARBON_LIB):
+	make -C $(SIM_ROOT)/common
 
-$(TARGET): $(PIN_HOME)/intel64/lib/libpin.a $(SIM_ROOT)/lib/libcarbon_sim.a
-$(TARGET): $(OBJECTS)
+$(CONTRIB_LIBS):
+	make -C $(SIM_ROOT)/contrib
+
+$(TARGET): $(CARBON_LIB) $(CONTRIB_LIBS) $(OBJECTS)
 	@echo $(TARGET)
 	$(CXX) $(TOOL_LDFLAGS) $(LD_FLAGS) -o $@ $(OBJECTS) $(TOOL_LPATHS) $(TOOL_LIBS) $(LD_LIBS) $(DEBUG)
 
-ifneq ($(MAKECMDGOALS),clean)
+ifeq ($(CLEAN),)
 include $(OBJECTS:%.o=%.d)
 endif
 
 ifneq ($(CLEAN),)
 clean:
-	-rm -f $(TARGET) $(OBJECTS) $(DEPENDENCIES)
+	rm -f $(TARGET) $(OBJECTS) $(DEPENDENCIES)
 endif

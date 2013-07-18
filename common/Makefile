@@ -11,31 +11,24 @@ SRC_DIRECTORIES = $(DIRECTORIES) \
 # Grab all c/c++ files from subdirs
 SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \
 	$(wildcard $(SIM_ROOT)/common/config/*.cpp)
+DEPENDENCIES = $(OBJECTS:%.o=%.d)
 
 # Convert the .c and .cc's in to .o's
 OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
-
-# Other Libraries that are used by Graphite
-DSENT_LIB = $(SIM_ROOT)/contrib/dsent/libdsent_contrib.a
-CONTRIB_LIBS = $(DSENT_LIB)
 
 TARGET=$(SIM_ROOT)/lib/libcarbon_sim.a
 
 # targets
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS) $(CONTRIB_LIBS)
+$(TARGET): $(OBJECTS)
 	ar rcs $@ $(OBJECTS)
 
-ifneq ($(MAKECMDGOALS),clean)
+ifeq ($(CLEAN),)
 include $(OBJECTS:%.o=%.d)
 endif
 
-$(DSENT_LIB):
-	$(MAKE) -C $(SIM_ROOT)/contrib/dsent
-
 ifneq ($(CLEAN),)
 clean:
-	$(RM) $(TARGET) $(OBJECTS)
-	make -C $(SIM_ROOT)/contrib/dsent clean
+	$(RM) $(TARGET) $(OBJECTS) $(DEPENDENCIES)
 endif

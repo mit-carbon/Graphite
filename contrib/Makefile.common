@@ -1,0 +1,7 @@
+# Other Libraries that are used by Graphite
+DSENT_LIB = $(SIM_ROOT)/contrib/dsent/libdsent_contrib.a
+CONTRIB_LIBS = $(DSENT_LIB)
+
+# Libraries in Contrib
+LD_LIBS += -ldsent_contrib
+LD_FLAGS += -L$(SIM_ROOT)/contrib/dsent

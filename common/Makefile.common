@@ -1,6 +1,4 @@
-SIM_ROOT ?= $(CURDIR)/../
-
-include $(SIM_ROOT)/Makefile.config
+CARBON_LIB = $(SIM_ROOT)/lib/libcarbon_sim.a
 
 DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/							\
@@ -36,12 +34,8 @@ DEBUG = # -ggdb
 KERNEL = SQUEEZE
 #KERNEL = LENNY
 
-# Libraries in Contrib
-LD_LIBS += -ldsent_contrib
-LD_FLAGS += -L$(SIM_ROOT)/contrib/dsent
-
 LD_FLAGS += -L$(SIM_ROOT)/lib
-export LD_LIBRARY_PATH := $(SIM_ROOT)/lib:$(PIN_HOME)/intel64/runtime:$(LD_LIBRARY_PATH)
+LD_LIBS += -lcarbon_sim
 
 BOOST_SUFFIX = mt
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
@@ -61,7 +55,12 @@ CXXFLAGS += -c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
 %.d: %.c
 	$(CC) -MM -MG $(CFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
 
-ifneq ($(CLEAN),)
-clean:
-	-rm -f *.o *.d
-endif
+# Build rules for object generation
+%.o : %.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $<
+	
+%.o : %.cc
+	$(CXX) $(CXXFLAGS) -o $@ $<
+	
+%.o : %.c
+	$(CC) $(CFLAGS) -c -o $@ $<

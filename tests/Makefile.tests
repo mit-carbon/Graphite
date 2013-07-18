@@ -76,25 +76,24 @@ all: $(TARGET)
 
 # Compiler flags
 LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join -L$(SIM_ROOT)/lib
-LD_LIBS = -lcarbon_sim -pthread
+LD_LIBS = -pthread
 
 OBJECTS ?= $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 ifeq ($(CLEAN),)
 include $(SIM_ROOT)/common/Makefile.common
+include $(SIM_ROOT)/contrib/Makefile.common
 endif
 
 CXXFLAGS = $(APP_SPECIFIC_CXX_FLAGS) -I$(SIM_ROOT)/common/user -I$(SIM_ROOT)/common/misc -c -Wall -O2
 CFLAGS = $(CXXFLAGS) -std=c99
 
 # Rules
-LIB_CARBON=$(SIM_ROOT)/lib/libcarbon_sim.a
-LIB_PIN_SIM=$(SIM_ROOT)/lib/pin_sim.so
+CARBON_LIB = $(SIM_ROOT)/lib/libcarbon_sim.a
+PIN_SIM_LIB = $(SIM_ROOT)/lib/pin_sim.so
 
 .PHONY: $(TARGET)
-
-.SUFFIXES:  .o .c .h .cc
 
 # We basically want to try re-making libcarbon_sim.a and pin_sim.so
 # and then /if that produces a new library/ recompile the test. There
@@ -108,20 +107,15 @@ LIB_PIN_SIM=$(SIM_ROOT)/lib/pin_sim.so
 #  with our if-statement.)
 $(TARGET): $(OBJECTS) 
 	make -C $(SIM_ROOT)/common
+	make -C $(SIM_ROOT)/contrib
 	$(if $(findstring pin,$(MODE)),make -C $(SIM_ROOT)/pin)
-	if $(foreach source,$(OBJECTS),[ ! -e $(TARGET) ] || [ $(source) -nt $(TARGET) ] ||) [ $(LIB_CARBON) -nt $(TARGET) ] || [ $(LIB_PIN_SIM) -nt $(TARGET) ]; \
+	if $(foreach source,$(OBJECTS),[ ! -e $(TARGET) ] || [ $(source) -nt $(TARGET) ] ||) [ $(CARBON_LIB) -nt $(TARGET) ] || [ $(PIN_SIM_LIB) -nt $(TARGET) ]; \
    then $(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS); \
 	fi
 
-ifneq ($(MAKECMDGOALS),clean)
+ifeq ($(CLEAN),)
 include $(OBJECTS:%.o=%.d)
 endif
-
-$(LIB_CARBON):
-	make -C $(SIM_ROOT)/common
-
-$(LIB_PIN_SIM):
-	make -C $(SIM_ROOT)/pin
 
 ifneq ($(CLEAN),)
 clean:

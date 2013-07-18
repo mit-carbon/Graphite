@@ -113,6 +113,10 @@ $(TARGET): $(OBJECTS)
    then $(CXX) $^ -o $@ $(LD_FLAGS) $(LD_LIBS); \
 	fi
 
+ifneq ($(MAKECMDGOALS),clean)
+include $(OBJECTS:%.o=%.d)
+endif
+
 $(LIB_CARBON):
 	make -C $(SIM_ROOT)/common
 

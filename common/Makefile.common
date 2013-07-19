@@ -43,17 +43,17 @@ LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pt
 # Include paths
 CXXFLAGS += -c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
             -Wall -Werror -Wno-deprecated-declarations -Wno-unknown-pragmas \
-			   $(DEBUG) -O2 -MMD -fPIC -DKERNEL_$(KERNEL)
+			   $(DEBUG) -O2 -fPIC -DKERNEL_$(KERNEL)
 
 # Build rules for dependency generation
 %.d: %.cpp
-	$(CXX) -MM -MG $(CXXFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
+	$(CXX) -MM -MT $*.o -MF $@ $(CXXFLAGS) $<
 
 %.d: %.cc
-	$(CXX) -MM -MG $(CXXFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
+	$(CXX) -MM -MT $*.o -MF $@ $(CXXFLAGS) $<
 
 %.d: %.c
-	$(CC) -MM -MG $(CFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
+	$(CC) -MM -MT $*.o -MF $@ $(CFLAGS) $<
 
 # Build rules for object generation
 %.o : %.cpp

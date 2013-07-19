@@ -42,7 +42,7 @@ $(TARGET): $(CARBON_LIB) $(CONTRIB_LIBS) $(OBJECTS)
 	$(CXX) $(TOOL_LDFLAGS) $(LD_FLAGS) -o $@ $(OBJECTS) $(TOOL_LPATHS) $(TOOL_LIBS) $(LD_LIBS) $(DEBUG)
 
 ifeq ($(CLEAN),)
-include $(OBJECTS:%.o=%.d)
+-include $(OBJECTS:%.o=%.d)
 endif
 
 ifneq ($(CLEAN),)

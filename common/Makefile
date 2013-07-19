@@ -9,7 +9,7 @@ SRC_DIRECTORIES = $(DIRECTORIES) \
 			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_sh_l2_msi/
 
 # Grab all c/c++ files from subdirs
-SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \
+SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)*.cc)) \
 	$(wildcard $(SIM_ROOT)/common/config/*.cpp)
 DEPENDENCIES = $(OBJECTS:%.o=%.d)
 
@@ -25,7 +25,7 @@ $(TARGET): $(OBJECTS)
 	ar rcs $@ $(OBJECTS)
 
 ifeq ($(CLEAN),)
-include $(OBJECTS:%.o=%.d)
+-include $(OBJECTS:%.o=%.d)
 endif
 
 ifneq ($(CLEAN),)

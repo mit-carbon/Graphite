@@ -11,10 +11,12 @@ SRC_DIRECTORIES = $(DIRECTORIES) \
 # Grab all c/c++ files from subdirs
 SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)*.cc)) \
 	$(wildcard $(SIM_ROOT)/common/config/*.cpp)
-DEPENDENCIES = $(OBJECTS:%.o=%.d)
 
-# Convert the .c and .cc's in to .o's
+# Convert the .c, .cc and .cpp's into .o's
 OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
+
+# Get the dependencies from the objects
+DEPENDENCIES = $(OBJECTS:%.o=%.d)
 
 TARGET=$(SIM_ROOT)/lib/libcarbon_sim.a
 

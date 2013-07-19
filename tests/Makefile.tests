@@ -75,7 +75,7 @@ all: $(TARGET)
 	$(RUN)
 
 # Compiler flags
-LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join -L$(SIM_ROOT)/lib
+LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join
 LD_LIBS = -pthread
 
 OBJECTS ?= $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
@@ -114,7 +114,7 @@ $(TARGET): $(OBJECTS)
 	fi
 
 ifeq ($(CLEAN),)
-include $(OBJECTS:%.o=%.d)
+-include $(OBJECTS:%.o=%.d)
 endif
 
 ifneq ($(CLEAN),)

@@ -17,8 +17,10 @@ regress_unit: $(TEST_UNIT_LIST)
 	
 regress_shared_mem: $(SHARED_MEM_UNIT_LIST)
 
+ifeq ($(MAKECMDGOALS),clean)
 clean:
 	for t in $(patsubst %_unit_test,%,$(TEST_UNIT_LIST)) ; do make -C $(TEST_UNIT_DIR)/$$t clean ; done
+endif
 
 %_unit_test:
 	$(MAKE) -C $(TEST_UNIT_DIR)/$(patsubst %_unit_test,%,$@)

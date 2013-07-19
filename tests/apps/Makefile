@@ -12,8 +12,10 @@ TEST_DIST_LIST = hello_world_app_test_dist simple_app_test_dist \
 
 regress_apps: $(TEST_APP_LIST) $(TEST_DIST_LIST)
 
+ifeq ($(MAKECMDGOALS),clean)
 clean:
 	for t in $(patsubst %_app_test,%,$(TEST_APP_LIST)) ; do make -C $(TEST_APPS_DIR)/$$t clean ; done
+endif
 
 %_app_test_dist:
 	$(MAKE) -C $(TEST_APPS_DIR)/$(patsubst %_app_test_dist,%,$@) PROCS=2

@@ -98,11 +98,17 @@ private:
    PinMemoryManager *_pin_memory_manager;
    bool _enabled;
 
+   // Instruction Buffer
+   IntPtr _instruction_buffer_address;
+   UInt64 _instruction_buffer_hits;
+
+   // Memory Access Latency
    UInt64 _num_instruction_memory_accesses;
    Time _total_instruction_memory_access_latency;
    UInt64 _num_data_memory_accesses;
    Time _total_data_memory_access_latency;
 
+   void initializeInstructionBuffer();
    void initializeMemoryAccessLatencyCounters();
    void incrTotalMemoryAccessLatency(MemComponent::Type mem_component, Time memory_access_latency);
    PacketType getPacketTypeFromUserNetType(carbon_network_t net_type);

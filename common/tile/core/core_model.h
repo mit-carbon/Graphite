@@ -14,7 +14,6 @@ class McPATCoreInterface;
 #include "instruction.h"
 #include "basic_block.h"
 #include "fixed_types.h"
-#include "lock.h"
 #include "dynamic_instruction_info.h"
 
 class CoreModel
@@ -23,9 +22,8 @@ public:
    CoreModel(Core* core);
    virtual ~CoreModel();
 
-   void processDynamicInstruction(Instruction* i);
-   bool queueDynamicInstruction(Instruction *i);
-   void queueBasicBlock(BasicBlock *basic_block);
+   void processDynamicInstruction(DynamicInstruction* i);
+   void queueInstruction(Instruction* instruction);
    void iterate();
 
    void setDVFS(double old_frequency, double new_voltage, double new_frequency, const Time& curr_time);
@@ -76,7 +74,7 @@ protected:
    friend class SpawnInstruction;
 
    typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
-   typedef std::queue<BasicBlock *> BasicBlockQueue;
+   typedef std::queue<Instruction*> InstructionQueue;
 
    Core* m_core;
 
@@ -105,13 +103,8 @@ private:
 
    bool m_enabled;
 
-   BasicBlockQueue m_basic_block_queue;
-   Lock m_basic_block_queue_lock;
-
+   InstructionQueue m_instruction_queue;
    DynamicInstructionInfoQueue m_dynamic_info_queue;
-   Lock m_dynamic_info_queue_lock;
-
-   UInt32 m_current_ins_index;
 
    BranchPredictor *m_bp;
 

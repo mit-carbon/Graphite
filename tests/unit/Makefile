@@ -21,8 +21,10 @@ regress_dvfs: frequency_scaling_random_unit_test dvfs_basic_unit_test \
 				  dvfs_error_codes_unit_test dvfs_scale_frequency_unit_test \
 				  dvfs_multithreaded_unit_test
 
+ifeq ($(MAKECMDGOALS),clean)
 clean:
 	for t in $(patsubst %_unit_test,%,$(TEST_UNIT_LIST)) ; do make -C $(TEST_UNIT_DIR)/$$t clean ; done
+endif
 
 %_unit_test:
 	$(MAKE) -C $(TEST_UNIT_DIR)/$(patsubst %_unit_test,%,$@)

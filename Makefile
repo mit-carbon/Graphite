@@ -2,12 +2,16 @@ SIM_ROOT ?= $(CURDIR)
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
-LIB_CARBON=$(SIM_ROOT)/lib/libcarbon_sim.a
-LIB_PIN_SIM=$(SIM_ROOT)/pin/../lib/pin_sim.so
+CARBON_LIB = $(SIM_ROOT)/lib/libcarbon_sim.a
+DSENT_LIB = $(SIM_ROOT)/contrib/dsent/libdsent_contrib.a
+MCPAT_LIB = $(SIM_ROOT)/contrib/mcpat/libmcpat.a
+CONTRIB_LIBS = $(DSENT_LIB) $(MCPAT_LIB)
+PIN_SIM_LIB = $(SIM_ROOT)/lib/pin_sim.so
 
-all: $(LIB_CARBON) $(LIB_PIN_SIM)
+all: $(CARBON_LIB) $(CONTRIB_LIBS) $(PIN_SIM_LIB)
 
 include common/Makefile
+include contrib/Makefile
 include tests/apps/Makefile
 include tests/unit/Makefile
 include tests/benchmarks/Makefile
@@ -15,13 +19,14 @@ ifneq ($(findstring parsec,$(MAKECMDGOALS)),)
 include tests/Makefile.parsec
 endif
 
-.PHONY: $(LIB_PIN_SIM)
-$(LIB_PIN_SIM):
-	$(MAKE) -C $(SIM_ROOT)/pin $@
+.PHONY: $(PIN_SIM_LIB)
+$(PIN_SIM_LIB):
+	$(MAKE) -C $(SIM_ROOT)/pin
 
 clean:
 	$(MAKE) -C pin clean
 	$(MAKE) -C common clean
+	$(MAKE) -C contrib clean
 	$(MAKE) -C tests/unit clean
 	$(MAKE) -C tests/apps clean
 	$(MAKE) -C tests/benchmarks clean

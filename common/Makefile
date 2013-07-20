@@ -9,34 +9,28 @@ SRC_DIRECTORIES = $(DIRECTORIES) \
 			 $(SIM_ROOT)/common/tile/memory_subsystem/pr_l1_sh_l2_msi/
 
 # Grab all c/c++ files from subdirs
-SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)/*.cc)) \
+SOURCES = $(foreach dir,$(SRC_DIRECTORIES),$(wildcard $(dir)*.cc)) \
 	$(wildcard $(SIM_ROOT)/common/config/*.cpp)
 
-# Convert the .c and .cc's in to .o's
+# Convert the .c, .cc and .cpp's into .o's
 OBJECTS = $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 
-# Other Libraries that are used by Graphite
-DSENT_LIB = $(SIM_ROOT)/contrib/dsent/libdsent_contrib.a
-MCPAT_LIB = $(SIM_ROOT)/contrib/mcpat/libmcpat.a
-CONTRIB_LIBS = $(DSENT_LIB) $(MCPAT_LIB)
+# Get the dependencies from the objects
+DEPENDENCIES = $(OBJECTS:%.o=%.d)
 
 TARGET=$(SIM_ROOT)/lib/libcarbon_sim.a
 
 # targets
 all: $(TARGET)
 
-$(TARGET): $(OBJECTS) $(CONTRIB_LIBS)
+$(TARGET): $(OBJECTS)
 	ar rcs $@ $(OBJECTS)
 
-$(DSENT_LIB):
-	$(MAKE) -C $(SIM_ROOT)/contrib/dsent
-
-$(MCPAT_LIB):
-	$(MAKE) -C $(SIM_ROOT)/contrib/mcpat
+ifeq ($(CLEAN),)
+-include $(OBJECTS:%.o=%.d)
+endif
 
 ifneq ($(CLEAN),)
 clean:
-	$(RM) $(TARGET) $(OBJECTS)
-	make -C $(SIM_ROOT)/contrib/dsent clean
-	make -C $(SIM_ROOT)/contrib/mcpat clean   
+	$(RM) $(TARGET) $(OBJECTS) $(DEPENDENCIES)
 endif

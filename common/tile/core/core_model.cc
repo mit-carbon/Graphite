@@ -39,7 +39,6 @@ CoreModel::CoreModel(Core *core)
    , m_checkpointed_time(0)
    , m_total_cycles(0)
    , m_enabled(false)
-   , m_current_ins_index(0)
    , m_bp(0)
 {
    // Create Branch Predictor
@@ -215,71 +214,43 @@ void CoreModel::updatePipelineStallCounters(Instruction* i, Time memory_stall_ti
    m_total_execution_unit_stall_time += execution_unit_stall_time;
 }
 
-void CoreModel::processDynamicInstruction(Instruction* i)
+void CoreModel::processDynamicInstruction(DynamicInstruction* i)
 {
-   bool queued = queueDynamicInstruction(i);
-   if (queued)
-      iterate();
-}
-
-bool CoreModel::queueDynamicInstruction(Instruction *i)
-{
-   if (!m_enabled)
+   if (m_enabled)
    {
-      delete i;
-      return false;
+      try
+      {
+         handleInstruction(i);
+      }
+      catch (AbortInstructionException)
+      {
+         // move on to next ...
+      }
    }
-
-   BasicBlock *bb = new BasicBlock(true);
-   bb->push_back(i);
-   ScopedLock sl(m_basic_block_queue_lock);
-   m_basic_block_queue.push(bb);
-   return true;
+   delete i;
 }
 
-void CoreModel::queueBasicBlock(BasicBlock *basic_block)
+void CoreModel::queueInstruction(Instruction* instruction)
 {
    if (!m_enabled)
       return;
-
-   ScopedLock sl(m_basic_block_queue_lock);
-   m_basic_block_queue.push(basic_block);
+   m_instruction_queue.push(instruction);
 }
 
 void CoreModel::iterate()
 {
    // Because we will sometimes not have info available (we will throw
-   // a DynamicInstructionInfoNotAvailable), we need to be able to
-   // continue from the middle of a basic block. m_current_ins_index
-   // tracks which instruction we are currently on within the basic
-   // block.
+   // a DynamicInstructionInfoNotAvailable)
 
-   ScopedLock sl(m_basic_block_queue_lock);
-
-   while (m_basic_block_queue.size() > 1)
+   while (m_instruction_queue.size() > 1)
    {
-      LOG_PRINT("Basic Block Queue Size(%lu)", m_basic_block_queue.size());
-      BasicBlock *current_bb = m_basic_block_queue.front();
+      LOG_PRINT("Instruction Queue Size(%lu)", m_instruction_queue.size());
+      Instruction* instruction = m_instruction_queue.front();
 
       try
       {
-         for( ; m_current_ins_index < current_bb->size(); m_current_ins_index++)
-         {
-            try
-            {
-               handleInstruction(current_bb->at(m_current_ins_index));
-            }
-            catch (AbortInstructionException)
-            {
-               // move on to next ...
-            }
-         }
-
-         if (current_bb->isDynamic())
-            delete current_bb;
-
-         m_basic_block_queue.pop();
-         m_current_ins_index = 0; // move to beginning of next bb
+         handleInstruction(instruction);
+         m_instruction_queue.pop();
       }
       catch (DynamicInstructionInfoNotAvailableException)
       {
@@ -294,7 +265,6 @@ void CoreModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
    if (!m_enabled)
       return;
 
-   ScopedLock sl(m_dynamic_info_queue_lock);
    m_dynamic_info_queue.push(i);
 }
 
@@ -303,7 +273,6 @@ void CoreModel::popDynamicInstructionInfo()
    if (!m_enabled)
       return;
 
-   ScopedLock sl(m_dynamic_info_queue_lock);
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() > 0,
                     "Expected some dynamic info to be available.");
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
@@ -314,17 +283,13 @@ void CoreModel::popDynamicInstructionInfo()
 
 DynamicInstructionInfo& CoreModel::getDynamicInstructionInfo()
 {
-   ScopedLock sl(m_dynamic_info_queue_lock);
-
    // Information is needed to model the instruction, but isn't
    // available. This is handled in iterate() by returning early and
    // continuing from that instruction later.
 
    // FIXME: Note this assumes that either none of the info for an
    // instruction is available or all of it! This works for
-   // performance modeling in the same thread as functional modeling,
-   // but it WILL NOT work if performance modeling is moved to a
-   // separate thread!
+   // performance modeling in the same thread as functional modeling.
 
    if (m_dynamic_info_queue.empty())
       throw DynamicInstructionInfoNotAvailableException();

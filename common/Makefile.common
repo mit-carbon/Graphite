@@ -1,6 +1,4 @@
-SIM_ROOT ?= $(CURDIR)/../
-
-include $(SIM_ROOT)/Makefile.config
+CARBON_LIB = $(SIM_ROOT)/lib/libcarbon_sim.a
 
 DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
 			 $(SIM_ROOT)/common/tile/memory_subsystem/							\
@@ -11,14 +9,14 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
 			 $(SIM_ROOT)/common/tile/core/models/									\
 			 $(SIM_ROOT)/common/tile/core/branch_predictors/	            \
           $(SIM_ROOT)/common/network/         									\
-			 $(SIM_ROOT)/common/network/models	 									\
+			 $(SIM_ROOT)/common/network/models/	 									\
 			 $(SIM_ROOT)/common/network/components/router/						\
 			 $(SIM_ROOT)/common/network/components/link/							\
           $(SIM_ROOT)/common/transport/       									\
           $(SIM_ROOT)/common/misc/            									\
           $(SIM_ROOT)/common/config/	      									\
           $(SIM_ROOT)/common/system/          									\
-          $(SIM_ROOT)/common/system/clock_skew_minimization_schemes		\
+          $(SIM_ROOT)/common/system/clock_skew_minimization_schemes/		\
 			 $(SIM_ROOT)/common/shared_models/      								\
           $(SIM_ROOT)/common/shared_models/queue_models/     				\
           $(SIM_ROOT)/common/user/													\
@@ -38,54 +36,34 @@ DEBUG = # -ggdb
 KERNEL = SQUEEZE
 #KERNEL = LENNY
 
-# Libraries in contrib (DSent, McPAT)
-LD_LIBS += -ldsent_contrib
-LD_FLAGS += -L$(SIM_ROOT)/contrib/dsent
-LD_LIBS += -lmcpat
-LD_FLAGS += -L$(SIM_ROOT)/contrib/mcpat
+LD_FLAGS += -L$(SIM_ROOT)/lib
+LD_LIBS += -lcarbon_sim
+
 # Boost library
 BOOST_SUFFIX = mt
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX)
-# BerkeleyDB library
-LD_LIBS += -ldb
-# Math, pthread libraries
-LD_LIBS += -lm -pthread
-
-LD_FLAGS += -L$(SIM_ROOT)/lib
 
 # Include paths
 CXXFLAGS += -c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
             -Wall -Werror -Wno-deprecated-declarations -Wno-unknown-pragmas \
-			   $(DEBUG) -O2 -MMD -fPIC -DKERNEL_$(KERNEL)
+			   $(DEBUG) -O2 -fPIC -DKERNEL_$(KERNEL)
 
 # Build rules for dependency generation
 %.d: %.cpp
-	$(CXX) -MM -MG $(CXXFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
+	$(CXX) -MM -MT $*.o -MF $@ $(CXXFLAGS) $<
 
 %.d: %.cc
-	$(CXX) -MM -MG $(CXXFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
+	$(CXX) -MM -MT $*.o -MF $@ $(CXXFLAGS) $<
 
 %.d: %.c
-	$(CC) -MM -MG $(CFLAGS) $< | sed -e 's,^\([^:]*\)\.o[ ]*:,$(@D)/\1.o $(@D)/\1.d:,' >$@
-
-ifneq ($(MAKECMDGOALS),clean)
-include $(OBJECTS:%.o=%.d)
-endif
+	$(CC) -MM -MT $*.o -MF $@ $(CFLAGS) $<
 
 # Build rules for object generation
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $<
-
+	
 %.o : %.cc
 	$(CXX) $(CXXFLAGS) -o $@ $<
-
+	
 %.o : %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
-
-# targets
-all: $(OBJECTS)
-
-ifneq ($(CLEAN),)
-clean:
-	-rm -f *.o *.d
-endif

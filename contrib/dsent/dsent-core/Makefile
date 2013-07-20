@@ -48,7 +48,7 @@ object: $(OBJS)
 	mkdir -p $(dir $@)
 	touch $@
 
-.phony: clean
+.PHONY: clean
 clean:
 	-$(RM) $(OBJS) $(TARGET)
 

@@ -537,18 +537,16 @@ void SockTransport::Socket::connect(const char* addr, SInt32 port)
 
    // lookup the hostname
    struct hostent *host;
-   struct in_addr h_addr;
    if ((host = gethostbyname(addr)) == NULL)
    {
       LOG_ASSERT_ERROR("Lookup on host: %s failed!", addr);
    }
-   h_addr.s_addr = *((unsigned long *) host->h_addr_list[0]);
 
    // connect
    struct sockaddr_in saddr;
    memset(&saddr, 0, sizeof(saddr));
    saddr.sin_family = AF_INET;
-   saddr.sin_addr.s_addr = h_addr.s_addr;
+   memcpy(&(saddr.sin_addr.s_addr), host->h_addr_list[0], host->h_length);
    saddr.sin_port = htons(port);
 
    while (true)

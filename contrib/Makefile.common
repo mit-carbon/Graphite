@@ -1,0 +1,12 @@
+# Other Libraries that are used by Graphite
+DSENT_LIB = $(SIM_ROOT)/contrib/dsent/libdsent_contrib.a
+MCPAT_LIB = $(SIM_ROOT)/contrib/mcpat/libmcpat.a
+CONTRIB_LIBS = $(DSENT_LIB) $(MCPAT_LIB)
+
+LD_LIBS += -ldsent_contrib
+LD_FLAGS += -L$(SIM_ROOT)/contrib/dsent
+LD_LIBS += -lmcpat
+LD_FLAGS += -L$(SIM_ROOT)/contrib/mcpat
+
+# BerkeleyDB library
+LD_LIBS += -ldb

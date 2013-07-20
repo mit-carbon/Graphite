@@ -6,7 +6,7 @@
 #include "core.h"
 #include "core_model.h"
 
-void handleBasicBlock(BasicBlock *sim_basic_block)
+void handleInstruction(Instruction* instruction)
 {
    if (!Sim()->isEnabled())
       return;
@@ -14,7 +14,7 @@ void handleBasicBlock(BasicBlock *sim_basic_block)
    CoreModel *core_model = Sim()->getTileManager()->getCurrentCore()->getModel();
    assert(core_model);
    
-   core_model->queueBasicBlock(sim_basic_block);
+   core_model->queueInstruction(instruction);
 
    //FIXME: put this in a thread
    core_model->iterate();
@@ -158,7 +158,7 @@ VOID fillOperandList(OperandList *list, INS ins)
 
 VOID addInstructionModeling(INS ins)
 {
-   BasicBlock *basic_block = new BasicBlock();
+   Instruction* instruction;
 
    OperandList list;
    fillOperandList(&list, ins);
@@ -166,7 +166,7 @@ VOID addInstructionModeling(INS ins)
    // branches
    if (INS_IsBranch(ins) && INS_HasFallThrough(ins))
    {
-      basic_block->push_back(new BranchInstruction(INS_Opcode(ins), list));
+      instruction = new BranchInstruction(INS_Opcode(ins), list);
 
       INS_InsertCall(
          ins, IPOINT_TAKEN_BRANCH, (AFUNPTR)handleBranch,
@@ -197,7 +197,7 @@ VOID addInstructionModeling(INS ins)
           (inst_opcode == XED_ICLASS_FISUBR)
          )
       {
-         basic_block->push_back(new ArithInstruction(INST_FALU, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_FALU, INS_Opcode(ins), list);
       }
       else if 
          (
@@ -205,7 +205,7 @@ VOID addInstructionModeling(INS ins)
           (inst_opcode == XED_ICLASS_FIMUL)
          )
       {
-         basic_block->push_back(new ArithInstruction(INST_FMUL, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_FMUL, INS_Opcode(ins), list);
       }
       else if 
          (
@@ -214,7 +214,7 @@ VOID addInstructionModeling(INS ins)
           (inst_opcode == XED_ICLASS_FIDIV)||(inst_opcode == XED_ICLASS_FIDIVR)
          )
       {
-         basic_block->push_back(new ArithInstruction(INST_FDIV, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_FDIV, INS_Opcode(ins), list);
       }
  
       // SIMD Instructions
@@ -233,7 +233,7 @@ VOID addInstructionModeling(INS ins)
           (inst_opcode == XED_ICLASS_COMISS)
          )
       {
-         basic_block->push_back(new ArithInstruction(INST_XMM_SS, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_XMM_SS, INS_Opcode(ins), list);
       }
       else if
          (
@@ -246,7 +246,7 @@ VOID addInstructionModeling(INS ins)
           (inst_opcode == XED_ICLASS_SQRTSD)
          )
       {
-         basic_block->push_back(new ArithInstruction(INST_XMM_SD, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_XMM_SD, INS_Opcode(ins), list);
       }
       else if
          (
@@ -261,7 +261,7 @@ VOID addInstructionModeling(INS ins)
           (inst_opcode == XED_ICLASS_RCPPS) || (inst_opcode == XED_ICLASS_CMPPS)
          )
       {
-         basic_block->push_back(new ArithInstruction(INST_XMM_PS, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_XMM_PS, INS_Opcode(ins), list);
       }
     
       // Integer Addition
@@ -274,7 +274,7 @@ VOID addInstructionModeling(INS ins)
          (inst_opcode == XED_ICLASS_PADDUSB) || (inst_opcode == XED_ICLASS_PADDUSW)
         )
       {
-         basic_block->push_back(new ArithInstruction(INST_IALU, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_IALU, INS_Opcode(ins), list);
       }
 
       // Integer Subtraction
@@ -287,7 +287,7 @@ VOID addInstructionModeling(INS ins)
          (inst_opcode == XED_ICLASS_PSUBUSB) || (inst_opcode == XED_ICLASS_PSUBUSW)
         ) 
       {
-         basic_block->push_back(new ArithInstruction(INST_IALU, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_IALU, INS_Opcode(ins), list);
       }
             
       // Bitwise operations
@@ -297,7 +297,7 @@ VOID addInstructionModeling(INS ins)
           (inst_opcode == XED_ICLASS_XOR) || (inst_opcode == XED_ICLASS_ANDNPS)
          )
       {
-         basic_block->push_back(new ArithInstruction(INST_IALU, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_IALU, INS_Opcode(ins), list);
       }
 
       // Other simple operations
@@ -311,7 +311,7 @@ VOID addInstructionModeling(INS ins)
           (inst_opcode == XED_ICLASS_CMPXCHG)
          )
       {
-         basic_block->push_back(new ArithInstruction(INST_IALU, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_IALU, INS_Opcode(ins), list);
       }
             
       // Integer Multiplication 
@@ -326,7 +326,7 @@ VOID addInstructionModeling(INS ins)
          )
       {
          // MUL Opcode
-         basic_block->push_back(new ArithInstruction(INST_IMUL, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_IMUL, INS_Opcode(ins), list);
          //cout << "IMUL Opcode: " << INS_Mnemonic(ins) << " [" << INS_Opcode(ins) << "]" << endl;
       }
 
@@ -337,7 +337,7 @@ VOID addInstructionModeling(INS ins)
          )
       {
          // DIV Opcode
-         basic_block->push_back(new ArithInstruction(INST_IDIV, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_IDIV, INS_Opcode(ins), list);
          //cout << "IDIV Opcode: " << INS_Mnemonic(ins) << " [" << INS_Opcode(ins) << "]" << endl;
       }
 
@@ -345,13 +345,13 @@ VOID addInstructionModeling(INS ins)
       else
       {
          // INT Opcode
-         basic_block->push_back(new ArithInstruction(INST_GENERIC, INS_Opcode(ins), list));
+         instruction = new ArithInstruction(INST_GENERIC, INS_Opcode(ins), list);
          //cout << "IALU Opcode: " << INS_Mnemonic(ins) << " [" << INS_Opcode(ins) << "]" << endl;
       }
    }
 
-   basic_block->front()->setAddress(INS_Address(ins));
-   basic_block->front()->setSize(INS_Size(ins));
+   instruction->setAddress(INS_Address(ins));
+   instruction->setSize(INS_Size(ins));
 
-   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleBasicBlock), IARG_PTR, basic_block, IARG_END);
+   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleInstruction), IARG_PTR, instruction, IARG_END);
 }

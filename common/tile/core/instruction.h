@@ -74,7 +74,8 @@ public:
                UInt64 opcode,
                OperandList &operands);
 
-   Instruction(InstructionType type);
+   Instruction(InstructionType type,
+               bool dynamic);
 
    virtual ~Instruction() {}
    virtual Time getCost(CoreModel* perf);
@@ -85,6 +86,8 @@ public:
    { return m_type; }
    UInt64 getOpcode() const
    { return m_opcode; }
+   bool isDynamic() const
+   { return m_dynamic; }
    IntPtr getAddress() const
    { return m_address; }
    UInt32 getSize() const
@@ -98,24 +101,23 @@ public:
    { m_size = size; }
 
    bool isSimpleMemoryLoad() const;
-   bool isDynamic() const
-   { return ((m_type == INST_DYNAMIC_MISC) || (m_type == INST_RECV) || (m_type == INST_SYNC) || (m_type == INST_SPAWN) || (m_type == INST_STALL)); }
 
    void print() const;
 
    typedef std::vector<unsigned int> StaticInstructionCosts;
 
-   static StaticInstructionCosts getStaticInstructionCosts() { return m_instruction_costs; }
+   static StaticInstructionCosts getStaticInstructionCosts()
+   { return m_instruction_costs; }
 
 private:
    static StaticInstructionCosts m_instruction_costs;
 
    InstructionType m_type;
    UInt64 m_opcode;
+   bool m_dynamic;
 
    IntPtr m_address;
    UInt32 m_size;
-
 
 protected:
    OperandList m_operands;
@@ -160,7 +162,7 @@ class DynamicInstruction : public Instruction
 {
 public:
    DynamicInstruction(Time cost, InstructionType type = INST_DYNAMIC_MISC)
-      : Instruction(type)
+      : Instruction(type, true)
       , m_cost(cost)
    {}
    ~DynamicInstruction() {}

@@ -8,8 +8,10 @@ TEST_DIST_BENCH_LIST = barnes_bench_test_dist fmm_bench_test_dist ocean_contiguo
 
 regress_bench: $(TEST_BENCH_LIST) $(TEST_DIST_BENCH_LIST)
 
+ifeq ($(MAKECMDGOALS),clean)
 clean:
 	for t in $(patsubst %_bench_test,%,$(TEST_BENCH_LIST)) ; do make -C $(TEST_BENCH_DIR)/$$t clean ; done
+endif
 
 %_bench_test_dist:
 	date

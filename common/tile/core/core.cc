@@ -41,6 +41,7 @@ Core::Core(Tile *tile, core_type_t core_type)
       _pin_memory_manager = new PinMemoryManager(this);
 
    initializeMemoryAccessLatencyCounters();
+   initializeInstructionBuffer();
 
    // asynchronous communication
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
@@ -200,6 +201,25 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
          curr_size = cache_line_size - (curr_offset);
       }
 
+      // Check Instruction Buffer
+      if (mem_component == MemComponent::L1_ICACHE)
+      {
+         LOG_ASSERT_ERROR(_enabled, "Models not enabled -> Access to L1_ICACHE not possible");
+         if (_instruction_buffer_address == curr_addr_aligned)
+         {
+            // Instruction buffer hit, so NO need to access ICACHE
+            _instruction_buffer_hits ++;
+            // 1 cycle to access instruction buffer
+            curr_time += Latency(1, _frequency);
+            continue;
+         }
+         else
+         {
+            // Instruction buffer miss, so need to access ICACHE
+            _instruction_buffer_address = curr_addr_aligned;
+         }
+      }
+
       LOG_PRINT("Start coreInitiateMemoryAccess: ADDR(%#lx), offset(%u), curr_size(%u), core_id(%i, %i)",
                 curr_addr_aligned, curr_offset, curr_size, getId().tile_id, getId().core_type);
 
@@ -279,6 +299,7 @@ Core::outputSummary(ostream& os, const Time& target_completion_time)
       << endl;
    
    os << "    Total Instruction Memory Accesses: " << _num_instruction_memory_accesses << endl;
+   os << "    Instruction Buffer Hits: " << _instruction_buffer_hits << endl;
    os << "    Average Instruction Memory Access Latency (in ns): "
       << 1.0 * total_instruction_memory_access_latency_in_ns / _num_instruction_memory_accesses
       << endl;
@@ -307,6 +328,13 @@ Core::disableModels()
       _core_model->disable();
    if (_clock_skew_minimization_client)
       _clock_skew_minimization_client->disable();
+}
+
+void
+Core::initializeInstructionBuffer()
+{
+   _instruction_buffer_address = INVALID_ADDRESS;
+   _instruction_buffer_hits = 0;
 }
 
 void

@@ -13,15 +13,17 @@ Instruction::StaticInstructionCosts Instruction::m_instruction_costs;
 Instruction::Instruction(InstructionType type, UInt64 opcode, OperandList &operands)
    : m_type(type)
    , m_opcode(opcode)
+   , m_dynamic(false)
    , m_address(0)
    , m_size(0)
    , m_operands(operands)
 {
 }
 
-Instruction::Instruction(InstructionType type)
+Instruction::Instruction(InstructionType type, bool dynamic)
    : m_type(type)
    , m_opcode(0)
+   , m_dynamic(dynamic)
    , m_address(0)
    , m_size(0)
 {

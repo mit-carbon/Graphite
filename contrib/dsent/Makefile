@@ -19,11 +19,11 @@ TARGET = $(CURDIR)/libdsent_contrib.a
 
 ALL_OBJS = $(shell find $(CURDIR) -type f -name '*.o')
 
-.PHONY: all dsent-core
+.PHONY: all dsent-core clean
 
 all: $(TARGET)
 
-%.a: $(OBJS) dsent-core
+$(TARGET): $(OBJS) dsent-core
 	@echo $(ALL_OBJS)
 	$(AR) rcs $@ $(ALL_OBJS)
 

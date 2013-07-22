@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
+// Suggested DVFS domain configuration:
+// <1.0, CORE, L1_ICACHE, L1_DCACHE> <1.0, L2_CACHE, DIRECTORY> <1.0, NETWORK_MEMORY, NETWORK_USER>
+
 void doMemoryWork()
 {
    //int ARRAY_SIZE = 8192*64;
@@ -39,9 +42,12 @@ int main()
    double frequency = 0;
    double voltage = 0;
    int rc;
+   module_t domain1 = CarbonGetDVFSDomain(L2_CACHE);
+   module_t domain2 = CarbonGetDVFSDomain(NETWORK_MEMORY);
 
    frequency = 1.0;
-   rc = CarbonSetDVFSAllTiles(L2_CACHE | NETWORK_MEMORY, &frequency, AUTO);
+   rc = CarbonSetDVFSAllTiles(domain1, &frequency, AUTO);
+   rc = CarbonSetDVFSAllTiles(domain2, &frequency, AUTO);
    assert(rc == 0);
 
    doComputeWork();

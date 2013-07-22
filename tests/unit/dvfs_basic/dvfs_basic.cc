@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
+// Suggested DVFS domain configuration:
+// <1.0, CORE, L1_ICACHE, L1_DCACHE, L2_CACHE, DIRECTORY> <1.0, NETWORK_MEMORY, NETWORK_USER>
+
 int main()
 {
    double frequency = 0;
@@ -10,44 +13,45 @@ int main()
    int rc;
 
    // local core
-   rc = CarbonGetDVFS(0, CORE, &frequency, &voltage);
+   module_t domain = CarbonGetDVFSDomain(CORE);
+   rc = CarbonGetDVFS(0, domain, &frequency, &voltage);
    assert(rc == 0);
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 2.0;
-   rc = CarbonSetDVFS(0, CORE, &frequency, AUTO);
+   rc = CarbonSetDVFS(0, domain, &frequency, AUTO);
    assert(rc == 0);
 
-   rc = CarbonGetDVFS(0, CORE, &frequency, &voltage);
+   rc = CarbonGetDVFS(0, domain, &frequency, &voltage);
    assert(rc == 0);
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 1.0;
-   rc = CarbonSetDVFS(0, CORE, &frequency, HOLD);
+   rc = CarbonSetDVFS(0, domain, &frequency, HOLD);
    assert(rc == 0);
 
-   rc = CarbonGetDVFS(0, CORE, &frequency, &voltage);
+   rc = CarbonGetDVFS(0, domain, &frequency, &voltage);
    assert(rc == 0);
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    // remote core
-   rc = CarbonGetDVFS(1, CORE, &frequency, &voltage);
+   rc = CarbonGetDVFS(1, domain, &frequency, &voltage);
    assert(rc == 0);
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 2.0;
-   rc = CarbonSetDVFS(1, CORE, &frequency, AUTO);
+   rc = CarbonSetDVFS(1, domain, &frequency, AUTO);
    assert(rc == 0);
 
-   rc = CarbonGetDVFS(1, CORE, &frequency, &voltage);
+   rc = CarbonGetDVFS(1, domain, &frequency, &voltage);
    assert(rc == 0);
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 1.0;
-   rc = CarbonSetDVFS(1, CORE, &frequency, HOLD);
+   rc = CarbonSetDVFS(1, domain, &frequency, HOLD);
    assert(rc == 0);
 
-   rc = CarbonGetDVFS(1, CORE, &frequency, &voltage);
+   rc = CarbonGetDVFS(1, domain, &frequency, &voltage);
    assert(rc == 0);
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 

@@ -875,7 +875,7 @@ void replacementCarbonGetTileFrequency(CONTEXT *ctxt)
          IARG_PTR, &tile_frequency,
          CARBON_IARG_END);
 
-   volatile float tile_frequency_buf;
+   float tile_frequency_buf;
    CarbonGetTileFrequency(&tile_frequency_buf);
 
    Core* core = Sim()->getTileManager()->getCurrentCore();
@@ -893,7 +893,7 @@ void replacementCarbonSetTileFrequency(CONTEXT *ctxt)
          IARG_PTR, &tile_frequency,
          CARBON_IARG_END);
 
-   volatile float tile_frequency_buf;
+   float tile_frequency_buf;
    Core* core = Sim()->getTileManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) tile_frequency, (char*) &tile_frequency_buf, sizeof(tile_frequency_buf));
 
@@ -913,7 +913,7 @@ void replacementCarbonSetRemoteTileFrequency(CONTEXT *ctxt)
          IARG_PTR, &tile_frequency,
          CARBON_IARG_END);
 
-   volatile float tile_frequency_buf;
+   float tile_frequency_buf;
    Core* core = Sim()->getTileManager()->getCurrentCore();
    core->accessMemory(Core::NONE, Core::READ, (IntPtr) tile_frequency, (char*) &tile_frequency_buf, sizeof(tile_frequency_buf));
 

@@ -40,7 +40,7 @@ void TileFreqScalingCallback(void* obj, NetPacket packet)
    Tile *tile = (Tile*) obj;
    assert(tile != NULL);
 
-   volatile float new_frequency;
+   float new_frequency;
    memcpy((void*) &new_frequency, packet.data, sizeof(float));
 
    float old_frequency = tile->getFrequency();

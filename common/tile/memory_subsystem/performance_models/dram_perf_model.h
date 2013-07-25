@@ -21,7 +21,7 @@ class DramPerfModel
    private:
       // Dram Model Parameters
       UInt64 m_dram_access_cost;
-      volatile float m_dram_bandwidth;
+      float m_dram_bandwidth;
 
       UInt32 m_cache_block_size;
 
@@ -35,8 +35,8 @@ class DramPerfModel
 
       // Performance Counters
       UInt64 m_num_accesses;
-      volatile double m_total_access_latency;
-      volatile double m_total_queueing_delay;
+      double m_total_access_latency;
+      double m_total_queueing_delay;
 
       void createQueueModels();
       void destroyQueueModels();

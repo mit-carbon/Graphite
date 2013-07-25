@@ -116,7 +116,7 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
                                   num_flits_per_output_buffer, router_delay, _flit_width,
                                   _contention_model_enabled, contention_model_type);
    // Mesh Link List
-   volatile double link_length = _tile_width;
+   double link_length = _tile_width;
    _mesh_link_list.resize(_num_mesh_router_ports);
    for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
    {

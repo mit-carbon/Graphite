@@ -202,7 +202,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
   
    // Idle, Unicast and Broadcast 
    // ENet Link
-   volatile double enet_link_length = _tile_width;
+   double enet_link_length = _tile_width;
    _enet_link_list.resize(num_enet_router_output_ports);
    for (SInt32 i = 0; i < num_enet_router_output_ports; i++)
    {
@@ -221,7 +221,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
                                          _contention_model_enabled, contention_model_type);
 
       // Optical Network Link Models
-      volatile double waveguide_length = computeOpticalLinkLength();   // In mm
+      double waveguide_length = computeOpticalLinkLength();   // In mm
       _optical_link = new OpticalLinkModel(this, _num_clusters, _frequency, waveguide_length, _flit_width);
       LOG_ASSERT_ERROR(_optical_link->getDelay() == 3, "Optical link delay should be 3. Now %llu", _optical_link->getDelay());
 
@@ -234,7 +234,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
       if (_receive_net_type == BTREE) // Broadcast-Tree
       {
          // Just the Htree link
-         volatile double btree_link_length = _tile_width * _cluster_size;
+         double btree_link_length = _tile_width * _cluster_size;
          
          _btree_link_list.resize(_num_receive_networks_per_cluster);
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
@@ -264,7 +264,7 @@ NetworkModelAtac::createANetRouterAndLinkModels()
             _star_net_link_list[i].resize(_cluster_size);
             for (SInt32 j = 0; j < _cluster_size; j++)
             {
-               volatile double star_net_link_length = computeNumHopsOnENet(_tile_id, tile_id_list[j]) * _tile_width;
+               double star_net_link_length = computeNumHopsOnENet(_tile_id, tile_id_list[j]) * _tile_width;
                if (star_net_link_length == 0)
                   star_net_link_length = 0.1;   // A small quantity
                _star_net_link_list[i][j] = new ElectricalLinkModel(this, electrical_link_type,
@@ -545,7 +545,7 @@ NetworkModelAtac::outputSummary(ostream &out)
       outputContentionModelsSummary(out);
 }
 
-volatile double
+double
 NetworkModelAtac::computeOpticalLinkLength()
 {
    // Note that number of clusters must be 'positive' and 'power of 2'

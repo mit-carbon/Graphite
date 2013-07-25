@@ -76,7 +76,7 @@ template <class T>
 class MovingArithmeticMean : public MovingAverage<T>
 {
    private:
-      volatile double _arithmetic_mean;
+      double _arithmetic_mean;
 
    public:
       MovingArithmeticMean(UInt32 max_window_size):
@@ -108,7 +108,7 @@ template <class T>
 class MovingGeometricMean : public MovingAverage<T>
 {
    private:
-      volatile double _geometric_mean;
+      double _geometric_mean;
 
    public:
       MovingGeometricMean(UInt32 max_window_size):

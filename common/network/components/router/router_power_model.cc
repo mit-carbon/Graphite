@@ -55,34 +55,34 @@ RouterPowerModel::updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets, UInt
 void
 RouterPowerModel::updateDynamicEnergyBufferWrite(UInt32 num_flits)
 {
-   volatile double dynamic_energy_buffer = _dsent_router->calc_dynamic_energy_buf_write(num_flits);
+   double dynamic_energy_buffer = _dsent_router->calc_dynamic_energy_buf_write(num_flits);
    _total_dynamic_energy_buffer += dynamic_energy_buffer;
 }
 
 void
 RouterPowerModel::updateDynamicEnergyBufferRead(UInt32 num_flits)
 {
-   volatile double dynamic_energy_buffer = _dsent_router->calc_dynamic_energy_buf_read(num_flits);
+   double dynamic_energy_buffer = _dsent_router->calc_dynamic_energy_buf_read(num_flits);
    _total_dynamic_energy_buffer += dynamic_energy_buffer;
 }
 
 void
 RouterPowerModel::updateDynamicEnergyCrossbar(UInt32 num_flits, UInt32 multicast_idx)
 {
-   volatile double dynamic_energy_crossbar = _dsent_router->calc_dynamic_energy_xbar(num_flits, multicast_idx);
+   double dynamic_energy_crossbar = _dsent_router->calc_dynamic_energy_xbar(num_flits, multicast_idx);
    _total_dynamic_energy_crossbar += dynamic_energy_crossbar;
 }
 
 void
 RouterPowerModel::updateDynamicEnergySwitchAllocator(UInt32 num_requests_per_packet, UInt32 num_packets)
 {
-   volatile double dynamic_energy_switch_allocator = _dsent_router->calc_dynamic_energy_sa(num_requests_per_packet);
+   double dynamic_energy_switch_allocator = _dsent_router->calc_dynamic_energy_sa(num_requests_per_packet);
    _total_dynamic_energy_switch_allocator += (num_packets * dynamic_energy_switch_allocator);
 }
 
 void
 RouterPowerModel::updateDynamicEnergyClock(UInt32 num_events)
 {
-   volatile double dynamic_energy_clock = _dsent_router->calc_dynamic_energy_clock(num_events);
+   double dynamic_energy_clock = _dsent_router->calc_dynamic_energy_clock(num_events);
    _total_dynamic_energy_clock += dynamic_energy_clock;
 }

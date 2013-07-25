@@ -8,7 +8,6 @@ using namespace std;
 #include "config.hpp"
 #include "simulator.h"
 #include "branch_predictor.h"
-#include "clock_converter.h"
 #include "tile.h"
 
 IOCOOMCoreModel::IOCOOMCoreModel(Core *core)

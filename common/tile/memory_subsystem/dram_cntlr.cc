@@ -4,7 +4,6 @@
 #include "core_model.h"
 #include "tile.h"
 #include "memory_manager.h"
-#include "clock_converter.h"
 #include "log.h"
 #include "constants.h"
 

@@ -19,9 +19,9 @@ public:
    void updateDynamicEnergy(UInt32 num_flits, SInt32 num_endpoints);
    
    // Energy parameters specific to OpticalLink
-   volatile double getStaticLeakagePower()      { return _static_power_leakage;     }
-   volatile double getStaticLaserPower()        { return _static_power_laser;       }
-   volatile double getStaticHeatingPower()      { return _static_power_heating;     }
+   double getStaticLeakagePower()      { return _static_power_leakage;     }
+   double getStaticLaserPower()        { return _static_power_laser;       }
+   double getStaticHeatingPower()      { return _static_power_heating;     }
 
 private:
    // Mapping between the name of a laser type defined in carbon_sim.cfg to a laser type used by DSENT
@@ -41,7 +41,7 @@ private:
    unsigned int _num_readers_per_wavelength;
    
    // Aggregate Parameters
-   volatile double _static_power_leakage;
-   volatile double _static_power_laser;
-   volatile double _static_power_heating;
+   double _static_power_leakage;
+   double _static_power_laser;
+   double _static_power_heating;
 };

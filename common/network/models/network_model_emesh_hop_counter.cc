@@ -195,9 +195,9 @@ NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out)
    if (isApplicationTile(_tile_id))
    {
       // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
-      volatile double static_power = _router_power_model->getStaticPower() +
+      double static_power = _router_power_model->getStaticPower() +
                                      (_electrical_link_power_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
-      volatile double dynamic_energy = _router_power_model->getDynamicEnergy() +
+      double dynamic_energy = _router_power_model->getDynamicEnergy() +
                                        _electrical_link_power_model->getDynamicEnergy();
       out << "      Static Power (in W): " << static_power << endl;
       out << "      Dynamic Energy (in J): " << dynamic_energy << endl;

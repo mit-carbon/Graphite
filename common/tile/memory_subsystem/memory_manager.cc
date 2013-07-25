@@ -5,7 +5,6 @@
 #include "pr_l1_pr_l2_dram_directory_mosi/memory_manager.h"
 #include "pr_l1_sh_l2_msi/memory_manager.h"
 #include "network_model.h"
-#include "clock_converter.h"
 #include "log.h"
 
 // Static Members

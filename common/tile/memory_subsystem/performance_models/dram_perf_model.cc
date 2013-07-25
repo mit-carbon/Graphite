@@ -6,7 +6,6 @@ using namespace std;
 #include "dram_perf_model.h"
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
-#include "clock_converter.h"
 #include "constants.h"
 
 // Note: Each Dram Controller owns a single DramModel object

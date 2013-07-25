@@ -8,7 +8,7 @@ using namespace std;
 #include "log.h"
 
 CacheAreaModel::CacheAreaModel(string type, UInt32 size, UInt32 blocksize,
-      UInt32 associativity, UInt32 delay, volatile float frequency)
+      UInt32 associativity, UInt32 delay, float frequency)
 {
    LOG_ASSERT_ERROR(Config::getSingleton()->getEnableAreaModeling(), "Area Modeling Disabled");
    CacheParams cache_params(type, size, blocksize, associativity, delay, frequency);

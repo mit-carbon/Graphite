@@ -2,7 +2,6 @@
 #include "cache.h"
 #include "simulator.h"
 #include "tile_manager.h"
-#include "clock_converter.h"
 #include "l2_directory_cfg.h"
 #include "network.h"
 #include "log.h"
@@ -52,8 +51,8 @@ MemoryManager::MemoryManager(Tile* tile)
    std::string L2_directory_type_str;
    
    // Dram
-   volatile float dram_latency = 0.0;
-   volatile float per_dram_controller_bandwidth = 0.0;
+   float dram_latency = 0.0;
+   float per_dram_controller_bandwidth = 0.0;
    bool dram_queue_model_enabled = false;
    std::string dram_queue_model_type;
 

@@ -79,7 +79,7 @@ protected:
    
    void updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time);
 
-   void updateCoreStaticInstructionModel(volatile float frequency);
+   void updateCoreStaticInstructionModel(float frequency);
 
 private:
 
@@ -90,7 +90,7 @@ private:
    // Pipeline Stall Counters
    void initializePipelineStallCounters();
 
-   volatile float m_average_frequency;
+   float m_average_frequency;
    Time m_total_time;
    Time m_checkpointed_time;
    UInt64 m_total_cycles;
@@ -105,7 +105,7 @@ private:
    // Instruction costs
    typedef std::vector<Time> CoreStaticInstructionCosts;
    CoreStaticInstructionCosts m_core_instruction_costs;
-   void initializeCoreStaticInstructionModel(volatile float frequency);
+   void initializeCoreStaticInstructionModel(float frequency);
 
    // Pipeline Stall Counters
    UInt64 m_total_recv_instructions;

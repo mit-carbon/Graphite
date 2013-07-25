@@ -11,7 +11,6 @@ using namespace std;
 #include "memory_manager.h"
 #include "simulator.h"
 #include "config.h"
-#include "clock_converter.h"
 #include "log.h"
 
 NetworkModel::NetworkModel(Network *network, SInt32 network_id):

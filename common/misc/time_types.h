@@ -5,7 +5,7 @@
 #include <log.h>
 #include <cmath>
 
-typedef volatile float Frequency;
+typedef float Frequency;
 
 
 class Latency

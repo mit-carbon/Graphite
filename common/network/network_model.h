@@ -62,7 +62,7 @@ public:
 
    string getNetworkName() { return _network_name; }
    
-   volatile float getFrequency() { return _frequency; }
+   float getFrequency() { return _frequency; }
    bool hasBroadcastCapability() { return _has_broadcast_capability; }
 
    bool isPacketReadyToBeReceived(const NetPacket& pkt);
@@ -111,7 +111,7 @@ protected:
    };
 
    // Frequency
-   volatile float _frequency;
+   float _frequency;
    // Flit Width
    SInt32 _flit_width;
    // Has Broadcast Capability
@@ -119,7 +119,7 @@ protected:
    // Tile ID
    tile_id_t _tile_id;
    // Tile Width
-   volatile double _tile_width;
+   double _tile_width;
 
    Network *getNetwork()   { return _network; }
    SInt32 getNetworkID()   { return _network_id; }

@@ -24,10 +24,10 @@ QueueModelMG1::computeQueueDelay(UInt64 pkt_time, UInt64 service_time, tile_id_t
    // processing_time = number of packet flits
    if (_num_arrivals != 0)
    {
-      volatile double variance_service_time = ( (_sigma_service_time_square / _num_arrivals) - \
+      double variance_service_time = ( (_sigma_service_time_square / _num_arrivals) - \
                                               square(_sigma_service_time / _num_arrivals) );
-      volatile double service_rate = 1.0 / (_sigma_service_time / _num_arrivals);
-      volatile double arrival_rate = ((double) _num_arrivals) / _newest_arrival_time;
+      double service_rate = 1.0 / (_sigma_service_time / _num_arrivals);
+      double arrival_rate = ((double) _num_arrivals) / _newest_arrival_time;
 
       LOG_PRINT("variance_serve_time(%g), service_rate(%g), arrival_rate(%g)\n", variance_service_time, service_rate, arrival_rate);
       if (arrival_rate >= service_rate)

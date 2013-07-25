@@ -5,8 +5,6 @@
 #include "tile.h"
 #include "packetize.h"
 #include "mcp.h"
-#include "clock_converter.h"
-#include "fxsupport.h"
 
 #include "simulator.h"
 #include "thread_scheduler.h"
@@ -49,9 +47,6 @@ void SyncClient::mutexInit(carbon_mutex_t *mux)
 
 void SyncClient::mutexLock(carbon_mutex_t *mux)
 {
-   // Save/Restore Floating Point state
-   FloatingPointHandler floating_point_handler;
-
    // Reset the buffers for the new transmission
    m_recv_buff.clear();
    m_send_buff.clear();
@@ -97,9 +92,6 @@ void SyncClient::mutexLock(carbon_mutex_t *mux)
 
 void SyncClient::mutexUnlock(carbon_mutex_t *mux)
 {
-   // Save/Restore Floating Point state
-   FloatingPointHandler floating_point_handler;
-
    // Reset the buffers for the new transmission
    m_recv_buff.clear();
    m_send_buff.clear();
@@ -127,9 +119,6 @@ void SyncClient::mutexUnlock(carbon_mutex_t *mux)
 
 void SyncClient::condInit(carbon_cond_t *cond)
 {
-   // Save/Restore Floating Point state
-   FloatingPointHandler floating_point_handler;
-
    // Reset the buffers for the new transmission
    m_recv_buff.clear();
    m_send_buff.clear();
@@ -153,9 +142,6 @@ void SyncClient::condInit(carbon_cond_t *cond)
 
 void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 {
-   // Save/Restore Floating Point state
-   FloatingPointHandler floating_point_handler;
-
    // Reset the buffers for the new transmission
    m_recv_buff.clear();
    m_send_buff.clear();
@@ -201,9 +187,6 @@ void SyncClient::condWait(carbon_cond_t *cond, carbon_mutex_t *mux)
 
 void SyncClient::condSignal(carbon_cond_t *cond)
 {
-   // Save/Restore Floating Point state
-   FloatingPointHandler floating_point_handler;
-
    // Reset the buffers for the new transmission
    m_recv_buff.clear();
    m_send_buff.clear();
@@ -231,9 +214,6 @@ void SyncClient::condSignal(carbon_cond_t *cond)
 
 void SyncClient::condBroadcast(carbon_cond_t *cond)
 {
-   // Save/Restore Floating Point state
-   FloatingPointHandler floating_point_handler;
-
    // Reset the buffers for the new transmission
    m_recv_buff.clear();
    m_send_buff.clear();
@@ -261,9 +241,6 @@ void SyncClient::condBroadcast(carbon_cond_t *cond)
 
 void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
 {
-   // Save/Restore Floating Point state
-   FloatingPointHandler floating_point_handler;
-
    // Reset the buffers for the new transmission
    m_recv_buff.clear();
    m_send_buff.clear();
@@ -287,9 +264,6 @@ void SyncClient::barrierInit(carbon_barrier_t *barrier, UInt32 count)
 
 void SyncClient::barrierWait(carbon_barrier_t *barrier)
 {
-   // Save/Restore Floating Point state
-   FloatingPointHandler floating_point_handler;
-
    // Reset the buffers for the new transmission
    m_recv_buff.clear();
    m_send_buff.clear();

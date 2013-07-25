@@ -13,10 +13,10 @@ public:
 
 private:
    // Service Time distribution Parameters
-   volatile double _sigma_service_time_square;
-   volatile double _sigma_service_time;
+   double _sigma_service_time_square;
+   double _sigma_service_time;
    UInt64 _num_arrivals;
    UInt64 _newest_arrival_time;
 
-   volatile double square(volatile double num) { return num*num; }
+   double square(double num) { return num*num; }
 };

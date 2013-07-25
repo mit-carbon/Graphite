@@ -45,7 +45,7 @@ private:
    UInt64 _last_sync_time;
    UInt64 _quantum;
    UInt64 _slack;
-   volatile float _sleep_fraction;
+   float _sleep_fraction;
 
    struct timeval _start_wall_clock_time;
 

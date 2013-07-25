@@ -21,8 +21,8 @@ public:
 protected:
    // Input parameters
    NetworkModel* _model;
-   volatile float _frequency;
-   volatile double _link_length;
+   float _frequency;
+   double _link_length;
    UInt32 _link_width;
   
    // Output parameters 

@@ -14,16 +14,16 @@ public:
    {}
    virtual ~LinkPowerModel() {}
 
-   volatile double getStaticPower()    { return _total_static_power;    }
-   volatile double getDynamicEnergy()  { return _total_dynamic_energy;  }
+   double getStaticPower()    { return _total_static_power;    }
+   double getDynamicEnergy()  { return _total_dynamic_energy;  }
    
 protected:
    // Input parameters
-   volatile float _frequency;
-   volatile double _link_length;
+   float _frequency;
+   double _link_length;
    UInt32 _link_width;
    
    // Output parameters 
-   volatile double _total_static_power;
-   volatile double _total_dynamic_energy;
+   double _total_static_power;
+   double _total_dynamic_energy;
 };

@@ -546,7 +546,7 @@ string Config::getL2CacheType(tile_id_t tile_id)
    return m_tile_parameters_vec[tile_id].getL2CacheType();
 }
 
-volatile float Config::getTileFrequency(tile_id_t tile_id)
+float Config::getTileFrequency(tile_id_t tile_id)
 {
    LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
          "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());

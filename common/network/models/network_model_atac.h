@@ -172,7 +172,7 @@ private:
    static SInt32 computeReceiveNetID(tile_id_t sender);
 
    // Compute Waveguide Length
-   volatile double computeOpticalLinkLength();
+   double computeOpticalLinkLength();
 
    // Routing
    static GlobalRoutingStrategy parseGlobalRoutingStrategy(string strategy);

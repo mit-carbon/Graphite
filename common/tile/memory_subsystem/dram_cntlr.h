@@ -20,8 +20,8 @@ public:
    };
 
    DramCntlr(Tile* tile,
-             volatile float dram_access_cost,
-             volatile float dram_bandwidth,
+             float dram_access_cost,
+             float dram_bandwidth,
              bool dram_queue_model_enabled,
              string dram_queue_model_type,
              UInt32 cache_line_size);

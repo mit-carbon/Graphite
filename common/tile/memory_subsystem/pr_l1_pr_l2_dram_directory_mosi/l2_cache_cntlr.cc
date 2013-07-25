@@ -2,7 +2,6 @@
 #include "l2_cache_cntlr.h"
 #include "memory_manager.h"
 #include "config.h"
-#include "clock_converter.h"
 #include "log.h"
 
 namespace PrL1PrL2DramDirectoryMOSI

@@ -2,7 +2,6 @@
 #include "dram_directory_cntlr.h"
 #include "memory_manager.h"
 #include "core_model.h"
-#include "clock_converter.h"
 #include "utils.h"
 #include "config.h"
 #include "log.h"

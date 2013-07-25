@@ -13,29 +13,29 @@ public:
    void updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets, UInt32 multicast_idx = 1);
    
    // Get Dynamic Energy
-   volatile double getDynamicEnergy()
+   double getDynamicEnergy()
    {  
       return (_total_dynamic_energy_buffer + _total_dynamic_energy_crossbar + 
               _total_dynamic_energy_switch_allocator + _total_dynamic_energy_clock);
    }
-   volatile double getDynamicEnergyBuffer()           { return _total_dynamic_energy_buffer;             }
-   volatile double getDynamicEnergyCrossbar()         { return _total_dynamic_energy_crossbar;           }
-   volatile double getDynamicEnergySwitchAllocator()  { return _total_dynamic_energy_switch_allocator;   }
-   volatile double getDynamicEnergyClock()            { return _total_dynamic_energy_clock;              }
+   double getDynamicEnergyBuffer()           { return _total_dynamic_energy_buffer;             }
+   double getDynamicEnergyCrossbar()         { return _total_dynamic_energy_crossbar;           }
+   double getDynamicEnergySwitchAllocator()  { return _total_dynamic_energy_switch_allocator;   }
+   double getDynamicEnergyClock()            { return _total_dynamic_energy_clock;              }
    
    // Static Power
-   volatile double getStaticPowerBuffer()             { return _dsent_router->get_static_power_buf();    }
-   volatile double getStaticPowerBufferCrossbar()     { return _dsent_router->get_static_power_xbar();   }
-   volatile double getStaticPowerSwitchAllocator()    { return _dsent_router->get_static_power_sa();     }
-   volatile double getStaticPowerClock()              { return _dsent_router->get_static_power_clock();  }
-   volatile double getStaticPower()
+   double getStaticPowerBuffer()             { return _dsent_router->get_static_power_buf();    }
+   double getStaticPowerBufferCrossbar()     { return _dsent_router->get_static_power_xbar();   }
+   double getStaticPowerSwitchAllocator()    { return _dsent_router->get_static_power_sa();     }
+   double getStaticPowerClock()              { return _dsent_router->get_static_power_clock();  }
+   double getStaticPower()
    {
       return (_dsent_router->get_static_power_buf() + _dsent_router->get_static_power_xbar() +
               _dsent_router->get_static_power_sa() + _dsent_router->get_static_power_clock());
    }
 
 private:
-   volatile float _frequency;
+   float _frequency;
    UInt32 _num_input_ports;
    UInt32 _num_output_ports;
    UInt32 _num_flits_per_port_buffer;
@@ -43,10 +43,10 @@ private:
 
    dsent_contrib::DSENTRouter* _dsent_router;
 
-   volatile double _total_dynamic_energy_buffer;
-   volatile double _total_dynamic_energy_crossbar;
-   volatile double _total_dynamic_energy_switch_allocator;
-   volatile double _total_dynamic_energy_clock;
+   double _total_dynamic_energy_buffer;
+   double _total_dynamic_energy_crossbar;
+   double _total_dynamic_energy_switch_allocator;
+   double _total_dynamic_energy_clock;
 
    void initializeCounters();
    

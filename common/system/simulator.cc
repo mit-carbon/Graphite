@@ -16,7 +16,6 @@
 #include "clock_skew_minimization_object.h"
 #include "statistics_manager.h"
 #include "statistics_thread.h"
-#include "fxsupport.h"
 #include "contrib/dsent/dsent_contrib.h"
 #include "mcpat_cache.h"
 
@@ -45,7 +44,6 @@ void Simulator::setConfig(config::Config *cfg)
 
 void Simulator::release()
 {
-   // Fxsupport::fini();
    delete m_singleton;
    m_singleton = NULL;
 }
@@ -120,9 +118,6 @@ void Simulator::start()
       m_statistics_thread = new StatisticsThread(m_statistics_manager);
       m_statistics_thread->start();
    }
-
-   // Save floating-point registers on context switch from user space to pin space
-   Fxsupport::allocate();
 
    startMCP();
 

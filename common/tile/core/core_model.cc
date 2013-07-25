@@ -7,8 +7,6 @@
 #include "simulator.h"
 #include "tile_manager.h"
 #include "config.h"
-#include "fxsupport.h"
-#include "clock_converter.h"
 #include "utils.h"
 #include "time_types.h"
 
@@ -56,7 +54,7 @@ CoreModel::~CoreModel()
 }
 
 
-void CoreModel::initializeCoreStaticInstructionModel(volatile float frequency)
+void CoreModel::initializeCoreStaticInstructionModel(float frequency)
 {
    m_core_instruction_costs.resize(MAX_INSTRUCTION_COUNT);
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
@@ -68,7 +66,7 @@ void CoreModel::initializeCoreStaticInstructionModel(volatile float frequency)
    }
 }
 
-void CoreModel::updateCoreStaticInstructionModel(volatile float frequency)
+void CoreModel::updateCoreStaticInstructionModel(float frequency)
 {
    Instruction::StaticInstructionCosts instruction_costs = Instruction::getStaticInstructionCosts();
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)

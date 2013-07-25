@@ -4,22 +4,15 @@
 #include "tile.h"
 #include "core.h"
 #include "core_model.h"
-#include "fxsupport.h"
 
-void CarbonGetTileFrequency(volatile float* frequency)
+void CarbonGetTileFrequency(float* frequency)
 {
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
-
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    *frequency = tile->getFrequency();
 }
 
-void CarbonSetTileFrequency(volatile float* frequency)
+void CarbonSetTileFrequency(float* frequency)
 {
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
-
    // Stuff to change
    // 1) Core Model
    // 2) Memory Subsystem Model
@@ -30,11 +23,8 @@ void CarbonSetTileFrequency(volatile float* frequency)
    tile->setFrequency(new_frequency);
 }
 
-void CarbonSetRemoteTileFrequency(tile_id_t tile_id, volatile float* frequency)
+void CarbonSetRemoteTileFrequency(tile_id_t tile_id, float* frequency)
 {
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
-
    Core* core = Sim()->getTileManager()->getCurrentTile()->getCore();
    core->coreSendW(core->getId().tile_id, tile_id, (char*) frequency, sizeof(float), (carbon_network_t) CARBON_FREQ_CONTROL);
 }

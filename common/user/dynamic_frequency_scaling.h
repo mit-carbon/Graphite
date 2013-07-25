@@ -8,9 +8,9 @@ extern "C"
 {
 #endif
 
-void CarbonGetTileFrequency(volatile float* frequency);
-void CarbonSetTileFrequency(volatile float* frequency);
-void CarbonSetRemoteTileFrequency(tile_id_t tile_id, volatile float* frequency);
+void CarbonGetTileFrequency(float* frequency);
+void CarbonSetTileFrequency(float* frequency);
+void CarbonSetRemoteTileFrequency(tile_id_t tile_id, float* frequency);
 
 #ifdef __cplusplus
 }

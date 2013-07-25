@@ -44,7 +44,7 @@ private:
    Core* _core;
    MemoryManager* _memory_manager;
 
-   volatile float _frequency;
+   float _frequency;
 };
 
 #endif

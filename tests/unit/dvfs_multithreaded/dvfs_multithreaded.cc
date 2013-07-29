@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
+// Suggested DVFS domain configuration:
+// <1.0, CORE, L1_ICACHE, L1_DCACHE> <1.0, L2_CACHE, DIRECTORY, NETWORK_MEMORY, NETWORK_USER>
+
 int num_threads;
 int num_iterations;
 int iteration_size;
@@ -44,6 +47,8 @@ void* doWork(void*)
    SInt32 tile_id = CarbonGetTileId();
    double frequency;
    int rc;
+   module_t domain1 = CarbonGetDVFSDomain(CORE);
+   module_t domain2 = CarbonGetDVFSDomain(L2_CACHE);
 
    for (int i= 0; i<num_iterations; i++){
 
@@ -52,9 +57,9 @@ void* doWork(void*)
       if (tile_id == 0)
       {
          // set memory dvfs
-         rc = CarbonSetDVFSAllTiles(CORE | L1_ICACHE | L1_DCACHE, &memory_low_frequency, AUTO);
+         rc = CarbonSetDVFSAllTiles(domain1, &memory_low_frequency, AUTO);
          assert(rc == 0);
-         rc = CarbonSetDVFSAllTiles(L2_CACHE | NETWORK_MEMORY, &memory_high_frequency, AUTO);
+         rc = CarbonSetDVFSAllTiles(domain2, &memory_high_frequency, AUTO);
          assert(rc == 0);
       }
       CarbonBarrierWait(&global_barrier);
@@ -67,9 +72,9 @@ void* doWork(void*)
       if (tile_id == 0)
       {
          // set compute dvfs
-         rc = CarbonSetDVFSAllTiles(CORE | L1_ICACHE | L1_DCACHE, &compute_high_frequency, AUTO);
+         rc = CarbonSetDVFSAllTiles(domain1, &compute_high_frequency, AUTO);
          assert(rc == 0);
-         rc = CarbonSetDVFSAllTiles(L2_CACHE | NETWORK_MEMORY, &compute_low_frequency, AUTO);
+         rc = CarbonSetDVFSAllTiles(domain2, &compute_low_frequency, AUTO);
          assert(rc == 0);
       }
       CarbonBarrierWait(&global_barrier);
@@ -84,7 +89,8 @@ void* doWork(void*)
    {
       double default_frequency = 1.0;
       // set compute dvfs
-      rc = CarbonSetDVFSAllTiles(CORE | L1_ICACHE | L1_DCACHE | L2_CACHE | NETWORK_MEMORY, &default_frequency, AUTO);
+      rc = CarbonSetDVFSAllTiles(domain1, &default_frequency, AUTO);
+      rc = CarbonSetDVFSAllTiles(domain2, &default_frequency, AUTO);
       assert(rc == 0);
    }
    CarbonBarrierWait(&global_barrier);

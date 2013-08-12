@@ -30,8 +30,8 @@
  ***************************************************************************/
 
 #include <time.h>
-#include <math.h>
-
+#include <cmath>
+#include <cstddef>
 
 #include "area.h"
 #include "basic_circuit.h"

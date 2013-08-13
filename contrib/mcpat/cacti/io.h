@@ -40,6 +40,7 @@
 namespace McPAT
 {
 
+void initializeDatabase(string mcpat_path);
 void output_data_csv(const uca_org_t & fin_res);
 void output_UCA(uca_org_t * fin_res);
 

@@ -19,6 +19,7 @@
 #include "statistics_thread.h"
 #include "fxsupport.h"
 #include "contrib/dsent/dsent_contrib.h"
+#include "contrib/mcpat/cacti/io.h"
 
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
@@ -89,13 +90,17 @@ void Simulator::start()
    char* graphite_home_str = getenv("GRAPHITE_HOME");
    m_graphite_home = (graphite_home_str) ? ((string)graphite_home_str) : ".";
   
-   // DSENT for network power modeling - create config object
    if (Config::getSingleton()->getEnablePowerModeling())
-   { 
+   {
+      // Initialize DSENT for network power modeling - create config object
       string dsent_path = m_graphite_home + "/contrib/dsent";
       dsent_contrib::DSENTInterface::allocate(dsent_path, getCfg()->getInt("general/technology_node"));
       dsent_contrib::DSENTInterface::getSingleton()->add_global_tech_overwrite("Temperature",
          getCfg()->getFloat("general/temperature"));
+
+      // Initialize McPAT for core + cache power modeling
+      string mcpat_path = m_graphite_home + "/contrib/mcpat";
+      McPAT::initializeDatabase(mcpat_path);
    }
   
    m_transport = Transport::create();

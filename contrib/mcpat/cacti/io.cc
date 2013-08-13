@@ -30,7 +30,7 @@
  ***************************************************************************/
 
 
-
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -45,12 +45,21 @@
 #include "nuca.h"
 #include "crossbar.h"
 #include "arbiter.h"
-//#include "highradix.h"
+#include "../../db_utils/access.h"
 
 using namespace std;
 
 namespace McPAT
 {
+
+static DB* _database = NULL;
+
+void initializeDatabase(string mcpat_path)
+{
+   string mcpat_dbname = "mcpat-" + (string) getenv("USER") + ".db";
+   string mcpat_libname = mcpat_path + "/libmcpat.a";
+   initializeDatabase(_database, mcpat_dbname, mcpat_libname);
+}
 
 /* Parses "cache.cfg" file */
   void
@@ -2194,38 +2203,42 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
   Wire winit; // Do not delete this line. It initializes wires.
 
 
-  static DB *dbp = NULL;
-
-  if (dbp == NULL)
-  {
-    char filename[1024];
-    snprintf(filename, 1024, "%s/mcpat-%s.db", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp", getenv("USER"));
-    db_create(&dbp, NULL, 0);
-    dbp->open(dbp, NULL, filename, NULL, DB_HASH, DB_CREATE, 0);
-  }
-
+  // Get data stored in database
   DBT key, data;
-  memset(&key, 0, sizeof(DBT));
-  memset(&data, 0, sizeof(DBT));
+  memset(&key, 0, sizeof(key));
+  memset(&data, 0, sizeof(data));
 
   size_t o1 = offsetof(InputParameter, first),
          o2 = offsetof(InputParameter, last);
   key.data = (char*)g_ip + o1;
   key.size = o2 - o1;
 
-  if (DB_NOTFOUND == dbp->get(dbp, NULL, &key, &data, 0))
+  int ret;
+
+  ret = _database->get(_database, NULL, &key, &data, 0);
+  if (ret == 0)
+  {
+    assert(sizeof(fin_res) == data.size);
+    memcpy(&fin_res, data.data, sizeof(fin_res));
+  }
+  else if (ret == DB_NOTFOUND)
   {
     solve(&fin_res);
 
     data.data = &fin_res;
     data.size = sizeof(fin_res);
-    dbp->put(dbp, NULL, &key, &data, DB_NOOVERWRITE);
-    dbp->sync(dbp, 0);
+    ret = _database->put(_database, NULL, &key, &data, DB_NOOVERWRITE);
+    if ((ret != 0) && (ret != DB_KEYEXIST))
+    {
+       _database->err(_database, ret, "DB->put");
+       exit(EXIT_FAILURE);
+    }
+    _database->sync(_database, 0);
   }
   else
   {
-    assert(sizeof(fin_res) == data.size);
-    memcpy(&fin_res, data.data, sizeof(fin_res));
+     _database->err(_database, ret, "DB->get");
+     exit(EXIT_FAILURE);
   }
 
 

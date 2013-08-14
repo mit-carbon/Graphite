@@ -51,8 +51,6 @@ void initialize(DB*& db, const string& db_name, const string& lib_name)
    // Get the database file abspath
    string db_filename = tmpdir + "/" + db_name + "-" + (string) getenv("USER") + ".db";
 
-   printf("initializeDatabase[DB-Filename(%s), DB-Name(%s), Lib-Name(%s)]\n", db_filename.c_str(), db_name.c_str(), lib_name.c_str());
-   
    int ret;
    // Create the database handle
    if ((ret = db_create(&db, _db_env, 0)) != 0)
@@ -86,7 +84,6 @@ void initialize(DB*& db, const string& db_name, const string& lib_name)
    version_key.size = sizeof("VERSION");
      
    ret = getRecord(db, version_key, version_data);
-   printf("initializeDatabase(): DB-Name(%s), Return-Code(%i)\n", db_filename.c_str(), ret);
    
    if ( (ret == 0) &&
         (version_data.size == sizeof(filestat_buf.st_mtime)) && 
@@ -97,7 +94,6 @@ void initialize(DB*& db, const string& db_name, const string& lib_name)
    }
    else
    {
-      printf("initializeDatabase(): DB-Name(%s), Truncating\n", db_filename.c_str());
       // Truncate (/remove all entries) in database
       db->truncate(db, NULL, NULL, 0);
 

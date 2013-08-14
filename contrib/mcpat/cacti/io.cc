@@ -45,7 +45,7 @@
 #include "nuca.h"
 #include "crossbar.h"
 #include "arbiter.h"
-#include "../../db_utils/access.h"
+#include "../../db_utils/api.h"
 
 using namespace std;
 
@@ -56,9 +56,8 @@ static DB* _database = NULL;
 
 void initializeDatabase(string mcpat_path)
 {
-   string mcpat_dbname = "mcpat-" + (string) getenv("USER") + ".db";
    string mcpat_libname = mcpat_path + "/libmcpat.a";
-   initializeDatabase(_database, mcpat_dbname, mcpat_libname);
+   DBUtils::initialize(_database, "mcpat", mcpat_libname);
 }
 
 /* Parses "cache.cfg" file */
@@ -2215,32 +2214,20 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
 
   int ret;
 
-  ret = _database->get(_database, NULL, &key, &data, 0);
-  if (ret == 0)
-  {
-    assert(sizeof(fin_res) == data.size);
-    memcpy(&fin_res, data.data, sizeof(fin_res));
-  }
-  else if (ret == DB_NOTFOUND)
+  ret = DBUtils::getRecord(_database, key, data);
+  if (DBUtils::getRecord(_database, key, data) == DB_NOTFOUND)
   {
     solve(&fin_res);
 
     data.data = &fin_res;
     data.size = sizeof(fin_res);
-    ret = _database->put(_database, NULL, &key, &data, DB_NOOVERWRITE);
-    if ((ret != 0) && (ret != DB_KEYEXIST))
-    {
-       _database->err(_database, ret, "DB->put");
-       exit(EXIT_FAILURE);
-    }
-    _database->sync(_database, 0);
+    DBUtils::putRecord(_database, key, data);
   }
-  else
+  else // (DBUtils::getRecord(_database, key, data) == 0)
   {
-     _database->err(_database, ret, "DB->get");
-     exit(EXIT_FAILURE);
+    assert(sizeof(fin_res) == data.size);
+    memcpy(&fin_res, data.data, sizeof(fin_res));
   }
-
 
 //  g_ip->display_ip();
 //  output_UCA(&fin_res);

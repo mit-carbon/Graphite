@@ -1,6 +1,6 @@
 TARGET=libdb_utils.a
 
-SOURCES=access.cc
+SOURCES=$(wildcard *.cc)
 OBJECTS=$(SOURCES:%.cc=%.o)
 
 CXXFLAGS= -c -O3 -Wall -Wno-unknown-pragmas -fPIC

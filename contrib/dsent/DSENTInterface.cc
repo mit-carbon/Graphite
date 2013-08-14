@@ -1,7 +1,6 @@
 #include "DSENTInterface.h"
 #include "dsent-core/libutil/LibUtil.h"
 #include "dsent-core/DSENT.h"
-#include "../db_utils/access.h"
 
 #include <iostream>
 #include <ostream>
@@ -65,9 +64,8 @@ namespace dsent_contrib
       m_overwrites_tech_ = new vector<Overwrite>();
 
       // Get the database filename & library name
-      string dsent_dbname = "dsent-" + (string) getenv("USER") + ".db";
       string dsent_libname = dsent_path_ + "/libdsent_contrib.a";
-      initializeDatabase(m_database, dsent_dbname, dsent_libname);
+      DBUtils::initialize(m_database, "dsent", dsent_libname);
    }
 
    DSENTInterface::~DSENTInterface()

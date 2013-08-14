@@ -88,10 +88,10 @@ TileEnergyMonitor::~TileEnergyMonitor()
 double TileEnergyMonitor::getTileEnergy()
 {
    double tile_energy = m_core_current_total_energy + m_cache_current_total_energy;
-      for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
-      {
-         tile_energy += m_network_current_total_energy[i];
-      }
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      tile_energy += m_network_current_total_energy[i];
+   }
    return tile_energy;
 }
 

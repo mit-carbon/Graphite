@@ -4,12 +4,45 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "db_utils.h"
+#include "api.h"
 
-DB_ENV* DBUtils::_db_env = NULL;
+namespace DBUtils
+{
 
-void
-DBUtils::initialize(DB*& db, const string& db_name, const string& lib_name)
+static DB_ENV* _db_env = NULL;
+
+void initializeEnv()
+{
+   if (_db_env == NULL)
+   {
+      string tmpdir = getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp";
+   
+      int ret;
+      // Create the database env handle
+      if ((ret = db_env_create(&_db_env, 0)) != 0)
+      {
+         fprintf(stderr, "db_env_create: %s\n", db_strerror(ret));
+         exit(EXIT_FAILURE);
+      }
+     
+      // Open the database env
+      string dbenv_directory = tmpdir + "/dbenv-" + (string) getenv("USER");
+      string mkdir_dbenv = "mkdir -p " + dbenv_directory;
+      if ((ret = system(mkdir_dbenv.c_str())) != 0)
+      {
+         fprintf(stderr, "Failed to create %s directory\n", dbenv_directory.c_str());
+         exit(EXIT_FAILURE);
+      }
+
+      if ((ret = _db_env->open(_db_env, dbenv_directory.c_str(), DB_CREATE | DB_INIT_CDB | DB_INIT_MPOOL, 0)) != 0)
+      {
+         _db_env->err(_db_env, ret, "DB_ENV->open");
+         exit(EXIT_FAILURE);
+      }
+   }
+}
+
+void initialize(DB*& db, const string& db_name, const string& lib_name)
 {
    initializeEnv();
 
@@ -72,69 +105,4 @@ DBUtils::initialize(DB*& db, const string& db_name, const string& lib_name)
    }
 }
 
-void
-DBUtils::initializeEnv()
-{
-   if (_db_env == NULL)
-   {
-      string tmpdir = getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp";
-   
-      int ret;
-      // Create the database env handle
-      if ((ret = db_env_create(&_db_env, 0)) != 0)
-      {
-         fprintf(stderr, "db_env_create: %s\n", db_strerror(ret));
-         exit(EXIT_FAILURE);
-      }
-     
-      // Open the database env
-      string dbenv_directory = tmpdir + "/dbenv-" + (string) getenv("USER");
-      string mkdir_dbenv = "mkdir -p " + dbenv_directory;
-      if ((ret = system(mkdir_dbenv.c_str())) != 0)
-      {
-         fprintf(stderr, "Failed to create %s directory\n", dbenv_directory.c_str());
-         exit(EXIT_FAILURE);
-      }
-
-      if ((ret = _db_env->open(_db_env, dbenv_directory.c_str(), DB_CREATE | DB_INIT_CDB | DB_INIT_MPOOL, 0)) != 0)
-      {
-         _db_env->err(_db_env, ret, "DB_ENV->open");
-         exit(EXIT_FAILURE);
-      }
-   }
-}
-
-int
-DBUtils::getRecord(DB*& db, DBT& key, DBT& data)
-{
-   int ret = db->get(db, NULL, &key, &data, 0);
-   if ((ret != 0) && (ret != DB_NOTFOUND))
-   {
-      db->err(db, ret, "DB->get");
-      exit(EXIT_FAILURE);
-   }
-   return ret;
-}
-   
-int
-DBUtils::putRecord(DB*& db, DBT& key, DBT& data)
-{
-   int ret;
-
-   // Insert version number into the database
-   ret = db->put(db, NULL, &key, &data, DB_NOOVERWRITE);
-   if ((ret != 0) && (ret != DB_KEYEXIST))
-   {
-      db->err(db, ret, "DB->put");
-      exit(EXIT_FAILURE);
-   }
-
-   // Sync to disk
-   if ((ret = db->sync(db, 0)) != 0)
-   {
-      db->err(db, ret, "DB->sync");
-      exit(EXIT_FAILURE);
-   }
-
-   return ret;
 }

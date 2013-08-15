@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <vector>
-#include "../db_utils/api.h"
+#include "../../common/misc/db_utils.h"
 #include "Type.h"
 
 namespace dsent_contrib

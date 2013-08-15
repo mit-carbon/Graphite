@@ -5,8 +5,7 @@ CLEAN=$(findstring clean,$(MAKECMDGOALS))
 CARBON_LIB = $(SIM_ROOT)/lib/libcarbon_sim.a
 DSENT_LIB = $(SIM_ROOT)/contrib/dsent/libdsent_contrib.a
 MCPAT_LIB = $(SIM_ROOT)/contrib/mcpat/libmcpat.a
-DB_UTILS_LIB = $(SIM_ROOT)/contrib/db_utils/libdb_utils.a
-CONTRIB_LIBS = $(DSENT_LIB) $(MCPAT_LIB) $(DB_UTILS_LIB)
+CONTRIB_LIBS = $(DSENT_LIB) $(MCPAT_LIB)
 PIN_SIM_LIB = $(SIM_ROOT)/lib/pin_sim.so
 
 all: $(CARBON_LIB) $(CONTRIB_LIBS) $(PIN_SIM_LIB)

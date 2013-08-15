@@ -45,7 +45,7 @@
 #include "nuca.h"
 #include "crossbar.h"
 #include "arbiter.h"
-#include "../../db_utils/api.h"
+#include "../../../common/misc/db_utils.h"
 
 using namespace std;
 

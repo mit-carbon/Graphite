@@ -10,12 +10,8 @@ $(DSENT_LIB):
 $(MCPAT_LIB):
 	$(MAKE) -C $(SIM_ROOT)/contrib/mcpat
 
-$(DB_UTILS_LIB):
-	$(MAKE) -C $(SIM_ROOT)/contrib/db_utils
-
 ifneq ($(CLEAN),)
 clean:
 	make -C $(SIM_ROOT)/contrib/dsent clean
 	make -C $(SIM_ROOT)/contrib/mcpat clean
-	make -C $(SIM_ROOT)/contrib/db_utils clean
 endif

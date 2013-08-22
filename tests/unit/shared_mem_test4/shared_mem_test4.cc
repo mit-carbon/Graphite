@@ -56,15 +56,15 @@ void* thread_func(void*)
    {
       if (core->getTile()->getId() == 0)
       {
-         pair<UInt32,UInt64> ret = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &i, sizeof(i));
-         LOG_PRINT("Tile(%i): Access Time(%llu)", core->getTile()->getId(), ret.second);
+         pair<UInt32,Time> ret = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE, address, (Byte*) &i, sizeof(i));
+         LOG_PRINT("Tile(%i): Access Time(%llu ns)", core->getTile()->getId(), ret.second.toNanosec());
       }
       
       CarbonBarrierWait(&barrier);
 
       int val;
-      pair<UInt32,UInt64> ret = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
-      LOG_PRINT("Core(%i): Access Time(%llu)", core->getTile()->getId(), ret.second);
+      pair<UInt32,Time> ret = core->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, address, (Byte*) &val, sizeof(val));
+      LOG_PRINT("Core(%i): Access Time(%llu ns)", core->getTile()->getId(), ret.second.toNanosec());
       if (val != i)
       {
          fprintf(stderr, "shared_mem_test4 (FAILURE): Core(%i), Expected(%i), Got(%i)\n",

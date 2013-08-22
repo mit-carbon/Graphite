@@ -10,10 +10,9 @@ TEST_UNIT_LIST = spawn_unit_test spawn_join_unit_test dynamic_threads_unit_test 
 	dynamic_instruction_unit_test
 SHARED_MEM_UNIT_LIST = shared_mem_basic_unit_test shared_mem_test1_unit_test \
 							  shared_mem_test2_unit_test shared_mem_test3_unit_test \
-							  shared_mem_test4_unit_test shared_mem_test5_unit_test \
-							  shared_mem_test6_unit_test
+							  shared_mem_test4_unit_test
 
-regress_unit: $(TEST_UNIT_LIST)
+regress_unit: $(TEST_UNIT_LIST) $(SHARED_MEM_UNIT_LIST)
 	
 regress_shared_mem: $(SHARED_MEM_UNIT_LIST)
 

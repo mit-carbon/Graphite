@@ -9,10 +9,10 @@ public:
    ShmemPerfModel();
    ~ShmemPerfModel();
 
-   void setCurrTime(Time time);
+   void setCurrTime(const Time& time);
    Time getCurrTime();
-   void incrCurrTime(Time time);
-   void updateCurrTime(Time time);
+   void incrCurrTime(const Time& time);
+   void updateCurrTime(const Time& time);
 
    void enable()     { _enabled = true;  }
    void disable()    { _enabled = false; }

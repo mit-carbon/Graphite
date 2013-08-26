@@ -15,9 +15,9 @@ ShmemPerfModel::~ShmemPerfModel()
 
 
 void 
-ShmemPerfModel::setCurrTime(Time time)
+ShmemPerfModel::setCurrTime(const Time& time)
 {
-   LOG_PRINT("setCurrTime: time(%llu ps)", time.getTime());
+   LOG_PRINT("setCurrTime: time(%llu ns)", time.toNanosec());
    _curr_time = time;
 }
 
@@ -28,18 +28,21 @@ ShmemPerfModel::getCurrTime()
 }
 
 void
-ShmemPerfModel::updateCurrTime(Time time)
+ShmemPerfModel::updateCurrTime(const Time& time)
 {
-   LOG_PRINT("updateCurrTime: time(%llu ps)", time.getTime());
+   LOG_PRINT("updateCurrTime: time(%llu ns)", time.toNanosec());
    if (_curr_time < time)
       _curr_time = time;
 }
 
 void
-ShmemPerfModel::incrCurrTime(Time time)
+ShmemPerfModel::incrCurrTime(const Time& time)
 {
    if (_enabled)
+   {
+      LOG_PRINT("incrCurrTime: time(%llu ns)", time.toNanosec());
       _curr_time += time;
+   }
 }
 
 

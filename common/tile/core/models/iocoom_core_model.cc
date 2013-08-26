@@ -80,12 +80,14 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // abort further processing (via AbortInstructionException)
    Time cost = instruction->getCost(this);
 
-   Time one_cycle = Latency(1,m_core->getTile()->getFrequency());
+   Time one_cycle = Latency(1, m_core->getTile()->getFrequency());
 
    // Model Instruction Fetch Stage
    Time instruction_ready = m_curr_time;
    Time instruction_memory_access_latency = modelICache(instruction->getAddress(), instruction->getSize());
-   instruction_ready += (instruction_memory_access_latency - one_cycle);
+   if (instruction_memory_access_latency >= one_cycle)
+      instruction_memory_access_latency -= one_cycle;
+   instruction_ready += instruction_memory_access_latency;
 
    // Model instruction in the following steps:
    // - find when read operations are available

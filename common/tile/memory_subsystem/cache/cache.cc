@@ -285,10 +285,6 @@ Cache::initializeCacheLineStateCounters()
 void
 Cache::initializeDVFS()
 {
-   // Initialize frequency and voltage
-   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
-   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
-
    // Initialize asynchronous boundaries
    if (_name == "L1-I"){
       _module = L1_ICACHE;
@@ -315,6 +311,10 @@ Cache::initializeDVFS()
          _asynchronous_map[DIRECTORY] = Time(0);
       }
    }
+
+   // Initialize frequency and voltage
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
 }
 
 

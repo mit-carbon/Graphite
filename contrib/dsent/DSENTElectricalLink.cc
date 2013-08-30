@@ -36,7 +36,7 @@ namespace dsent_contrib
 
         // Get dynamic_energy / static_power
         UnstructuredBuffer output;
-        if (DB_NOTFOUND == database->get(database, NULL, &key, &data, 0))
+        if (DBUtils::getRecord(database, key, data) == DB_NOTFOUND)
         {
             init(frequency_, voltage_, link_len_, flit_width_, dsent_interface_);
            
@@ -46,10 +46,9 @@ namespace dsent_contrib
             data.size = output.size();
             
             // Write in database
-            database->put(database, NULL, &key, &data, DB_NOOVERWRITE);
-            database->sync(database, 0);
+            DBUtils::putRecord(database, key, data);
         }
-        else // Key exists
+        else // (DBUtils::getRecord(database, key, data) == 0)
         {
             // Read from database
             output << make_pair(data.data, data.size);

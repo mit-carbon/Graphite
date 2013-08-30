@@ -34,6 +34,7 @@ def spawn_job(proc_num, command, graphite_home):
     # Set LD_LIBRARY_PATH using PIN_HOME from Makefile.config
     os.environ['LD_LIBRARY_PATH'] =  "%s/intel64/runtime" % get_pin_home(graphite_home)
     os.environ['CARBON_PROCESS_INDEX'] = "%d" % (proc_num)
+    os.environ['GRAPHITE_HOME'] = graphite_home
     proc = subprocess.Popen(command, shell=True, preexec_fn=os.setsid, env=os.environ)
     return proc
 

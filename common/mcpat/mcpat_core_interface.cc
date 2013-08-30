@@ -1178,7 +1178,7 @@ void McPATCoreInterface::fillCoreStatsIntoXML()
    _xml->sys.core[0].committed_int_instructions       = _committed_int_instructions       - _prev_committed_int_instructions;
    _xml->sys.core[0].committed_fp_instructions        = _committed_fp_instructions        - _prev_committed_fp_instructions;
    // |---- Pipeline duty cycle
-   if (_total_cycles > 0)
+   if ((_total_cycles-_prev_cycles) > 0)
       _xml->sys.core[0].pipeline_duty_cycle           = (_total_instructions - _prev_instructions) / (_total_cycles - _prev_cycles);
    // |---- Cycle Counters
    //cout << "|---- Cycle Counters" << endl;

@@ -1,6 +1,6 @@
 TARGET = libmcpat.a
-SHELL = /bin/sh
-.PHONY: all depend clean
+SHELL = /bin/bash
+.PHONY: all clean
 .SUFFIXES: .cc .o
 
 ifndef NTHREADS
@@ -16,7 +16,7 @@ else
 endif
 
 #CXXFLAGS = -Wall -Wno-unknown-pragmas -Winline $(DBG) $(OPT) 
-CXXFLAGS = -Wno-unknown-pragmas $(DBG) $(OPT) 
+CXXFLAGS = -Wall -Wno-unknown-pragmas $(DBG) $(OPT)
 CXX = g++ -fPIC
 CC  = gcc -fPIC
 
@@ -60,13 +60,14 @@ SRCS  = \
 OBJS = $(patsubst %.cc,obj_$(TAG)/%.o,$(SRCS))
 
 all: obj_$(TAG)/$(TARGET)
+	@echo $(OBJS)
 	cp -f obj_$(TAG)/$(TARGET) $(TARGET)
 
-obj_$(TAG)/$(TARGET) : $(OBJS)
+obj_$(TAG)/$(TARGET): $(OBJS)
 	ar rcs $@ $^
 
-obj_$(TAG)/%.o : %.cc
+obj_$(TAG)/%.o: %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	$(RM) *.o $(TARGET)
+	$(RM) $(OBJS) obj_$(TAG)/$(TARGET) $(TARGET)

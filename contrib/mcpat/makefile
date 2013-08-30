@@ -1,6 +1,6 @@
 TAR = mcpat
 
-.PHONY: dbg opt depend clean clean_dbg clean_opt
+.PHONY: dbg opt clean clean_dbg clean_opt
 
 all: opt
 

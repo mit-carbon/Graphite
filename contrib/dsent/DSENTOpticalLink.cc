@@ -52,7 +52,7 @@ namespace dsent_contrib
 
         // Get dynamic_energy / static_power
         UnstructuredBuffer output;
-        if (DB_NOTFOUND == database->get(database, NULL, &key, &data, 0))
+        if (DBUtils::getRecord(database, key, data) == DB_NOTFOUND)
         {
             // Power of 2 serdes ratio check
             unsigned int serdes_ratio = (int) (link_data_rate_ / core_data_rate_);
@@ -73,10 +73,9 @@ namespace dsent_contrib
             data.size = output.size();
 
             // Write in database
-            database->put(database, NULL, &key, &data, DB_NOOVERWRITE);
-            database->sync(database, 0);
+            DBUtils::putRecord(database, key, data);
         }
-        else // Key exists
+        else // (DBUtils::getRecord(database, key, data) == 0)
         {
             // Read from database
             output << make_pair(data.data, data.size);

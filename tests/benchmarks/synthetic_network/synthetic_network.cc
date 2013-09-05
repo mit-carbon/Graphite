@@ -54,7 +54,7 @@ void tornadoTrafficGenerator(tile_id_t tile_id, vector<tile_id_t>& send_vec, vec
 void nearestNeighborTrafficGenerator(tile_id_t tile_id, vector<tile_id_t>& send_vec, vector<tile_id_t>& receive_vec);
 
 bool canSendPacket(double offered_load, RandNum& rand_num);
-void synchronize(UInt64 time, Tile* tile);
+void synchronize(Time time, Tile* tile);
 void printHelpMessage();
 NetworkTrafficType parseTrafficPattern(string traffic_pattern);
 
@@ -194,9 +194,9 @@ void* sendNetworkTraffic(void*)
    UInt64 outstanding_window_size = 1000;
    RandNum rand_num(0,1);
 
-   for (UInt64 time = 0, total_packets_sent = 0, total_packets_received = 0; 
-         (total_packets_sent < _total_packets) || (total_packets_received < _total_packets);
-         time ++)
+   Time time(0);
+   for (UInt64 total_packets_sent = 0, total_packets_received = 0; 
+         (total_packets_sent < _total_packets) || (total_packets_received < _total_packets); )
    {
       if ((total_packets_sent < _total_packets) && (canSendPacket(_offered_load, rand_num)))
       {
@@ -223,6 +223,9 @@ void* sendNetworkTraffic(void*)
          delete [] (Byte*) recv_net_packet.data;
          total_packets_received ++;
       }
+
+      Time ONE_CYCLE = Latency(1, tile->getFrequency());
+      time = time + ONE_CYCLE;
    }
 
    // Wait for everyone to finish
@@ -235,7 +238,7 @@ bool canSendPacket(double offered_load, RandNum& rand_num)
    return (rand_num.next() < offered_load); 
 }
 
-void synchronize(UInt64 packet_injection_time, Tile* tile)
+void synchronize(Time packet_injection_time, Tile* tile)
 {
    ClockSkewMinimizationClient* clock_skew_client = tile->getCore()->getClockSkewMinimizationClient();
 

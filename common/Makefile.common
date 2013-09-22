@@ -63,4 +63,4 @@ CXXFLAGS += -c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
 	$(CXX) $(CXXFLAGS) -o $@ $<
 	
 %.o : %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<

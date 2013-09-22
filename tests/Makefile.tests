@@ -76,8 +76,8 @@ all: $(TARGET)
 	$(RUN)
 
 # Compiler flags
-LD_FLAGS = -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join
-LD_LIBS = -pthread
+LD_FLAGS += -static -u CarbonStartSim -u CarbonStopSim
+LD_LIBS += -pthread
 
 OBJECTS ?= $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 

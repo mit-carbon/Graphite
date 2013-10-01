@@ -74,7 +74,7 @@ PIN_LOCK rtn_map_lock;
 
 void printRtn (ADDRINT rtn_addr, bool enter)
 {
-   GetLock (&rtn_map_lock, 1);
+   PIN_GetLock (&rtn_map_lock, 1);
    map<ADDRINT, string>::iterator it = rtn_map.find (rtn_addr);
 
    string point = enter ? "Enter" : "Exit";
@@ -87,7 +87,7 @@ void printRtn (ADDRINT rtn_addr, bool enter)
       LOG_PRINT ("Stack trace : %s UNKNOWN", point.c_str());
    }
       
-   ReleaseLock (&rtn_map_lock);
+   PIN_ReleaseLock (&rtn_map_lock);
 }
 
 VOID printInsInfo(CONTEXT* ctxt)
@@ -114,11 +114,11 @@ void routineCallback(RTN rtn, void *v)
    
       ADDRINT rtn_addr = RTN_Address (rtn);
    
-      GetLock (&rtn_map_lock, 1);
+      PIN_GetLock (&rtn_map_lock, 1);
    
       rtn_map.insert (make_pair (rtn_addr, rtn_name));
 
-      ReleaseLock (&rtn_map_lock);
+      PIN_ReleaseLock (&rtn_map_lock);
    
       RTN_InsertCall (rtn, IPOINT_BEFORE,
                       AFUNPTR (printRtn),
@@ -227,7 +227,7 @@ VOID instructionCallback(INS ins, void *v)
 // syscall model wrappers
 void initializeSyscallModeling()
 {
-   InitLock(&clone_memory_update_lock);
+   PIN_InitLock(&clone_memory_update_lock);
 }
 
 void ApplicationStart()
@@ -363,8 +363,8 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
 
          // Wait to make sure that the spawner has written stuff back to memory
          // FIXME: What is this for(?) This seems arbitrary
-         GetLock (&clone_memory_update_lock, 2);
-         ReleaseLock (&clone_memory_update_lock);
+         PIN_GetLock (&clone_memory_update_lock, 2);
+         PIN_ReleaseLock (&clone_memory_update_lock);
       }
    }
 }
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
 {
    // ---------------------------------------------------------------
    // FIXME: 
-   InitLock (&rtn_map_lock);
+   PIN_InitLock (&rtn_map_lock);
    // ---------------------------------------------------------------
 
    // Global initialization

@@ -26,6 +26,10 @@ SIM_ROOT ?= $(CURDIR)/../../..
 # Run options
 include $(SIM_ROOT)/Makefile.config
 
+# Debug Graphite or the application or nothing
+# Set to 'graphite' for debugging Graphite, 'app' for debugging the application, 'none' for debugging nothing
+DEBUG ?= none
+
 # Set to 'build' to just build the application and not run anything
 BUILD_MODE ?=
 # Set to 'pin' to use Pin while running the application, '' for just running the application standalone
@@ -52,12 +56,17 @@ OUTPUT_DIR ?= $(shell date +%Y-%m-%d_%H-%M-%S)
 
 VALGRIND = # valgrind --leak-check=yes
 
+ifeq ($(DEBUG),graphite)
+	PIN_DEBUG_FLAGS = -pause_tool 10
+else
+ifeq ($(DEBUG),app)
+	PIN_DEBUG_FLAGS = -appdebug
+endif
+endif
+
 PIN_BIN = $(PIN_HOME)/intel64/bin/pinbin
 PIN_TOOL = $(SIM_ROOT)/lib/pin_sim
-
-# PIN_RUN = $(PIN_BIN) -pause_tool 10 -tool_exit_timeout 1 -mt -t $(PIN_TOOL)
-# PIN_RUN = $(PIN_BIN) -appdebug -tool_exit_timeout 1 -mt -t $(PIN_TOOL)
-PIN_RUN = $(PIN_BIN) -tool_exit_timeout 1 -mt -t $(PIN_TOOL)
+PIN_RUN = $(PIN_BIN) $(PIN_DEBUG_FLAGS) -tool_exit_timeout 1 -mt -t $(PIN_TOOL)
 
 CONFIG_FILE_ABS_PATH := $(SIM_ROOT)/$(CONFIG_FILE)
 OUTPUT_DIR_ABS_PATH := $(SIM_ROOT)/results/$(OUTPUT_DIR)

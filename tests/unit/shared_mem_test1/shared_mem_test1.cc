@@ -16,7 +16,7 @@ int main (int argc, char *argv[])
    // Enable Performance Models
    Simulator::enablePerformanceModelsInCurrentProcess();
 
-   UInt32 address = 0x1000;
+   IntPtr address = (IntPtr) 0x1000;
 
    // 1) Get a tile object
    Core* core_0 = Sim()->getTileManager()->getTileFromID(0)->getCore();

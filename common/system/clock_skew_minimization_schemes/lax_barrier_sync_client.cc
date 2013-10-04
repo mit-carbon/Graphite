@@ -10,8 +10,6 @@
 #include "network.h"
 #include "core.h"
 #include "core_model.h"
-#include "clock_converter.h"
-#include "fxsupport.h"
 
 LaxBarrierSyncClient::LaxBarrierSyncClient(Core* core):
    m_core(core)
@@ -35,9 +33,6 @@ LaxBarrierSyncClient::synchronize(Time time)
 {
    UnstructuredBuffer m_send_buff;
    UnstructuredBuffer m_recv_buff;
-
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
 
    UInt64 curr_time_ns = time.toNanosec();
    if (curr_time_ns == 0)

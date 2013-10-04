@@ -16,8 +16,6 @@
 #include "core_model.h"
 #include "thread.h"
 #include "packetize.h"
-#include "clock_converter.h"
-#include "fxsupport.h"
 
 ThreadManager::ThreadManager(TileManager *tile_manager)
    : m_thread_spawn_sem(0)
@@ -102,9 +100,6 @@ ThreadManager::~ThreadManager()
 
 void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 {
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
-   
    LOG_PRINT("onThreadStart(Core: (%i,%i) Thread: %i tid: %i)",
          req->destination.tile_id, req->destination.core_type, req->destination_tidx, req->destination_tid);
 
@@ -231,9 +226,6 @@ void ThreadManager::masterOnThreadExit(tile_id_t tile_id, UInt32 core_type, SInt
 
 SInt32 ThreadManager::spawnThread(tile_id_t dest_tile_id, thread_func_t func, void *arg)
 {
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
-
    // step 1
    LOG_PRINT("(1) spawnThread with func: %p and arg: %p", func, arg);
 

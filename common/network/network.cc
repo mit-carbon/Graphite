@@ -6,8 +6,6 @@
 #include "memory_manager.h"
 #include "simulator.h"
 #include "tile_manager.h"
-#include "clock_converter.h"
-#include "fxsupport.h"
 #include "network_model.h"
 #include "core_model.h"
 #include "statistics_manager.h"
@@ -176,9 +174,6 @@ NetworkModel* Network::getNetworkModelFromPacketType(PacketType packet_type)
 SInt32 Network::netSend(NetPacket& packet)
 {
    // Interface for sending packets on a network
-
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
 
    NetworkModel* model = getNetworkModelFromPacketType(packet.type);
 

@@ -1,7 +1,3 @@
-/*****************************************************************************
- * Tile Energy Monitor
- ***************************************************************************/
-
 #include "tile.h"
 #include "network.h"
 #include "network_model.h"
@@ -11,7 +7,6 @@
 #include "simulator.h"
 #include "log.h"
 #include "tile_energy_monitor.h"
-#include "clock_converter.h"
 #include "core_model.h"
 #include <cmath>
 #include <stdio.h>

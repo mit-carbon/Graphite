@@ -1,7 +1,6 @@
 #include "l1_cache_cntlr.h"
 #include "memory_manager.h"
 #include "config.h"
-#include "clock_converter.h"
 #include "log.h"
 
 namespace PrL1ShL2MSI

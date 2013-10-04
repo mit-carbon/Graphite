@@ -1,4 +1,3 @@
-
 # Define the directories that will be compiled
 DIRS_TO_COMPILE := libutil \
                    util tech io \
@@ -51,4 +50,3 @@ object: $(OBJS)
 .PHONY: clean
 clean:
 	-$(RM) $(OBJS) $(TARGET)
-

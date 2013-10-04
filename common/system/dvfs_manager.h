@@ -20,7 +20,7 @@ class DVFSManager
 {
 public:
    // DVFS Levels type
-   typedef list<pair<volatile double,volatile double> > DVFSLevels;
+   typedef list<pair<double, double> > DVFSLevels;
 
    // asynchronous map type
    typedef map<module_t, Time> AsynchronousMap;
@@ -37,8 +37,8 @@ public:
    void doGetDVFS(module_t module_type, core_id_t requester);
    void doSetDVFS(int module_mask, double frequency, voltage_option_t voltage_flag, const Time& curr_time, core_id_t requester);
 
-   static int getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency);
-   static int getInitialFrequencyAndVoltage(module_t module, volatile double &frequency, volatile double &voltage);
+   static int getVoltage(double &voltage, voltage_option_t voltage_flag, double frequency);
+   static int getInitialFrequencyAndVoltage(module_t module, double &frequency, double &voltage);
 
    // Get tile energy
    void getTileEnergy(tile_id_t tile_id, double *energy);
@@ -78,7 +78,7 @@ private:
    typedef map<module_t, pair<module_t, double> > DomainType;
    // Voltage, Frequency Multiplier, Domain Map
    static DVFSLevels _dvfs_levels;
-   static volatile double _max_frequency;
+   static double _max_frequency;
    static DomainType _dvfs_domain_map;
    Tile* _tile;
    

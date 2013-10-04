@@ -68,13 +68,13 @@ num_cores = options.num_cores
 target_instructions = sum(rowSearch("Core Summary", "Total Instructions"))
 
 # Completion Time - In nanoseconds
-target_time = rowSearch("Core Summary", "Completion Time \(in ns\)")[0]
+target_time = rowSearch("Core Summary", "Completion Time \(in nanoseconds\)")[0]
 
 # Host Time
-host_time = getTime("shutdown time")
-host_initialization_time = getTime("start time")
-host_working_time = getTime("stop time") - getTime("start time")
-host_shutdown_time = getTime("shutdown time") - getTime("stop time")
+host_time = getTime("Shutdown Time \(in microseconds\)")
+host_initialization_time = getTime("Start Time \(in microseconds\)")
+host_working_time = getTime("Stop Time \(in microseconds\)") - getTime("Start Time \(in microseconds\)")
+host_shutdown_time = getTime("Shutdown Time \(in microseconds\)") - getTime("Stop Time \(in microseconds\)")
 
 # Write event counters to a file
 stats_file = open(options.stats_file, 'w')

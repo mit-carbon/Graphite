@@ -23,10 +23,10 @@ public:
    
 private:
    // DSENT model for the datapath link
-   map<volatile double, dsent_contrib::DSENTOpticalLink*> _dsent_data_link_map;
+   map<double, dsent_contrib::DSENTOpticalLink*> _dsent_data_link_map;
    dsent_contrib::DSENTOpticalLink* _dsent_data_link;
    // DSENT model for the selector link
-   map<volatile double, dsent_contrib::DSENTOpticalLink*> _dsent_select_link_map;
+   map<double, dsent_contrib::DSENTOpticalLink*> _dsent_select_link_map;
    dsent_contrib::DSENTOpticalLink* _dsent_select_link;
    
    // Has a select network

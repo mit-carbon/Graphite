@@ -38,15 +38,15 @@ private:
    UInt32 _num_input_ports;
    UInt32 _num_output_ports;
 
-   map<volatile double, dsent_contrib::DSENTRouter*> _dsent_router_map;
+   map<double, dsent_contrib::DSENTRouter*> _dsent_router_map;
    dsent_contrib::DSENTRouter* _dsent_router;
 
    // Energy counters
-   volatile double _total_dynamic_energy_buffer;
-   volatile double _total_dynamic_energy_crossbar;
-   volatile double _total_dynamic_energy_switch_allocator;
-   volatile double _total_dynamic_energy_clock;
-   volatile double _total_static_energy;
+   double _total_dynamic_energy_buffer;
+   double _total_dynamic_energy_crossbar;
+   double _total_dynamic_energy_switch_allocator;
+   double _total_dynamic_energy_clock;
+   double _total_static_energy;
    // Last energy compute time
    Time _last_energy_compute_time;
 

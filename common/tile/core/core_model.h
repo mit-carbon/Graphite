@@ -96,7 +96,7 @@ private:
    // Pipeline Stall Counters
    void initializePipelineStallCounters();
 
-   volatile double m_average_frequency;
+   double m_average_frequency;
    Time m_total_time;
    Time m_checkpointed_time;
    UInt64 m_total_cycles;

@@ -21,6 +21,6 @@ public:
 
 private:
    // DSENT model for the electrical link
-   map<volatile double, dsent_contrib::DSENTElectricalLink*> _dsent_link_map;
+   map<double, dsent_contrib::DSENTElectricalLink*> _dsent_link_map;
    dsent_contrib::DSENTElectricalLink* _dsent_link;
 };

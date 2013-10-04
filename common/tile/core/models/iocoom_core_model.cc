@@ -7,7 +7,6 @@ using namespace std;
 #include "config.hpp"
 #include "simulator.h"
 #include "branch_predictor.h"
-#include "clock_converter.h"
 #include "tile.h"
 
 IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
@@ -64,15 +63,15 @@ void IOCOOMCoreModel::initializePipelineStallCounters()
 void IOCOOMCoreModel::outputSummary(std::ostream &os, const Time& target_completion_time)
 {
    CoreModel::outputSummary(os, target_completion_time);
-  
-//   os << "    Total Load Buffer Stall Time (in ns): " << m_total_load_buffer_stall_time.toNanosec() << endl;
-//   os << "    Total Store Buffer Stall Time (in ns): " << m_total_store_buffer_stall_time.toNanosec() << endl;
-//   os << "    Total L1-I Cache Stall Time (in ns): " << m_total_l1icache_stall_time.toNanosec() << endl;
-//   os << "    Total Intra Ins L1-D Cache Read Stall Time (in ns): " << m_total_intra_ins_l1dcache_read_stall_time.toNanosec() << endl;
-//   os << "    Total Inter Ins L1-D Cache Read Stall Time (in ns): " << m_total_inter_ins_l1dcache_read_stall_time.toNanosec() << endl;
-//   os << "    Total L1-D Cache Write Stall Time (in ns): " << m_total_l1dcache_write_stall_time.toNanosec() << endl;
-//   os << "    Total Intra Ins Execution Unit Stall Time (in ns): " << m_total_intra_ins_execution_unit_stall_time.toNanosec() << endl;
-//   os << "    Total Inter Ins Execution Unit Stall Time (in ns): " << m_total_inter_ins_execution_unit_stall_time.toNanosec() << endl;
+
+//   os << "    Total Load Buffer Stall Time (in nanoseconds): " << m_total_load_buffer_stall_time.toNanosec() << endl;
+//   os << "    Total Store Buffer Stall Time (in nanoseconds): " << m_total_store_buffer_stall_time.toNanosec() << endl;
+//   os << "    Total L1-I Cache Stall Time (in nanoseconds): " << m_total_l1icache_stall_time.toNanosec() << endl;
+//   os << "    Total Intra Ins L1-D Cache Read Stall Time (in nanoseconds): " << m_total_intra_ins_l1dcache_read_stall_time.toNanosec() << endl;
+//   os << "    Total Inter Ins L1-D Cache Read Stall Time (in nanoseconds): " << m_total_inter_ins_l1dcache_read_stall_time.toNanosec() << endl;
+//   os << "    Total L1-D Cache Write Stall Time (in nanoseconds): " << m_total_l1dcache_write_stall_time.toNanosec() << endl;
+//   os << "    Total Intra Ins Execution Unit Stall Time (in nanoseconds): " << m_total_intra_ins_execution_unit_stall_time.toNanosec() << endl;
+//   os << "    Total Inter Ins Execution Unit Stall Time (in nanoseconds): " << m_total_inter_ins_execution_unit_stall_time.toNanosec() << endl;
 //   os << "    Total Cycle Count: " << m_cycle_count << endl;
 }
 
@@ -82,12 +81,14 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // abort further processing (via AbortInstructionException)
    Time cost = instruction->getCost(this);
 
-   Time one_cycle = Latency(1,m_core->getFrequency());
+   Time one_cycle = Latency(1, m_core->getFrequency());
 
    // Model Instruction Fetch Stage
    Time instruction_ready = m_curr_time;
    Time instruction_memory_access_latency = modelICache(instruction->getAddress(), instruction->getSize());
-   instruction_ready += (instruction_memory_access_latency - one_cycle);
+   if (instruction_memory_access_latency >= one_cycle)
+      instruction_memory_access_latency -= one_cycle;
+   instruction_ready += instruction_memory_access_latency;
 
    // Model instruction in the following steps:
    // - find when read operations are available

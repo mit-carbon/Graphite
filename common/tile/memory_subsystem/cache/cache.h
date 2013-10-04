@@ -149,8 +149,8 @@ private:
    UInt32 _num_sets;
    UInt32 _num_banks;
    UInt32 _log_line_size;
-   volatile double _frequency;
-   volatile double _voltage;
+   double _frequency;
+   double _voltage;
    module_t _module;
 
    // Computing replacement policy and hash function

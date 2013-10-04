@@ -929,7 +929,7 @@ void replacementCarbonGetFrequency(CONTEXT *ctxt)
          CARBON_IARG_END);
 
    double frequency_buf;
-
+   
    Core* core = Sim()->getTileManager()->getCurrentCore();
 
    // read frequency

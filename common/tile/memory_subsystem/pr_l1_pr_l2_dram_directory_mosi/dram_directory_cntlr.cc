@@ -2,7 +2,6 @@
 #include "dram_directory_cntlr.h"
 #include "memory_manager.h"
 #include "core_model.h"
-#include "clock_converter.h"
 #include "utils.h"
 #include "config.h"
 #include "log.h"
@@ -1055,9 +1054,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - UNCACHED State: " << _total_exreq_in_uncached_state << endl;
       out << "    Exclusive Request - Upgrade Reply: " << _total_exreq_with_upgrade_replies << endl;
 
-      out << "    Average Exclusive Request Serialization Time (in ns): "
+      out << "    Average Exclusive Request Serialization Time (in nanoseconds): "
           << ((float) _total_exreq_serialization_time.toNanosec()) / ((float) _total_exreq) << endl;
-      out << "    Average Exclusive Request Processing Time (in ns): "
+      out << "    Average Exclusive Request Processing Time (in nanoseconds): "
           << ((float) _total_exreq_processing_time.toNanosec()) / ((float) _total_exreq) << endl;
    }
    else
@@ -1067,8 +1066,8 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Exclusive Request - UNCACHED State: " << endl;
       out << "    Exclusive Request - Upgrade Reply: " << endl;
 
-      out << "    Average Exclusive Request Serialization Time (in ns): " << endl;
-      out << "    Average Exclusive Request Processing Time (in ns): " << endl;
+      out << "    Average Exclusive Request Serialization Time (in nanoseconds): " << endl;
+      out << "    Average Exclusive Request Processing Time (in nanoseconds): " << endl;
    }
 
    if (_total_shreq > 0)
@@ -1077,9 +1076,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - SHARED State: " << _total_shreq_in_shared_state << endl;
       out << "    Shared Request - UNCACHED State: " << _total_shreq_in_uncached_state << endl;
 
-      out << "    Average Shared Request Serialization Time (in ns): "
+      out << "    Average Shared Request Serialization Time (in nanoseconds): "
           <<  ((float) _total_shreq_serialization_time.toNanosec()) / ((float) _total_shreq) << endl;
-      out << "    Average Shared Request Processing Time (in ns): "
+      out << "    Average Shared Request Processing Time (in nanoseconds): "
           << ((float) _total_shreq_processing_time.toNanosec()) / ((float) _total_shreq) << endl;
    }
    else
@@ -1088,8 +1087,8 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Shared Request - SHARED State: " << endl;
       out << "    Shared Request - UNCACHED State: " << endl;
 
-      out << "    Average Shared Request Serialization Time (in ns): " << endl;
-      out << "    Average Shared Request Processing Time (in ns): " << endl;
+      out << "    Average Shared Request Serialization Time (in nanoseconds): " << endl;
+      out << "    Average Shared Request Processing Time (in nanoseconds): " << endl;
    }
 
    if (_total_nullifyreq > 0)
@@ -1098,9 +1097,9 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - SHARED State: " << _total_nullifyreq_in_shared_state << endl;
       out << "    Nullify Request - UNCACHED State: " << _total_nullifyreq_in_uncached_state << endl;
 
-      out << "    Average Nullify Request Serialization Time (in ns): "
+      out << "    Average Nullify Request Serialization Time (in nanoseconds): "
           <<  ((float)_total_nullifyreq_serialization_time.toNanosec()) / ((float) _total_nullifyreq) << endl;
-      out << "    Average Nullify Request Processing Time (in ns): "
+      out << "    Average Nullify Request Processing Time (in nanoseconds): "
           <<  ((float)_total_nullifyreq_processing_time.toNanosec()) / ((float) _total_nullifyreq) << endl;
    }
    else
@@ -1109,8 +1108,8 @@ DramDirectoryCntlr::outputSummary(ostream& out)
       out << "    Nullify Request - SHARED State: " << endl;
       out << "    Nullify Request - UNCACHED State: " << endl;
 
-      out << "    Average Nullify Request Serialization Time (in ns): " << endl;
-      out << "    Average Nullify Request Processing Time (in ns): " << endl;
+      out << "    Average Nullify Request Serialization Time (in nanoseconds): " << endl;
+      out << "    Average Nullify Request Processing Time (in nanoseconds): " << endl;
    }
 
    out << "    Total Invalidation Requests - Unicast Mode: " << _total_invalidations_unicast_mode << endl;
@@ -1118,13 +1117,13 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    {
       out << "    Average Sharers Invalidated - Unicast Mode: "
           << ((float) _total_sharers_invalidated_unicast_mode) / ((float) _total_invalidations_unicast_mode) << endl;
-      out << "    Average Invalidation Processing Time - Unicast Mode (in ns): "
+      out << "    Average Invalidation Processing Time - Unicast Mode (in nanoseconds): "
           << ((float) _total_invalidation_processing_time_unicast_mode.toNanosec()) / ((float) _total_invalidations_unicast_mode) << endl;
    }
    else
    {
       out << "    Average Sharers Invalidated - Unicast Mode: " << endl;
-      out << "    Average Invalidation Processing Time - Unicast Mode (in ns): " << endl;
+      out << "    Average Invalidation Processing Time - Unicast Mode (in nanoseconds): " << endl;
    }
 
    out << "    Total Invalidation Requests - Broadcast Mode: " << _total_invalidations_broadcast_mode << endl;
@@ -1132,13 +1131,13 @@ DramDirectoryCntlr::outputSummary(ostream& out)
    {
       out << "    Average Sharers Invalidated - Broadcast Mode: "
          << ((float) _total_sharers_invalidated_broadcast_mode) / ((float)_total_invalidations_broadcast_mode) << endl;
-      out << "    Average Invalidation Processing Time - Broadcast Mode (in ns): "
+      out << "    Average Invalidation Processing Time - Broadcast Mode (in nanoseconds): "
          << ((float)_total_invalidation_processing_time_broadcast_mode.toNanosec()) / ((float) _total_invalidations_broadcast_mode) << endl;
    }
    else
    {
       out << "    Average Sharers Invalidated - Broadcast Mode: " << endl;
-      out << "    Average Invalidation Processing Time - Broadcast Mode (in ns): " << endl;
+      out << "    Average Invalidation Processing Time - Broadcast Mode (in nanoseconds): " << endl;
    }
 }
 
@@ -1156,30 +1155,30 @@ DramDirectoryCntlr::dummyOutputSummary(ostream& out)
    out << "    Exclusive Request - UNCACHED State: " << endl;
    out << "    Exclusive Request - Upgrade Reply: " << endl;
 
-   out << "    Average Exclusive Request Serialization Time (in ns): " << endl;
-   out << "    Average Exclusive Request Processing Time (in ns): " << endl;
+   out << "    Average Exclusive Request Serialization Time (in nanoseconds): " << endl;
+   out << "    Average Exclusive Request Processing Time (in nanoseconds): " << endl;
 
    out << "    Shared Request - MODIFIED State: " << endl;
    out << "    Shared Request - SHARED State: " << endl;
    out << "    Shared Request - UNCACHED State: " << endl;
 
-   out << "    Average Shared Request Serialization Time (in ns): " << endl;
-   out << "    Average Shared Request Processing Time (in ns): " << endl;
+   out << "    Average Shared Request Serialization Time (in nanoseconds): " << endl;
+   out << "    Average Shared Request Processing Time (in nanoseconds): " << endl;
 
    out << "    Nullify Request - MODIFIED State: " << endl;
    out << "    Nullify Request - SHARED State: " << endl;
    out << "    Nullify Request - UNCACHED State: " << endl;
 
-   out << "    Average Nullify Request Serialization Time (in ns): " << endl;
-   out << "    Average Nullify Request Processing Time (in ns): " << endl;
+   out << "    Average Nullify Request Serialization Time (in nanoseconds): " << endl;
+   out << "    Average Nullify Request Processing Time (in nanoseconds): " << endl;
 
    out << "    Total Invalidation Requests - Unicast Mode: " << endl;
    out << "    Average Sharers Invalidated - Unicast Mode: " << endl;
-   out << "    Average Invalidation Processing Time - Unicast Mode (in ns): " << endl;
+   out << "    Average Invalidation Processing Time - Unicast Mode (in nanoseconds): " << endl;
 
    out << "    Total Invalidation Requests - Broadcast Mode: " << endl;
    out << "    Average Sharers Invalidated - Broadcast Mode: " << endl;
-   out << "    Average Invalidation Processing Time - Broadcast Mode (in ns): " << endl;
+   out << "    Average Invalidation Processing Time - Broadcast Mode (in nanoseconds): " << endl;
 }
 
 UInt32

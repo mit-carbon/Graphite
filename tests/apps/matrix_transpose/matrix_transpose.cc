@@ -4,10 +4,10 @@
 #include <string.h>
 #include "carbon_user.h"
 
-volatile SInt64** initial_matrix;
-volatile SInt64** final_matrix;
-SInt32 matrix_size;
-SInt32 num_threads;
+int64_t** initial_matrix;
+int64_t** final_matrix;
+int32_t matrix_size;
+int32_t num_threads;
 
 carbon_barrier_t barrier;
 
@@ -23,18 +23,18 @@ int main(int argc, char *argv[])
    printf("Starting Matrix Transpose: Num Threads(%i), Matrix Size(%i)\n", num_threads, matrix_size);
 
    // Allocate the matrix
-   initial_matrix = (volatile SInt64**) new SInt64*[matrix_size];
-   final_matrix = (volatile SInt64**) new SInt64*[matrix_size];
-   for (SInt32 i = 0; i < matrix_size; i++)
+   initial_matrix = (int64_t**) new int64_t*[matrix_size];
+   final_matrix = (int64_t**) new int64_t*[matrix_size];
+   for (int32_t i = 0; i < matrix_size; i++)
    {
-      initial_matrix[i] = new SInt64[matrix_size];
-      final_matrix[i] = new SInt64[matrix_size];
+      initial_matrix[i] = new int64_t[matrix_size];
+      final_matrix[i] = new int64_t[matrix_size];
    }
 
    // Initialize the matrix
-   for (SInt32 i = 0; i < matrix_size; i++)
-      for (SInt32 j = 0; j < matrix_size; j++)
-         initial_matrix[i][j] = i*j;
+   for (int32_t i = 0; i < matrix_size; i++)
+      for (int32_t j = 0; j < matrix_size; j++)
+         initial_matrix[i][j] = (i+2)*j;
 
    // Initialize barrier
    CarbonBarrierInit(&barrier, num_threads);
@@ -42,52 +42,51 @@ int main(int argc, char *argv[])
    carbon_thread_t tid_list[num_threads-1];
 
    // Spawn the threads
-   for (SInt32 i = 0; i < num_threads-1; i++)
+   for (int32_t i = 0; i < num_threads-1; i++)
       tid_list[i] = CarbonSpawnThread(thread_func, (void*) i);
    thread_func((void*) (num_threads-1));
 
    // Join all the threads
-   for (SInt32 i = 0; i < num_threads-1; i++)
+   for (int32_t i = 0; i < num_threads-1; i++)
       CarbonJoinThread(tid_list[i]);
 
-   CarbonStopSim();
 
-   /*
    printf("Initial Matrix\n");
-   for (SInt32 i = 0; i < matrix_size; i++)
+   for (int32_t i = 0; i < matrix_size; i++)
    {
-      for (SInt32 j = 0; j < matrix_size; j++)
+      for (int32_t j = 0; j < matrix_size; j++)
          printf("%lli\t", (long long int) initial_matrix[i][j]);
       printf("\n");
    }
    
    printf("Final Matrix\n");
-   for (SInt32 i = 0; i < matrix_size; i++)
+   for (int32_t i = 0; i < matrix_size; i++)
    {
-      for (SInt32 j = 0; j < matrix_size; j++)
+      for (int32_t j = 0; j < matrix_size; j++)
          printf("%lli\t", (long long int) final_matrix[i][j]);
       printf("\n");
    }
-   */
    
    printf("Matrix Transpose: Completed Successfully\n");
+   
+   CarbonStopSim();
    return 0;
 }
 
 void* thread_func(void* threadid)
 {
    long tid = (long) threadid;
-   SInt32 num_rows_per_thread = matrix_size / num_threads;
+   int32_t num_rows_per_thread = matrix_size / num_threads;
    
    assert(matrix_size % num_threads == 0);
 
-   SInt64 initial_sum = 0;
-   __attribute((__unused__)) SInt64 junk = 0;
+   int64_t initial_sum = 0;
+   __attribute((__unused__)) int64_t junk = 0;
 
    // Each processor reads certain rows of the initial and final matrices into the local cache
-   for (SInt32 i = (tid * num_rows_per_thread); i < ((tid+1) * num_rows_per_thread); i++)
+   for (int32_t i = (tid * num_rows_per_thread); i < ((tid+1) * num_rows_per_thread); i++)
    {
-      for (SInt32 j = 0; j < matrix_size; j++)
+      for (int32_t j = 0; j < matrix_size; j++)
       {
          initial_sum += initial_matrix[i][j];
          junk += final_matrix[i][j];
@@ -97,9 +96,9 @@ void* thread_func(void* threadid)
    // Invert the matrix
    // Each processor writes certain columns of the matrix
    // Lots of invalidates goes forth
-   for (SInt32 i = 0; i < matrix_size; i++)
+   for (int32_t i = 0; i < matrix_size; i++)
    {
-      for (SInt32 j = (tid * num_rows_per_thread); j < ((tid+1) * num_rows_per_thread); j++)
+      for (int32_t j = (tid * num_rows_per_thread); j < ((tid+1) * num_rows_per_thread); j++)
       {
          final_matrix[i][j] = initial_matrix[j][i];
       }
@@ -107,20 +106,17 @@ void* thread_func(void* threadid)
 
    CarbonBarrierWait(&barrier);
    
-   SInt64 final_sum = 0;
+   int64_t final_sum = 0;
    // Each processor reads certain rows of the matrix again
-   for (SInt32 i = (tid * num_rows_per_thread); i < ((tid+1) * num_rows_per_thread); i++)
+   for (int32_t i = (tid * num_rows_per_thread); i < ((tid+1) * num_rows_per_thread); i++)
    {
-      for (SInt32 j = 0; j < matrix_size; j++)
+      for (int32_t j = 0; j < matrix_size; j++)
       {
-         final_sum += final_matrix[i][j];
+         final_sum += final_matrix[j][i];
       }
    }
 
    assert(initial_sum == final_sum);
-   /*
-   printf("Thread(%i): Initial Sum(%lli), Final Sum(%lli)\n", tid, (long long int) initial_sum, (long long int) final_sum);
-   */
 
    return (void*) NULL;
 }
@@ -128,7 +124,7 @@ void* thread_func(void* threadid)
 void parse_args(int argc, char* argv[])
 {
    assert(argc >= 5);
-   for (SInt32 i = 1; i < 5; i += 2)
+   for (int32_t i = 1; i < 5; i += 2)
    {
       if (strcmp(argv[i], "-t") == 0)
          num_threads = atoi(argv[i+1]);

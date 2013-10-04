@@ -121,7 +121,7 @@ public:
 
 private:
    // McPAT Objects
-   typedef map<volatile double,McPAT::CoreWrapper*> CoreWrapperMap;
+   typedef map<double,McPAT::CoreWrapper*> CoreWrapperMap;
    CoreWrapperMap _core_wrapper_map;
    McPAT::CoreWrapper* _core_wrapper;
    McPAT::ParseXML* _xml;

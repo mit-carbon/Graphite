@@ -2,7 +2,6 @@
 #include "cache.h"
 #include "simulator.h"
 #include "tile_manager.h"
-#include "clock_converter.h"
 #include "utils.h"
 #include "log.h"
 
@@ -57,8 +56,8 @@ MemoryManager::MemoryManager(Tile* tile)
    UInt32 dram_directory_home_lookup_param = 0;
    std::string dram_directory_access_cycles_str;
 
-   volatile float dram_latency = 0.0;
-   volatile float per_dram_controller_bandwidth = 0.0;
+   float dram_latency = 0.0;
+   float per_dram_controller_bandwidth = 0.0;
    bool dram_queue_model_enabled = false;
    std::string dram_queue_model_type;
 

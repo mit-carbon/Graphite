@@ -11,7 +11,6 @@ using namespace std;
 #include "memory_manager.h"
 #include "simulator.h"
 #include "config.h"
-#include "clock_converter.h"
 #include "log.h"
 #include "dvfs_manager.h"
 
@@ -294,21 +293,21 @@ NetworkModel::outputSummary(ostream& out, const Time& target_completion_time)
 
       out << "    Average Packet Latency (in clock cycles): " <<
          ((float) _total_packet_latency.toCycles(_frequency)) / _total_packets_received << endl;
-      out << "    Average Packet Latency (in ns): " <<
+      out << "    Average Packet Latency (in nanoseconds): " <<
          ((float) total_packet_latency_in_ns) / _total_packets_received << endl;
 
       out << "    Average Contention Delay (in clock cycles): " <<
          ((float) _total_contention_delay.toCycles(_frequency)) / _total_packets_received << endl;
-      out << "    Average Contention Delay (in ns): " <<
+      out << "    Average Contention Delay (in nanoseconds): " <<
          ((float) total_contention_delay_in_ns) / _total_packets_received << endl;
    }
    else
    {
       out << "    Average Packet Latency (in clock cycles): 0" << endl;
-      out << "    Average Packet Latency (in ns): 0" << endl;
+      out << "    Average Packet Latency (in nanoseconds): 0" << endl;
       
       out << "    Average Contention Delay (in clock cycles): 0" << endl;
-      out << "    Average Contention Delay (in ns): 0" << endl;
+      out << "    Average Contention Delay (in nanoseconds): 0" << endl;
    }
    
    // Asynchronous communication

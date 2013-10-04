@@ -1,0 +1,46 @@
+commit cf300d4b3dca25d21c7da9c67d2e658ee0baf877
+Author: George Kurian <gkurian@mit.edu>
+Date:   Wed May 22 12:24:50 2013 -0400
+
+    [barrier] Used pthread_barrier implementation in both fluidanimate and streamcluster
+
+diff --git a/pkgs/apps/fluidanimate/src/parsec_barrier.hpp b/pkgs/apps/fluidanimate/src/parsec_barrier.hpp
+index 94b2ca7..ec27321 100644
+--- a/pkgs/apps/fluidanimate/src/parsec_barrier.hpp
++++ b/pkgs/apps/fluidanimate/src/parsec_barrier.hpp
+@@ -20,13 +20,13 @@
+ //use the parsec_barrier* replacement calls without the need to touch the source
+ //code (other than including this header file), but it makes it harder to understand
+ //what is going on
+-#define ENABLE_AUTOMATIC_DROPIN
++// #define ENABLE_AUTOMATIC_DROPIN
+ 
+ //Whether to allow the use of spinning. If enabled then the barrier implementation
+ //will busy-wait on a flag first. After a pre-determined amount of time has passed
+ //without any success it will fall back to waiting on a condition variable. Spinning
+ //will result in unsynchronized memory accesses to the flag.
+-#define ENABLE_SPIN_BARRIER
++// #define ENABLE_SPIN_BARRIER
+ 
+ 
+ 
+diff --git a/pkgs/kernels/streamcluster/src/parsec_barrier.hpp b/pkgs/kernels/streamcluster/src/parsec_barrier.hpp
+index 94b2ca7..ec27321 100644
+--- a/pkgs/kernels/streamcluster/src/parsec_barrier.hpp
++++ b/pkgs/kernels/streamcluster/src/parsec_barrier.hpp
+@@ -20,13 +20,13 @@
+ //use the parsec_barrier* replacement calls without the need to touch the source
+ //code (other than including this header file), but it makes it harder to understand
+ //what is going on
+-#define ENABLE_AUTOMATIC_DROPIN
++// #define ENABLE_AUTOMATIC_DROPIN
+ 
+ //Whether to allow the use of spinning. If enabled then the barrier implementation
+ //will busy-wait on a flag first. After a pre-determined amount of time has passed
+ //without any success it will fall back to waiting on a condition variable. Spinning
+ //will result in unsynchronized memory accesses to the flag.
+-#define ENABLE_SPIN_BARRIER
++// #define ENABLE_SPIN_BARRIER
+ 
+ 
+ 

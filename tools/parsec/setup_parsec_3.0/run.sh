@@ -50,6 +50,19 @@ patch -p1 < setup_parsec_3.0/threads.patch
 echo "[FREQMINE] Applying open file mode patch for freqmine"
 patch -p1 < setup_parsec_3.0/freqmine.patch
 
+# Apply a patch to dedup for compiling correctly on Ubuntu 12.04
+echo "[DEDUP] Apply patch for compiling correctly on Ubuntu 12.04"
+patch -p1 < setup_parsec_3.0/dedup_ubuntu.patch
+
+# Apply a patch for using pthread barrier implementation instead of
+# the parsec barrier implementation for fluidanimate and streamcluster.
+# The parsec barrier implementation only works when the number of target
+# threads is less than or equal to the number of host cores. Else, it leads
+# to an unnecessarily high target completion time because the core clocks
+# in Graphite are not tightly sync'ed
+echo "[BARRIER] Using pthread_barrier instead of parsec barrier for the fluidanimate and streamcluster benchmarks"
+patch -p1 < setup_parsec_3.0/barrier.patch
+
 # Untar the simmedium inputs of PARSEC into benchmark-specific
 # run/ directories. While running the benchmarks with the simulator,
 # untaring inputs is unnecessary.

@@ -4,8 +4,6 @@
 #include "sys/syscall.h"
 #include "transport.h"
 #include "config.h"
-#include "clock_converter.h"
-#include "fxsupport.h"
 
 #include <cmath>
 #include <cstring>
@@ -1012,9 +1010,6 @@ IntPtr SyscallMdl::marshallFutexCall (syscall_args_t &args)
 
    if (Config::getSingleton()->isSimulatingSharedMemory())
    {
-      // Floating Point Save/Restore
-      FloatingPointHandler floating_point_handler;
-
       Core *core = Sim()->getTileManager()->getCurrentCore();
       LOG_ASSERT_ERROR(core, "Core = ((NULL))");
 

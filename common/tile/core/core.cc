@@ -10,7 +10,6 @@
 #include "memory_manager.h"
 #include "pin_memory_manager.h"
 #include "clock_skew_minimization_object.h"
-#include "clock_converter.h"
 #include "config.h"
 #include "log.h"
 #include "dvfs_manager.h"
@@ -291,21 +290,21 @@ Core::outputSummary(ostream& os, const Time& target_completion_time)
    UInt64 total_instruction_memory_access_latency_in_ns = _total_instruction_memory_access_latency.toNanosec();
    UInt64 total_data_memory_access_latency_in_ns = _total_data_memory_access_latency.toNanosec();
    
-   os << "Shared Memory Model summary: " << endl;
+   os << "Shared Memory Model Summary: " << endl;
    os << "    Total Memory Accesses: " << _num_instruction_memory_accesses + _num_data_memory_accesses << endl;
-   os << "    Average Memory Access Latency (in ns): "
+   os << "    Average Memory Access Latency (in nanoseconds): "
       << (1.0 * (total_instruction_memory_access_latency_in_ns + total_data_memory_access_latency_in_ns) /
                 (_num_instruction_memory_accesses + _num_data_memory_accesses))
       << endl;
    
    os << "    Total Instruction Memory Accesses: " << _num_instruction_memory_accesses << endl;
    os << "    Instruction Buffer Hits: " << _instruction_buffer_hits << endl;
-   os << "    Average Instruction Memory Access Latency (in ns): "
+   os << "    Average Instruction Memory Access Latency (in nanoseconds): "
       << 1.0 * total_instruction_memory_access_latency_in_ns / _num_instruction_memory_accesses
       << endl;
    
    os << "    Total Data Memory Accesses: " << _num_data_memory_accesses << endl;
-   os << "    Average Data Memory Access Latency (in ns): "
+   os << "    Average Data Memory Access Latency (in nanoseconds): "
       << 1.0 * total_data_memory_access_latency_in_ns / _num_data_memory_accesses
       << endl;
 }

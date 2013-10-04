@@ -65,7 +65,7 @@ void BranchPredictor::initializeCounters()
 
 void BranchPredictor::outputSummary(std::ostream &os)
 {
-   os << "  Branch predictor stats:" << endl
-      << "    num correct: " << m_correct_predictions << endl
-      << "    num incorrect: " << m_incorrect_predictions << endl;
+   os << "  Branch Predictor Stats:" << endl
+      << "    Num Correct: " << m_correct_predictions << endl
+      << "    Num Incorrect: " << m_incorrect_predictions << endl;
 }

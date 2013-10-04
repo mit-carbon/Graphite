@@ -112,8 +112,8 @@ private:
 
    ShmemPerfModel* getShmemPerfModel();
 
-   volatile double _frequency;
-   volatile double _voltage;
+   double _frequency;
+   double _voltage;
    module_t _module;
    DVFSManager::AsynchronousMap _asynchronous_map;
    ShmemPerfModel* _shmem_perf_model;

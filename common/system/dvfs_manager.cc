@@ -14,7 +14,7 @@ using std::make_pair;
 #include "tile_energy_monitor.h"
 
 DVFSManager::DVFSLevels DVFSManager::_dvfs_levels;
-volatile double DVFSManager::_max_frequency;
+double DVFSManager::_max_frequency;
 DVFSManager::DomainType DVFSManager::_dvfs_domain_map;
 UInt32 DVFSManager::_synchronization_delay_cycles;
 
@@ -401,7 +401,7 @@ UInt32 DVFSManager::getSynchronizationDelay()
 }
 
 int
-DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag, double frequency) 
+DVFSManager::getVoltage(double &voltage, voltage_option_t voltage_flag, double frequency) 
 {
    int rc = 0;
 
@@ -427,7 +427,7 @@ DVFSManager::getVoltage(volatile double &voltage, voltage_option_t voltage_flag,
 }
 
 int
-DVFSManager::getInitialFrequencyAndVoltage(module_t module, volatile double &frequency, volatile double &voltage)
+DVFSManager::getInitialFrequencyAndVoltage(module_t module, double &frequency, double &voltage)
 {
    frequency = _dvfs_domain_map[module].second;
    int rc = DVFSManager::getVoltage(voltage, AUTO, frequency);

@@ -42,7 +42,7 @@ public:
 
 private:
    // McPAT Objects
-   typedef map<volatile double,McPAT::CacheWrapper*> CacheWrapperMap;
+   typedef map<double,McPAT::CacheWrapper*> CacheWrapperMap;
    CacheWrapperMap _cache_wrapper_map;
    McPAT::CacheWrapper* _cache_wrapper;
    McPAT::ParseXML* _xml;

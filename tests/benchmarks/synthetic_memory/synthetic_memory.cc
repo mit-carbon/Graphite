@@ -1,9 +1,14 @@
-#include <stdlib.h>
+#include <cstdlib>
+#include <cstring>
 #include <vector>
 using namespace std;
 
 #include "carbon_user.h"
 #include "tile.h"
+#include "core.h"
+#include "mem_component.h"
+#include "memory_manager.h"
+#include "cache.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "clock_skew_minimization_object.h"
@@ -41,7 +46,7 @@ float m_fraction_read_only_shared_addresses;
 SInt32 m_log_num_shared_addresses;
 SInt32 m_log_cache_block_size;
 
-vector<UInt64> m_core_clock_list;
+vector<Time> m_core_clock_list;
 
 vector<Random> m_random_instruction_type_generator;
 vector<Random> m_random_rd_only_shared_address_generator;
@@ -88,8 +93,7 @@ int main(int argc, char* argv[])
    computeSharedAddressToThreadMapping();
 
    // Enable all the models
-   for (SInt32 i = 0; i < (SInt32) Config::getSingleton()->getTotalTiles(); i++)
-      Sim()->getTileManager()->getTileFromID(i)->enablePerformanceModels();
+   Simulator::enablePerformanceModelsInCurrentProcess();
 
    CarbonBarrierInit(&m_barrier, m_num_threads);
 
@@ -108,7 +112,7 @@ int main(int argc, char* argv[])
    }
 
    // Take the max of all the core clocks
-   UInt64 max_clock = 0;
+   Time max_clock(0);
    for (SInt32 i = 0; i < m_num_threads; i++)
    {
       if (m_core_clock_list[i] > max_clock)
@@ -116,14 +120,13 @@ int main(int argc, char* argv[])
    }
    
    // Disable all the models
-   for (SInt32 i = 0; i < (SInt32) Config::getSingleton()->getTotalTiles(); i++)
-      Sim()->getTileManager()->getTileFromID(i)->disablePerformanceModels();
+   Simulator::disablePerformanceModelsInCurrentProcess();
 
    deInitializeGlobalVariables();
 
    CarbonStopSim();
 
-   printf("Success: Max Tile Clock(%llu)\n", (long long unsigned int) max_clock);
+   printf("Success: Max Tile Clock(%llu ns)\n", (long long unsigned int) max_clock.toNanosec());
 
    // First, determine the mapping of addresses to threads
    return 0;
@@ -152,7 +155,8 @@ void* threadFunc(void*)
       {
       case NON_MEMORY:
          {
-            m_core_clock_list[thread_id] += 1;
+            Time ONE_CYCLE = Latency(1, tile->getFrequency());
+            m_core_clock_list[thread_id] += ONE_CYCLE;
             break;
          }
 
@@ -161,7 +165,7 @@ void* threadFunc(void*)
             if (m_rd_only_shared_address_list[thread_id].size() != 0)
             {
                IntPtr address = getRandomReadOnlySharedAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
+               pair<UInt32, Time> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
                      address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                m_core_clock_list[thread_id] += ret_val.second;
             }
@@ -173,7 +177,7 @@ void* threadFunc(void*)
             if (m_rd_wr_shared_address_list[thread_id].size() != 0)
             {
                IntPtr address = getRandomReadWriteSharedAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
+               pair<UInt32, Time> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ, 
                      address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                m_core_clock_list[thread_id] += ret_val.second;
             }
@@ -185,7 +189,7 @@ void* threadFunc(void*)
             if (m_rd_wr_shared_address_list[thread_id].size() != 0)
             {
                IntPtr address = getRandomReadWriteSharedAddress(thread_id);
-               pair<UInt32, UInt64> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
+               pair<UInt32, Time> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
                      address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
                m_core_clock_list[thread_id] += ret_val.second;
             }
@@ -195,7 +199,7 @@ void* threadFunc(void*)
       case PRIVATE_MEMORY_READ:
          {
             IntPtr address = getPrivateAddress(thread_id);
-            pair<UInt32, UInt64> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ,
+            pair<UInt32, Time> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::READ,
                   address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
             m_core_clock_list[thread_id] += ret_val.second;
             break;
@@ -204,7 +208,7 @@ void* threadFunc(void*)
       case PRIVATE_MEMORY_WRITE:
          {
             IntPtr address = getPrivateAddress(thread_id);
-            pair<UInt32, UInt64> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
+            pair<UInt32, Time> ret_val = tile->getCore()->initiateMemoryAccess(MemComponent::L1_DCACHE, Core::NONE, Core::WRITE,
                   address, (Byte*) &buf, sizeof(buf), true, m_core_clock_list[thread_id]);
             m_core_clock_list[thread_id] += ret_val.second;
             break;
@@ -280,7 +284,7 @@ void initializeGlobalVariables(int argc, char *argv[])
 
    for (SInt32 i = 0; i < m_num_threads; i++)
    {
-      m_core_clock_list[i] = 0;
+      m_core_clock_list[i] = Time(0);
       m_private_address_index[i] = 0;
       m_random_instruction_type_generator[i].seed(i);
       m_random_rd_only_shared_address_generator[i].seed(i);

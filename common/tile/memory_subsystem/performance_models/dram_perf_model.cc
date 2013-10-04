@@ -6,7 +6,6 @@ using namespace std;
 #include "dram_perf_model.h"
 #include "queue_model_history_list.h"
 #include "queue_model_history_tree.h"
-#include "clock_converter.h"
 #include "constants.h"
 
 // Note: Each Dram Controller owns a single DramModel object
@@ -131,11 +130,11 @@ DramPerfModel::disable()
 void
 DramPerfModel::outputSummary(ostream& out)
 {
-   out << "Dram Performance Model summary: " << endl;
+   out << "Dram Performance Model Summary: " << endl;
    out << "    Total Dram Accesses: " << m_num_accesses << endl;
-   out << "    Average Dram Access Latency (in ns): " << 
+   out << "    Average Dram Access Latency (in nanoseconds): " << 
       (float) (m_total_access_latency / m_num_accesses) << endl;
-   out << "    Average Dram Contention Delay (in ns): " << 
+   out << "    Average Dram Contention Delay (in nanoseconds): " << 
       (float) (m_total_queueing_delay / m_num_accesses) << endl;
 
 
@@ -168,10 +167,10 @@ DramPerfModel::outputSummary(ostream& out)
 void
 DramPerfModel::dummyOutputSummary(ostream& out)
 {
-   out << "Dram Performance Model summary: " << endl;
+   out << "Dram Performance Model Summary: " << endl;
    out << "    Total Dram Accesses: " << endl;
-   out << "    Average Dram Access Latency (in ns): " << endl;
-   out << "    Average Dram Contention Delay (in ns): " << endl;
+   out << "    Average Dram Access Latency (in nanoseconds): " << endl;
+   out << "    Average Dram Contention Delay (in nanoseconds): " << endl;
    
    if (Config::getSingleton()->getEnablePowerModeling())
    {

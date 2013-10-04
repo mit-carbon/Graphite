@@ -6,8 +6,6 @@
 #include "network.h"
 #include "core.h"
 #include "core_model.h"
-#include "fxsupport.h"
-#include "clock_converter.h"
 #include "log.h"
 
 UInt64 LaxP2PSyncClient::MAX_TIME = ((UInt64) 1) << 60;
@@ -20,7 +18,7 @@ LaxP2PSyncClient::LaxP2PSyncClient(Core* core):
    _sleep_fraction(0.0)
 {
    LOG_ASSERT_ERROR(Sim()->getConfig()->getApplicationTiles() >= 3, 
-         "Number of Cores must be >= 3 if 'random_pairs' scheme is used");
+         "Number of Cores must be >= 3 if 'lax_p2p' scheme is used");
 
    try
    {
@@ -30,7 +28,7 @@ LaxP2PSyncClient::LaxP2PSyncClient(Core* core):
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Could not read clock_skew_minimization/random_pairs variables from config file");
+      LOG_PRINT_ERROR("Could not read clock_skew_minimization/lax_p2p parameters from config file");
    }
 
    gettimeofday(&_start_wall_clock_time, NULL);
@@ -203,9 +201,6 @@ LaxP2PSyncClient::synchronize(Time time)
    if (! _enabled)
       return;
 
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
-
    if (_core->getState() == Core::WAKING_UP)
       _core->setState(Core::RUNNING);
 
@@ -314,7 +309,7 @@ LaxP2PSyncClient::gotoSleep(const UInt64 sleep_time)
       // elapsed_wall_clock_time - in microseconds
       assert(elapsed_simulated_time != 0);
 
-      volatile float wall_clock_time_per_simulated_cycle = float(elapsed_wall_clock_time) / elapsed_simulated_time;
+      float wall_clock_time_per_simulated_cycle = float(elapsed_wall_clock_time) / elapsed_simulated_time;
       useconds_t sleep_wall_clock_time = (useconds_t) (_sleep_fraction * wall_clock_time_per_simulated_cycle * sleep_time);
       if (sleep_wall_clock_time > 1000000)
       {

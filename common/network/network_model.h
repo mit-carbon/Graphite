@@ -127,9 +127,9 @@ protected:
    };
 
    // Frequency
-   volatile double _frequency;
+   double _frequency;
    // Voltage
-   volatile double _voltage;
+   double _voltage;
    // Flit Width
    SInt32 _flit_width;
    // Has Broadcast Capability
@@ -137,10 +137,10 @@ protected:
    // Tile ID
    tile_id_t _tile_id;
    // Tile Width
-   volatile double _tile_width;
+   double _tile_width;
    // Synchronization delay
    Time _synchronization_delay;
-   //Asynchronous_map
+   // Asynchronous_map
    DVFSManager::AsynchronousMap _asynchronous_map;
    // DVFS module
    module_t _module;

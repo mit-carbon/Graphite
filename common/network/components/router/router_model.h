@@ -48,7 +48,7 @@ public:
 
 private:
    NetworkModel* _model;
-   volatile double _frequency;
+   double _frequency;
    SInt32 _num_input_ports;
    SInt32 _num_output_ports;
    UInt64 _delay;

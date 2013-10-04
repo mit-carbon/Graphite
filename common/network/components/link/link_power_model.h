@@ -16,8 +16,8 @@ public:
    
 protected:
    // Output parameters 
-   volatile double _total_dynamic_energy;
-   volatile double _total_static_energy;
+   double _total_dynamic_energy;
+   double _total_static_energy;
    // Last energy compute time
    Time _last_energy_compute_time;
 };

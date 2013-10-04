@@ -42,7 +42,7 @@ public:
    
    private:
       std::string m_core_type;
-      volatile double m_frequency;
+      double m_frequency;
       std::string m_l1_icache_type;
       std::string m_l1_dcache_type;
       std::string m_l2_cache_type;
@@ -62,7 +62,7 @@ public:
    
    private:
       std::string m_type;
-      volatile double m_frequency;
+      double m_frequency;
    };
 
    enum SimulationMode

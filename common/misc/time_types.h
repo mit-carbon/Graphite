@@ -1,18 +1,13 @@
-#ifndef _TIME_TYPES_H_
-#define _TIME_TYPES_H_
+#pragma once
 
-#include <fixed_types.h>
-#include <log.h>
 #include <cmath>
-
-typedef volatile float Frequency;
-
+#include "fixed_types.h"
+#include "log.h"
 
 class Latency
 {
    public:
-      Latency():_cycles(0), _frequency(0){};
-      Latency(UInt64 cycles, Frequency frequency):_cycles(cycles), _frequency(frequency){};
+      Latency(UInt64 cycles = 0, double frequency = 0):_cycles(cycles), _frequency(frequency){};
       Latency(const Latency& lat):_cycles(lat._cycles),
                                   _frequency(lat._frequency) {};
       ~Latency(){};
@@ -30,8 +25,7 @@ class Latency
 
    private:
       UInt64 _cycles;
-      Frequency _frequency;
-
+      double _frequency;
 };
 
 class Time
@@ -39,14 +33,14 @@ class Time
    public:
       explicit Time(UInt64 picosec=0):_picosec(picosec){}
       Time(const Time& time):_picosec(time._picosec){}
-      Time(const Latency& lat){_picosec = lat.toPicosec();}
+      Time(const Latency& lat): _picosec(lat.toPicosec()){}
       ~Time(){};
-
-      Time operator+(const Time& time) const
-            { return Time(_picosec + time._picosec); }
 
       Time operator+(const Latency& lat) const
             { return Time (_picosec + lat.toPicosec()); }
+
+      Time operator+(const Time& time) const
+            { return Time(_picosec + time._picosec); }
 
       Time operator-(const Time& time) const
             { return Time(_picosec - time._picosec); }
@@ -66,15 +60,19 @@ class Time
       bool operator==(const UInt64& picosec)
             { return _picosec == picosec; } 
 
-      Time operator+=(const Time& time)
-            { _picosec += time._picosec; return *this; }
+      void operator+=(const Time& time)
+            { _picosec += time._picosec; }
+
+      void operator-=(const Time& time)
+            { _picosec -= time._picosec; }
 
       Time operator=(const Time& time)
             { _picosec = time._picosec; return *this; }
 
-      UInt64 toCycles(Frequency frequency) const;
-
+      UInt64 toCycles(double frequency) const;
       UInt64 getTime() const { return _picosec; }
+      
+      UInt64 toPicosec() const { return _picosec; }
       UInt64 toNanosec() const;
       double toSec() const;
 
@@ -106,7 +104,7 @@ inline Latency Latency::operator+=(const Latency& lat)
    return *this;
 }
 
-inline UInt64 Time::toCycles(Frequency frequency) const
+inline UInt64 Time::toCycles(double frequency) const
 {
    UInt64 cycles = (UInt64) ceil(((double) (_picosec) * ((double) frequency)) / double(1.0e3));
 
@@ -122,5 +120,3 @@ inline double Time::toSec() const
 {
    return ((double) _picosec) / double(1.0e12);
 }
-
-#endif

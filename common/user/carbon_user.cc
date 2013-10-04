@@ -7,10 +7,8 @@
 #include "tile_manager.h"
 #include "tile.h"
 #include "core_model.h"
-#include "clock_converter.h"
 #include "config_file.hpp"
 #include "handle_args.h"
-#include "fxsupport.h"
 #include "carbon_user.h"
 #include "thread_support_private.h"
 
@@ -78,9 +76,6 @@ void CarbonStopSim()
 
 UInt64 CarbonGetTime()
 {
-   // Floating Point Save/Restore
-   FloatingPointHandler floating_point_handler;
-
    Core* core = Sim()->getTileManager()->getCurrentCore();
    UInt64 time = core->getModel()->getCurrTime().toNanosec();
 

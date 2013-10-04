@@ -18,7 +18,7 @@ LaxP2PSyncClient::LaxP2PSyncClient(Core* core):
    _sleep_fraction(0.0)
 {
    LOG_ASSERT_ERROR(Sim()->getConfig()->getApplicationTiles() >= 3, 
-         "Number of Cores must be >= 3 if 'random_pairs' scheme is used");
+         "Number of Cores must be >= 3 if 'lax_p2p' scheme is used");
 
    try
    {
@@ -28,7 +28,7 @@ LaxP2PSyncClient::LaxP2PSyncClient(Core* core):
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Could not read clock_skew_minimization/random_pairs variables from config file");
+      LOG_PRINT_ERROR("Could not read clock_skew_minimization/lax_p2p parameters from config file");
    }
 
    gettimeofday(&_start_wall_clock_time, NULL);

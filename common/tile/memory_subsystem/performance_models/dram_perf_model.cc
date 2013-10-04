@@ -130,11 +130,11 @@ DramPerfModel::disable()
 void
 DramPerfModel::outputSummary(ostream& out)
 {
-   out << "Dram Performance Model summary: " << endl;
+   out << "Dram Performance Model Summary: " << endl;
    out << "    Total Dram Accesses: " << m_num_accesses << endl;
-   out << "    Average Dram Access Latency (in ns): " << 
+   out << "    Average Dram Access Latency (in nanoseconds): " << 
       (float) (m_total_access_latency / m_num_accesses) << endl;
-   out << "    Average Dram Contention Delay (in ns): " << 
+   out << "    Average Dram Contention Delay (in nanoseconds): " << 
       (float) (m_total_queueing_delay / m_num_accesses) << endl;
 
 
@@ -167,10 +167,10 @@ DramPerfModel::outputSummary(ostream& out)
 void
 DramPerfModel::dummyOutputSummary(ostream& out)
 {
-   out << "Dram Performance Model summary: " << endl;
+   out << "Dram Performance Model Summary: " << endl;
    out << "    Total Dram Accesses: " << endl;
-   out << "    Average Dram Access Latency (in ns): " << endl;
-   out << "    Average Dram Contention Delay (in ns): " << endl;
+   out << "    Average Dram Access Latency (in nanoseconds): " << endl;
+   out << "    Average Dram Contention Delay (in nanoseconds): " << endl;
    
    bool queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
    std::string queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");

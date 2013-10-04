@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <sstream>
+#include <iomanip>
 
 #include "simulator.h"
 #include "version.h"
@@ -153,12 +154,11 @@ Simulator::~Simulator()
    {
       ofstream os(Config::getSingleton()->getOutputFileName().c_str());
 
-      os << "Graphite " << version  << endl
-         << "" << endl;
-      os << "Simulation timers: " << endl
-         << "start time\t" << (m_start_time - m_boot_time) << endl
-         << "stop time\t" << (m_stop_time - m_boot_time) << endl
-         << "shutdown time\t" << (m_shutdown_time - m_boot_time) << endl;
+      os << "Graphite " << version  << endl << endl;
+      os << "Simulation (Host) Timers: " << endl << left
+         << setw(35) << "Start Time (in microseconds)" << (m_start_time - m_boot_time) << endl
+         << setw(35) << "Stop Time (in microseconds)" << (m_stop_time - m_boot_time) << endl
+         << setw(35) << "Shutdown Time (in microseconds)" << (m_shutdown_time - m_boot_time) << endl;
 
       m_tile_manager->outputSummary(os);
       os.close();

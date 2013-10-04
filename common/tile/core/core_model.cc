@@ -84,15 +84,15 @@ void CoreModel::outputSummary(ostream& os)
 {
    os << "Core Summary:" << endl;
    os << "    Total Instructions: " << m_instruction_count << endl;
-   os << "    Completion Time (in ns): " << m_curr_time.toNanosec() << endl;
+   os << "    Completion Time (in nanoseconds): " << m_curr_time.toNanosec() << endl;
    os << "    Average Frequency (in GHz): " << m_average_frequency << endl;
    
    os << "    Total Synchronization Stalls: " << m_total_sync_instructions << endl;
    os << "    Total Network Recv Stalls: " << m_total_recv_instructions << endl;
-   os << "    Total Memory Stall Time (in ns): " << m_total_memory_stall_time.toNanosec() << endl;
-   os << "    Total Execution Unit Stall Time (in ns): " << m_total_execution_unit_stall_time.toNanosec() << endl;
-   os << "    Total Synchronization Stall Time (in ns): " << m_total_sync_instruction_stall_time.toNanosec() << endl;
-   os << "    Total Network Recv Stall Time (in ns): " << m_total_recv_instruction_stall_time.toNanosec() << endl;
+   os << "    Total Memory Stall Time (in nanoseconds): " << m_total_memory_stall_time.toNanosec() << endl;
+   os << "    Total Execution Unit Stall Time (in nanoseconds): " << m_total_execution_unit_stall_time.toNanosec() << endl;
+   os << "    Total Synchronization Stall Time (in nanoseconds): " << m_total_sync_instruction_stall_time.toNanosec() << endl;
+   os << "    Total Network Recv Stall Time (in nanoseconds): " << m_total_recv_instruction_stall_time.toNanosec() << endl;
 
    // Branch Predictor Summary
    if (m_bp)

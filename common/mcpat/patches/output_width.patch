@@ -1,0 +1,55 @@
+commit 7715bcbe75d788b6ff675644bf1f3b547a7f2808
+Author: George Kurian <gkurian@mit.edu>
+Date:   Mon Dec 17 04:50:05 2012 -0500
+
+    [sharedcache] Adjusted output width to line_sz * 8
+
+diff --git a/sharedcache.cc b/sharedcache.cc
+index 9309296..084c3b9 100644
+--- a/sharedcache.cc
++++ b/sharedcache.cc
+@@ -117,7 +117,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
+   interface_ip.line_sz             = (int)line;
+   interface_ip.assoc               = (int)assoc;
+   interface_ip.nbanks              = (int)banks;
+-  interface_ip.out_w               = interface_ip.line_sz*8/2;
++  interface_ip.out_w               = interface_ip.line_sz*8;
+   interface_ip.access_mode         = 1;
+   interface_ip.throughput          = cachep.throughput;
+   interface_ip.latency             = cachep.latency;
+@@ -157,7 +157,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
+ 	  interface_ip.pure_ram			   = false;
+ 	  interface_ip.pure_cam            = false;
+ 	  interface_ip.nbanks              = 1;
+-	  interface_ip.out_w               = interface_ip.line_sz*8/2;
++	  interface_ip.out_w               = interface_ip.line_sz*8;
+ 	  interface_ip.access_mode         = 0;
+ 	  interface_ip.throughput          = cachep.throughput;//means cycle time
+ 	  interface_ip.latency             = cachep.latency;//means access time
+@@ -182,7 +182,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
+ 	  interface_ip.cache_sz            = data*cachep.fu_size ;
+ 	  interface_ip.assoc               = 0;
+ 	  interface_ip.nbanks              = 1;
+-	  interface_ip.out_w               = interface_ip.line_sz*8/2;
++	  interface_ip.out_w               = interface_ip.line_sz*8;
+ 	  interface_ip.access_mode         = 0;
+ 	  interface_ip.throughput          =  cachep.throughput;
+ 	  interface_ip.latency             =  cachep.latency;
+@@ -206,7 +206,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
+ 	  interface_ip.cache_sz            = cachep.prefetchb_size*interface_ip.line_sz;
+ 	  interface_ip.assoc               = 0;
+ 	  interface_ip.nbanks              = 1;
+-	  interface_ip.out_w               = interface_ip.line_sz*8/2;
++	  interface_ip.out_w               = interface_ip.line_sz*8;
+ 	  interface_ip.access_mode         = 0;
+ 	  interface_ip.throughput          = cachep.throughput;
+ 	  interface_ip.latency             = cachep.latency;
+@@ -230,7 +230,7 @@ SharedCache::SharedCache(ParseXML* XML_interface, int ithCache_, InputParameter*
+ 	  interface_ip.cache_sz            = cachep.wbb_size*interface_ip.line_sz;
+ 	  interface_ip.assoc               = 0;
+ 	  interface_ip.nbanks              = 1;
+-	  interface_ip.out_w               = interface_ip.line_sz*8/2;
++	  interface_ip.out_w               = interface_ip.line_sz*8;
+ 	  interface_ip.access_mode         = 0;
+ 	  interface_ip.throughput          = cachep.throughput;
+ 	  interface_ip.latency             = cachep.latency;

@@ -41,7 +41,7 @@ Network::Network(Tile *tile)
    }
 
    // Shared Memory Shortcut enabled
-   _sharedMemoryShortcutEnabled = Sim()->getCfg()->getBool("general/enable_shared_memory_shortcut_for_network", false);
+   _sharedMemoryShortcutEnabled = Sim()->getCfg()->getBool("network/enable_shared_memory_shortcut", false);
    if (_sharedMemoryShortcutEnabled)
    {
       LOG_ASSERT_ERROR(Config::getSingleton()->getProcessCount() == 1,

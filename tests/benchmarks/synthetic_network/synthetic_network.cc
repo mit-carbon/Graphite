@@ -7,7 +7,7 @@
 #include "core.h"
 #include "network.h"
 #include "network_model.h"
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 #include "carbon_user.h"
 #include "utils.h"
 #include "log.h"
@@ -240,7 +240,7 @@ bool canSendPacket(double offered_load, RandNum& rand_num)
 
 void synchronize(Time packet_injection_time, Tile* tile)
 {
-   ClockSkewMinimizationClient* clock_skew_client = tile->getCore()->getClockSkewMinimizationClient();
+   ClockSkewManagementClient* clock_skew_client = tile->getCore()->getClockSkewManagementClient();
 
    if (clock_skew_client)
       clock_skew_client->synchronize(packet_injection_time);

@@ -7,7 +7,7 @@
 #include "vm_manager.h"
 #include "syscall_server.h"
 #include "sync_server.h"
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 #include "fixed_types.h"
 #include "thread.h"
 
@@ -23,7 +23,7 @@ class MCP : public Runnable
       Boolean finished() { return m_finished; };
 
       VMManager* getVMManager() { return &m_vm_manager; }
-      ClockSkewMinimizationServer* getClockSkewMinimizationServer() { return m_clock_skew_minimization_server; }
+      ClockSkewManagementServer* getClockSkewManagementServer() { return m_clock_skew_management_server; }
 
    private:
       Boolean m_finished;
@@ -36,7 +36,7 @@ class MCP : public Runnable
       VMManager m_vm_manager;
       SyscallServer m_syscall_server;
       SyncServer m_sync_server;
-      ClockSkewMinimizationServer* m_clock_skew_minimization_server;
+      ClockSkewManagementServer* m_clock_skew_management_server;
 };
 
 #endif

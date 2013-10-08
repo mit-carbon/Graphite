@@ -51,8 +51,8 @@ OUTPUT_DIR ?= $(shell date +%Y-%m-%d_%H-%M-%S)
 # ENABLE_SM ?= true
 # Flags to be passed to the application
 # APP_FLAGS ?=
-# Which clock skew minimization scheme to use? Valid values are 'lax', 'lax_p2p' or 'lax_barrier'
-# CLOCK_SKEW_MINIMIZATION_SCHEME ?= lax_barrier
+# Which clock skew management scheme to use? Valid values are 'lax', 'lax_p2p' or 'lax_barrier'
+# CLOCK_SKEW_MANAGEMENT_SCHEME ?= lax_barrier
 
 VALGRIND = # valgrind --leak-check=yes
 
@@ -72,7 +72,7 @@ CONFIG_FILE_ABS_PATH := $(SIM_ROOT)/$(CONFIG_FILE)
 OUTPUT_DIR_ABS_PATH := $(SIM_ROOT)/results/$(OUTPUT_DIR)
 APP_SPECIFIC_CXX_FLAGS ?= 
 
-# Use: $(call sim_flags_fn, $(1-CORES), $(2-PROCS), $(3-ENABLE_SM), $(4-OUTPUT_DIR_ABS_PATH),$(CLOCK_SKEW_MINIMIZATION_SCHEME))
+# Use: $(call sim_flags_fn, $(1-CORES), $(2-PROCS), $(3-ENABLE_SM), $(4-OUTPUT_DIR_ABS_PATH),$(CLOCK_SKEW_MANAGEMENT_SCHEME))
 sim_flags_fn = -c $(CONFIG_FILE_ABS_PATH)
 ifdef CORES
 	sim_flags_fn += --general/total_cores=$(1)
@@ -86,10 +86,10 @@ endif
 ifdef OUTPUT_DIR
 	sim_flags_fn += --general/output_dir=$(4)
 endif
-ifdef CLOCK_SKEW_MINIMIZATION_SCHEME
-	sim_flags_fn += --clock_skew_minimization/scheme=$(5)
+ifdef CLOCK_SKEW_MANAGEMENT_SCHEME
+	sim_flags_fn += --clock_skew_management/scheme=$(5)
 endif
-SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM),$(OUTPUT_DIR_ABS_PATH),$(CLOCK_SKEW_MINIMIZATION_SCHEME))
+SIM_FLAGS ?= $(call sim_flags_fn,$(CORES),$(PROCS),$(ENABLE_SM),$(OUTPUT_DIR_ABS_PATH),$(CLOCK_SKEW_MANAGEMENT_SCHEME))
 
 EXEC ?= $(CURDIR)/$(TARGET) $(APP_FLAGS) # command thats actually executed
 launch_fn = python -u $(SIM_ROOT)/tools/spawn_master.py

@@ -3,14 +3,14 @@
 #include <sys/time.h>
 #include <list>
 
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 #include "tile.h"
 #include "lock.h"
 #include "cond.h"
 #include "random.h"
 #include "fixed_types.h"
 
-class LaxP2PSyncClient : public ClockSkewMinimizationClient
+class LaxP2PSyncClient : public ClockSkewManagementClient
 {
 public:
    class SyncMsg

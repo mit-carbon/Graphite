@@ -9,7 +9,7 @@
 class ThreadManager;
 class Network;
 
-class LaxBarrierSyncServer : public ClockSkewMinimizationServer
+class LaxBarrierSyncServer : public ClockSkewManagementServer
 {
 private:
    Network &m_network;

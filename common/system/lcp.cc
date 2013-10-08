@@ -5,7 +5,7 @@
 #include "thread_manager.h"
 #include "tile_manager.h"
 #include "performance_counter_manager.h"
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 
 #include "log.h"
 
@@ -78,8 +78,8 @@ void LCP::processPacket()
       break;
 
    case LCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
-      assert (Sim()->getClockSkewMinimizationManager());
-      Sim()->getClockSkewMinimizationManager()->processSyncMsg(data);
+      assert (Sim()->getClockSkewManagementManager());
+      Sim()->getClockSkewManagementManager()->processSyncMsg(data);
       break;
 
    default:

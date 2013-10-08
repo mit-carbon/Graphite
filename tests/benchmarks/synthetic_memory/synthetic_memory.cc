@@ -11,7 +11,7 @@ using namespace std;
 #include "cache.h"
 #include "simulator.h"
 #include "tile_manager.h"
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 #include "config.h"
 #include "random.h"
 #include "fixed_types.h"
@@ -222,7 +222,7 @@ void* threadFunc(void*)
       num_instructions_simulated ++;
       
       // Synchronize the clocks
-      ClockSkewMinimizationClient *client = tile->getCore()->getClockSkewMinimizationClient();
+      ClockSkewManagementClient *client = tile->getCore()->getClockSkewManagementClient();
       if (client)
          client->synchronize(m_core_clock_list[thread_id]);
    }

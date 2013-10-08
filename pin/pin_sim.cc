@@ -42,7 +42,7 @@
 #include "vm_manager.h"
 #include "instruction_modeling.h"
 #include "progress_trace.h"
-#include "clock_skew_minimization.h"
+#include "clock_skew_management.h"
 #include "handle_threads.h"
 
 #include "redirect_memory.h"
@@ -182,7 +182,7 @@ VOID instructionCallback(INS ins, void *v)
       // Progress Trace
       addProgressTrace(ins);
       
-      // Clock Skew Minimization
+      // Clock Skew Management
       addPeriodicSync(ins);
       
       // Scheduling

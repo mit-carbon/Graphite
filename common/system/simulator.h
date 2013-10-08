@@ -14,7 +14,7 @@ class ThreadManager;
 class ThreadScheduler;
 class PerformanceCounterManager;
 class SimThreadManager;
-class ClockSkewMinimizationManager;
+class ClockSkewManagementManager;
 class StatisticsManager;
 class StatisticsThread;
 
@@ -38,7 +38,7 @@ public:
    ThreadManager *getThreadManager() { return m_thread_manager; }
    ThreadScheduler *getThreadScheduler() { return m_thread_scheduler; }
    PerformanceCounterManager *getPerformanceCounterManager() { return m_performance_counter_manager; }
-   ClockSkewMinimizationManager *getClockSkewMinimizationManager() { return m_clock_skew_minimization_manager; }
+   ClockSkewManagementManager *getClockSkewManagementManager() { return m_clock_skew_management_manager; }
    StatisticsManager *getStatisticsManager() { return m_statistics_manager; } 
    StatisticsThread *getStatisticsThread() { return m_statistics_thread; } 
    Config *getConfig() { return &m_config; }
@@ -83,7 +83,7 @@ private:
    ThreadScheduler *m_thread_scheduler;
    PerformanceCounterManager *m_performance_counter_manager;
    SimThreadManager *m_sim_thread_manager;
-   ClockSkewMinimizationManager *m_clock_skew_minimization_manager;
+   ClockSkewManagementManager *m_clock_skew_management_manager;
    StatisticsManager *m_statistics_manager;
    StatisticsThread *m_statistics_thread;
 

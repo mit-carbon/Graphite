@@ -14,7 +14,7 @@
 #include "thread_scheduler.h"
 #include "performance_counter_manager.h"
 #include "sim_thread_manager.h"
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 #include "statistics_manager.h"
 #include "statistics_thread.h"
 #include "contrib/dsent/dsent_contrib.h"
@@ -67,7 +67,7 @@ Simulator::Simulator()
    , m_thread_scheduler(NULL)
    , m_performance_counter_manager(NULL)
    , m_sim_thread_manager(NULL)
-   , m_clock_skew_minimization_manager(NULL)
+   , m_clock_skew_management_manager(NULL)
    , m_statistics_manager(NULL)
    , m_statistics_thread(NULL)
    , m_finished(false)
@@ -110,7 +110,7 @@ void Simulator::start()
    m_thread_scheduler = ThreadScheduler::create(m_thread_manager, m_tile_manager);
    m_performance_counter_manager = new PerformanceCounterManager();
    m_sim_thread_manager = new SimThreadManager();
-   m_clock_skew_minimization_manager = ClockSkewMinimizationManager::create(getCfg()->getString("clock_skew_minimization/scheme"));
+   m_clock_skew_management_manager = ClockSkewManagementManager::create(getCfg()->getString("clock_skew_management/scheme"));
    
    // For periodically measuring statistics
    if (m_config_file->getBool("statistics_trace/enabled"))
@@ -183,8 +183,8 @@ Simulator::~Simulator()
    }
   
    // Clock Skew Manager 
-   if (m_clock_skew_minimization_manager)
-      delete m_clock_skew_minimization_manager;
+   if (m_clock_skew_management_manager)
+      delete m_clock_skew_management_manager;
 
    delete m_sim_thread_manager;
    delete m_performance_counter_manager;

@@ -16,11 +16,11 @@ LaxBarrierSyncClient::LaxBarrierSyncClient(Core* core):
 {
    try
    {
-      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/lax_barrier/quantum"); 
+      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("clock_skew_management/lax_barrier/quantum"); 
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Error Reading 'clock_skew_minimization/barrier/quantum' from the config file");
+      LOG_PRINT_ERROR("Error Reading 'clock_skew_management/barrier/quantum' from the config file");
    }
    m_next_sync_time = m_barrier_interval;
 }

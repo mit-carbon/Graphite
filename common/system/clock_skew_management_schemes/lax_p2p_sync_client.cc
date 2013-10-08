@@ -22,20 +22,20 @@ LaxP2PSyncClient::LaxP2PSyncClient(Core* core):
 
    try
    {
-      _slack = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/lax_p2p/slack");
-      _quantum = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/lax_p2p/quantum");
-      _sleep_fraction = Sim()->getCfg()->getFloat("clock_skew_minimization/lax_p2p/sleep_fraction");
+      _slack = (UInt64) Sim()->getCfg()->getInt("clock_skew_management/lax_p2p/slack");
+      _quantum = (UInt64) Sim()->getCfg()->getInt("clock_skew_management/lax_p2p/quantum");
+      _sleep_fraction = Sim()->getCfg()->getFloat("clock_skew_management/lax_p2p/sleep_fraction");
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Could not read clock_skew_minimization/lax_p2p parameters from config file");
+      LOG_PRINT_ERROR("Could not read clock_skew_management/lax_p2p parameters from config file");
    }
 
    gettimeofday(&_start_wall_clock_time, NULL);
    _rand_num.seed(1);
 
    // Register Call-back
-   _core->getTile()->getNetwork()->registerCallback(CLOCK_SKEW_MINIMIZATION, ClockSkewMinimizationClientNetworkCallback, this);
+   _core->getTile()->getNetwork()->registerCallback(CLOCK_SKEW_MINIMIZATION, ClockSkewManagementClientNetworkCallback, this);
 }
 
 LaxP2PSyncClient::~LaxP2PSyncClient()

@@ -22,15 +22,15 @@ MCP::MCP(Network & network)
    , m_vm_manager()
    , m_syscall_server(m_network, m_send_buff, m_recv_buff, m_MCP_SERVER_MAX_BUFF, m_scratch)
    , m_sync_server(m_network, m_recv_buff)
-   , m_clock_skew_minimization_server(NULL)
+   , m_clock_skew_management_server(NULL)
 {
-   m_clock_skew_minimization_server = ClockSkewMinimizationServer::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme"), m_network, m_recv_buff);
+   m_clock_skew_management_server = ClockSkewManagementServer::create(Sim()->getCfg()->getString("clock_skew_management/scheme"), m_network, m_recv_buff);
 }
 
 MCP::~MCP()
 {
-   if (m_clock_skew_minimization_server)
-      delete m_clock_skew_minimization_server;
+   if (m_clock_skew_management_server)
+      delete m_clock_skew_management_server;
    delete [] m_scratch;
 }
 
@@ -144,8 +144,8 @@ void MCP::processPacket()
       break;
 
    case MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
-      assert(m_clock_skew_minimization_server);
-      m_clock_skew_minimization_server->processSyncMsg(recv_pkt.sender);
+      assert(m_clock_skew_management_server);
+      m_clock_skew_management_server->processSyncMsg(recv_pkt.sender);
       break;
 
    default:

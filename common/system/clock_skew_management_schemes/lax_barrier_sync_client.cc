@@ -41,7 +41,7 @@ LaxBarrierSyncClient::synchronize(Time time)
    if (curr_time_ns >= m_next_sync_time)
    {
       // Send 'SIM_BARRIER_WAIT' request
-      int msg_type = MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION;
+      int msg_type = MCP_MESSAGE_CLOCK_SKEW_MANAGEMENT;
 
       m_send_buff << msg_type << curr_time_ns;
       m_core->getTile()->getNetwork()->netSend(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());

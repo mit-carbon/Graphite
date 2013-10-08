@@ -77,7 +77,7 @@ void LCP::processPacket()
       Sim()->getPerformanceCounterManager()->togglePerformanceCounters(data);
       break;
 
-   case LCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
+   case LCP_MESSAGE_CLOCK_SKEW_MANAGEMENT:
       assert (Sim()->getClockSkewManagementManager());
       Sim()->getClockSkewManagementManager()->processSyncMsg(data);
       break;

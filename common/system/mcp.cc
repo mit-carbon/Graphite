@@ -143,7 +143,7 @@ void MCP::processPacket()
       Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)recv_pkt.data, recv_pkt.time);
       break;
 
-   case MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
+   case MCP_MESSAGE_CLOCK_SKEW_MANAGEMENT:
       assert(m_clock_skew_management_server);
       m_clock_skew_management_server->processSyncMsg(recv_pkt.sender);
       break;

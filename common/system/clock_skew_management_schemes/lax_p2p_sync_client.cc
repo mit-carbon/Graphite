@@ -35,12 +35,12 @@ LaxP2PSyncClient::LaxP2PSyncClient(Core* core):
    _rand_num.seed(1);
 
    // Register Call-back
-   _core->getTile()->getNetwork()->registerCallback(CLOCK_SKEW_MINIMIZATION, ClockSkewManagementClientNetworkCallback, this);
+   _core->getTile()->getNetwork()->registerCallback(CLOCK_SKEW_MANAGEMENT, ClockSkewManagementClientNetworkCallback, this);
 }
 
 LaxP2PSyncClient::~LaxP2PSyncClient()
 {
-   _core->getTile()->getNetwork()->unregisterCallback(CLOCK_SKEW_MINIMIZATION);
+   _core->getTile()->getNetwork()->unregisterCallback(CLOCK_SKEW_MANAGEMENT);
 }
 
 void 
@@ -124,7 +124,7 @@ LaxP2PSyncClient::netProcessSyncMsg(const NetPacket& recv_pkt)
 
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
-      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MANAGEMENT, send_buf.getBuffer(), send_buf.size());
    }
 
    _lock.release();
@@ -152,7 +152,7 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
       // Wait till the other tile reaches this one
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
-      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MANAGEMENT, send_buf.getBuffer(), send_buf.size());
 
       if (!sleeping)
       {
@@ -172,7 +172,7 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
       // Both the cores are in sync (Good)
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) 0;
-      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MANAGEMENT, send_buf.getBuffer(), send_buf.size());
    }
    else if (curr_time < (sync_msg.time - _slack))
    {
@@ -183,7 +183,7 @@ LaxP2PSyncClient::processSyncReq(const SyncMsg& sync_msg, bool sleeping)
       // Double up and catch up. Meanwhile, ask the other tile to wait
       UnstructuredBuffer send_buf;
       send_buf << (UInt32) SyncMsg::ACK << (UInt64) (sync_msg.time - curr_time);
-      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+      _core->getTile()->getNetwork()->netSend(sync_msg.sender, CLOCK_SKEW_MANAGEMENT, send_buf.getBuffer(), send_buf.size());
    }
    else
    {
@@ -256,7 +256,7 @@ LaxP2PSyncClient::sendRandomSyncMsg(UInt64 curr_time)
    UnstructuredBuffer send_buf;
    send_buf << (UInt32) SyncMsg::REQ << curr_time;
 
-   _core->getTile()->getNetwork()->netSend(Tile::getMainCoreId(receiver), CLOCK_SKEW_MINIMIZATION, send_buf.getBuffer(), send_buf.size());
+   _core->getTile()->getNetwork()->netSend(Tile::getMainCoreId(receiver), CLOCK_SKEW_MANAGEMENT, send_buf.getBuffer(), send_buf.size());
 }
 
 UInt64

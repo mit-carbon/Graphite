@@ -265,7 +265,7 @@ SInt32 ThreadManager::spawnThread(tile_id_t dest_tile_id, thread_func_t func, vo
 
    dest_core_id = *(core_id_t*)((Byte*) pkt.data);
    dest_tile_id = dest_core_id.tile_id;
-   thread_id_t dest_thread_index = *(thread_id_t*) ((Byte*) pkt.data + sizeof(core_id_t));
+   __attribute__((unused)) thread_id_t dest_thread_index = *(thread_id_t*) ((Byte*) pkt.data + sizeof(core_id_t));
    thread_id_t dest_thread_id = *(thread_id_t*) ((Byte*) pkt.data + sizeof(core_id_t) + sizeof(thread_id_t));
    LOG_PRINT("Thread: %i spawned on core(%d, %d), idx(%i)", dest_thread_id, dest_tile_id, dest_core_id.core_type, dest_thread_index);
 

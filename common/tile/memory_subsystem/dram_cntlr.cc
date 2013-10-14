@@ -57,7 +57,7 @@ DramCntlr::putDataToDram(IntPtr address, Byte* data_buf, bool modeled)
    
    memcpy((void*) _data_map[address], (void*) data_buf, _cache_line_size);
 
-   __attribute(__unused__) Latency dram_access_latency = modeled ? runDramPerfModel() : Latency(0,DRAM_FREQUENCY);
+   __attribute__((unused)) Latency dram_access_latency = modeled ? runDramPerfModel() : Latency(0,DRAM_FREQUENCY);
    
    addToDramAccessCount(address, WRITE);
 }

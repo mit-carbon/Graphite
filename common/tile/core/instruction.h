@@ -29,7 +29,7 @@ enum InstructionType
    MAX_INSTRUCTION_COUNT
 };
 
-__attribute__ ((unused)) static const char * INSTRUCTION_NAMES [] = 
+__attribute__((unused)) static const char * INSTRUCTION_NAMES [] = 
 {"generic","add","sub","mul","div","fadd","fsub","fmul","fdiv","jmp","branch","dynamic_misc","recv","sync","spawn"};
 
 class Operand

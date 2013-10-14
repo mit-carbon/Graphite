@@ -174,7 +174,7 @@ void MCP::finish()
 
 void MCP::run()
 {
-   __attribute(__unused__) int tid =  syscall(__NR_gettid);
+   __attribute__((unused)) int tid =  syscall(__NR_gettid);
    LOG_PRINT("In MCP thread ... initializing thread (%i) with id: %i", (int)tid, Config::getSingleton()->getMCPTileNum());
 
    core_id_t mcp_core_id = Config::getSingleton()->getMCPCoreId();

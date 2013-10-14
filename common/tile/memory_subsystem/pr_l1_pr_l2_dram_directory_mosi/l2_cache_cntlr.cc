@@ -362,7 +362,7 @@ L2CacheCntlr::processUpgradeRepFromDramDirectory(tile_id_t sender, ShmemMsg* shm
    _L2_cache->getCacheLineInfo(address, &L2_cache_line_info);
 
    // Get cache line state
-   __attribute(__unused__) CacheState::Type L2_cstate = L2_cache_line_info.getCState();
+   __attribute__((unused)) CacheState::Type L2_cstate = L2_cache_line_info.getCState();
    LOG_ASSERT_ERROR((L2_cstate == CacheState::SHARED) || (L2_cstate == CacheState::OWNED), 
                     "Address(%#lx), State(%u)", address, L2_cstate);
    

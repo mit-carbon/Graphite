@@ -379,7 +379,7 @@ L1CacheCntlr::processUpgradeRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg
    getCacheLineInfo(MemComponent::L1_DCACHE, address, &L1_cache_line_info);
 
    // Get cache line state
-   __attribute(__unused__) CacheState::Type L1_cstate = L1_cache_line_info.getCState();
+   __attribute__((unused)) CacheState::Type L1_cstate = L1_cache_line_info.getCState();
    LOG_ASSERT_ERROR(L1_cstate == CacheState::SHARED, "Address(%#lx), State(%u)", address, L1_cstate);
 
    L1_cache_line_info.setCState(CacheState::MODIFIED);

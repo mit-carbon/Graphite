@@ -92,8 +92,8 @@ void printRtn (ADDRINT rtn_addr, bool enter)
 
 VOID printInsInfo(CONTEXT* ctxt)
 {
-   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
-   __attribute(__unused__) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
+   __attribute__((unused)) ADDRINT reg_inst_ptr = PIN_GetContextReg(ctxt, REG_INST_PTR);
+   __attribute__((unused)) ADDRINT reg_stack_ptr = PIN_GetContextReg(ctxt, REG_STACK_PTR);
 
    LOG_PRINT("eip(%#lx), esp(%#lx)", reg_inst_ptr, reg_stack_ptr);
 }
@@ -355,7 +355,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          PIN_SetContextReg (ctxt, REG_GDX, (ADDRINT) parent_tidptr);
          PIN_SetContextReg (ctxt, LEVEL_BASE::REG_R10, (ADDRINT) child_tidptr);
 
-         __attribute(__unused__) Tile *tile = Sim()->getTileManager()->getCurrentTile();
+         __attribute__((unused)) Tile *tile = Sim()->getTileManager()->getCurrentTile();
          LOG_ASSERT_ERROR(tile, "tile(NULL)");
 
          // Copy over thread stack data

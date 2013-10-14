@@ -677,7 +677,7 @@ void ThreadScheduler::yieldThread(bool is_pre_emptive)
 
          reply = (ThreadYieldRequest*) ((Byte*)pkt.data);
          req_core_id      = reply->requester;
-         __attribute(__unused__) thread_id_t req_thread_idx = reply->requester_tidx;
+         __attribute__((unused)) thread_id_t req_thread_idx = reply->requester_tidx;
          req_next_tidx  = reply->requester_next_tidx;
       }
 

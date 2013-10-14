@@ -151,7 +151,7 @@ L2CacheCntlr::allocateCacheLine(IntPtr address, ShL2CacheLineInfo* L2_cache_line
                        "Address(%#lx) is already being processed", evicted_address);
       LOG_ASSERT_ERROR(evicted_cache_line_info.getCState() == CacheState::CLEAN || evicted_cache_line_info.getCState() == CacheState::DIRTY,
                        "Cache Line State(%u)", evicted_cache_line_info.getCState());
-      __attribute(__unused__) DirectoryEntry* evicted_directory_entry = evicted_cache_line_info.getDirectoryEntry();
+      __attribute__((unused)) DirectoryEntry* evicted_directory_entry = evicted_cache_line_info.getDirectoryEntry();
       LOG_ASSERT_ERROR(evicted_directory_entry, "Cant find directory entry for address(%#lx)", evicted_address);
 
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
@@ -431,7 +431,7 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
 {
    IntPtr address = shmem_req->getShmemMsg()->getAddress();
    tile_id_t requester = shmem_req->getShmemMsg()->getRequester();
-   __attribute(__unused__) MemComponent::Type requester_mem_component = shmem_req->getShmemMsg()->getSenderMemComponent();
+   __attribute__((unused)) MemComponent::Type requester_mem_component = shmem_req->getShmemMsg()->getSenderMemComponent();
    assert(requester_mem_component == MemComponent::L1_DCACHE);
    bool msg_modeled = shmem_req->getShmemMsg()->isModeled();
 
@@ -513,7 +513,7 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             L2_cache_line_info.setCachingComponent(MemComponent::L1_DCACHE);
 
             // Add the sharer and set that as the owner 
-            __attribute(__unused__) bool add_result = directory_entry->addSharer(requester);
+            __attribute__((unused)) bool add_result = directory_entry->addSharer(requester);
             assert(add_result);
             directory_entry->setOwner(requester);
             directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::MODIFIED);
@@ -647,7 +647,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             L2_cache_line_info.setCachingComponent(requester_mem_component);
             
             // Modifiy the directory entry contents
-            __attribute(__unused__) bool add_result = directory_entry->addSharer(requester);
+            __attribute__((unused)) bool add_result = directory_entry->addSharer(requester);
             LOG_ASSERT_ERROR(add_result, "Address(%#lx), Requester(%i), State(UNCACHED), Num Sharers(%u)",
                              address, requester, directory_entry->getNumSharers());
             directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::SHARED);
@@ -686,7 +686,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
 void
 L2CacheCntlr::processInvRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_msg, ShL2CacheLineInfo* L2_cache_line_info)
 {
-   __attribute(__unused__) IntPtr address = shmem_msg->getAddress();
+   __attribute__((unused)) IntPtr address = shmem_msg->getAddress();
 
    DirectoryEntry* directory_entry = L2_cache_line_info->getDirectoryEntry();
    DirectoryState::Type curr_dstate = directory_entry->getDirectoryBlockInfo()->getDState();

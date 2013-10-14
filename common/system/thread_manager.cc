@@ -204,7 +204,7 @@ void ThreadManager::masterOnThreadExit(tile_id_t tile_id, UInt32 core_type, SInt
    if (Sim()->getMCP()->getClockSkewManagementServer())
       Sim()->getMCP()->getClockSkewManagementServer()->signal();
 
-   __attribute__((__unused__)) bool woken_up = wakeUpWaiter(core_id, thread_idx, Time(time));
+   __attribute__((unused)) bool woken_up = wakeUpWaiter(core_id, thread_idx, Time(time));
 
    m_thread_scheduler->masterOnThreadExit(core_id, thread_idx);
 

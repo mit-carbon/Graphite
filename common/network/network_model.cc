@@ -81,8 +81,8 @@ NetworkModel::__routePacket(const NetPacket& pkt, queue<Hop>& next_hops)
 {
    ScopedLock sl(_lock);
 
-   __attribute(__unused__) tile_id_t pkt_sender = TILE_ID(pkt.sender);
-   __attribute(__unused__) tile_id_t pkt_receiver = TILE_ID(pkt.receiver);
+   __attribute__((unused)) tile_id_t pkt_sender = TILE_ID(pkt.sender);
+   __attribute__((unused)) tile_id_t pkt_receiver = TILE_ID(pkt.receiver);
 
    if (pkt.node_type == SEND_TILE)
    {
@@ -220,7 +220,7 @@ NetworkModel::isSystemTile(tile_id_t tile_id)
 void
 NetworkModel::updateSendCounters(const NetPacket& packet)
 {
-   __attribute(__unused__) tile_id_t sender = TILE_ID(packet.sender);
+   __attribute__((unused)) tile_id_t sender = TILE_ID(packet.sender);
    tile_id_t receiver = TILE_ID(packet.receiver);
 
    LOG_ASSERT_ERROR(sender == _tile_id, "sender(%i), tile_id(%i)", sender, _tile_id);
@@ -245,7 +245,7 @@ NetworkModel::updateSendCounters(const NetPacket& packet)
 void
 NetworkModel::updateReceiveCounters(const NetPacket& packet)
 {
-   __attribute(__unused__) tile_id_t receiver = TILE_ID(packet.receiver);
+   __attribute__((unused)) tile_id_t receiver = TILE_ID(packet.receiver);
    LOG_ASSERT_ERROR( (receiver == NetPacket::BROADCAST) || (receiver == _tile_id),
                      "receiver(%i), tile_id(%i)", receiver, _tile_id );
    

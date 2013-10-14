@@ -323,12 +323,12 @@ IOCOOMCoreModel::executeLoad(Time time, const DynamicInstructionInfo &info)
    StoreBuffer::Status status = m_store_buffer->isAddressAvailable(time, info.memory_info.addr);
 
    if (status == StoreBuffer::VALID)
-      return make_pair<Time,Time>(time,Time(0));
+      return make_pair(time,Time(0));
 
    // a miss in the l1 forces a miss in the store buffer
    Time latency(info.memory_info.latency);
 
-   return make_pair<Time,Time>(m_load_buffer->execute(time, latency), latency);
+   return make_pair(m_load_buffer->execute(time, latency), latency);
 }
 
 Time IOCOOMCoreModel::executeStore(Time time, const DynamicInstructionInfo &info)

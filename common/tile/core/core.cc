@@ -248,7 +248,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
          _core_model->pushDynamicInstructionInfo(info);
    }
 
-   return make_pair<UInt32, Time>(num_misses, memory_access_time);
+   return make_pair(num_misses, memory_access_time);
 }
 
 PacketType

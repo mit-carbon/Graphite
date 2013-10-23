@@ -40,6 +40,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 Decoder::Decoder(
     int    _num_dec_signals,
@@ -1697,3 +1699,4 @@ double Driver::compute_delay(double inrisetime)
 }
 
 //TODO: add sleep tx in predec/predecblk/predecdriver
+}

@@ -39,6 +39,9 @@
 
 using namespace std;
 
+namespace McPAT
+{
+
 class Area
 {
  public:
@@ -66,6 +69,8 @@ class Area
  private:
   double area;
 };
+
+}
 
 #endif
 

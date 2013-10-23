@@ -40,6 +40,9 @@
 #include "subarray.h"
 #include "powergating.h"
 
+namespace McPAT
+{
+
 class Mat : public Component
 {
   public:
@@ -167,6 +170,6 @@ class Mat : public Component
     int SCHP;
 };
 
-
+}
 
 #endif

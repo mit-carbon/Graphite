@@ -38,6 +38,9 @@
 
 using namespace std;
 
+namespace McPAT
+{
+
 //TODO: although DTSN is used,since for memory array, the number of sleep txs
 //is related to the number of rows and cols. so All calculations are still base on
 //single sleep tx cases
@@ -126,3 +129,4 @@ double Sleep_tx::compute_penalty()
 
 }
 
+}

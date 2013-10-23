@@ -34,6 +34,9 @@
 #include <assert.h>
 #include <cmath>
 
+namespace McPAT
+{
+
 double longer_channel_device_reduction(
 		enum Device_ty device_ty,
 		enum Core_type core_ty)
@@ -145,4 +148,6 @@ statsDef operator*(const statsDef & x, double const * const y)
 	z.writeAc  = x.writeAc*y;
 	z.searchAc  = x.searchAc*y;
 	return z;
+}
+
 }

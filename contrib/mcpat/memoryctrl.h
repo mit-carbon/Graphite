@@ -40,6 +40,9 @@
 #include <vector>
 #include "basic_components.h"
 
+namespace McPAT
+{
+
 class MCBackend : public Component {
   public:
     InputParameter l_ip;
@@ -109,4 +112,7 @@ class MemoryController : public Component {
     void displayEnergy(uint32_t indent = 0,int plevel = 100, bool is_tdp=true);
     ~MemoryController();
 };
+
+}
+
 #endif /* MEMORYCTRL_H_ */

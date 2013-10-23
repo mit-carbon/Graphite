@@ -35,6 +35,9 @@
 #include "Ucache.h"
 #include <assert.h>
 
+namespace McPAT
+{
+
 unsigned int MIN_BANKSIZE=65536;
 #define FIXED_OVERHEAD 55e-12 /* clock skew and jitter in s. Ref: Hrishikesh et al ISCA 01 */
 #define LATCH_DELAY 28e-12 /* latch delay in s (later should use FO4 TODO) */
@@ -609,3 +612,4 @@ Nuca::calculate_nuca_area (nuca_org_t *nuca)
         nuca->bank_pda.area.w);
 }
 
+}

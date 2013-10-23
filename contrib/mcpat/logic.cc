@@ -31,6 +31,8 @@
 
 #include "logic.h"
 
+namespace McPAT
+{
 
 //selection_logic
 selection_logic::selection_logic(
@@ -1058,4 +1060,6 @@ inst_decoder::~inst_decoder()
 	  delete pre_dec->drv1;
 	  delete pre_dec->drv2;
 	  delete pre_dec;
+}
+
 }

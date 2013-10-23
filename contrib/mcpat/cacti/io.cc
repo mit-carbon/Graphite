@@ -52,6 +52,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 InputParameter::InputParameter()
 {
@@ -3569,4 +3571,6 @@ void reconfigure(InputParameter *local_interface, uca_org_t *fin_res)
 
   // This corresponds to solve() in the initialization process.
   update_dvs(fin_res);
+}
+
 }

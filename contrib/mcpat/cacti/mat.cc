@@ -34,6 +34,8 @@
 #include "mat.h"
 #include <assert.h>
 
+namespace McPAT
+{
 
 Mat::Mat(const DynamicParameter & dyn_p)
  :dp(dyn_p),
@@ -1952,3 +1954,4 @@ void Mat::compute_power_energy()
   }
 }
 
+}

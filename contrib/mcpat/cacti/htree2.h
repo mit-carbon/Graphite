@@ -44,6 +44,9 @@
 // leakge power includes entire htree in a bank (when uca_tree == false)
 // leakge power includes only part to one bank when uca_tree == true
 
+namespace McPAT
+{
+
 class Htree2 : public Component
 {
   public:
@@ -93,5 +96,7 @@ class Htree2 : public Component
     TechnologyParameter::DeviceType *deviceType;
 
 };
+
+}
 
 #endif

@@ -43,6 +43,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 class uca_org_t;
 class nuca_org_t;
@@ -694,5 +696,6 @@ uca_org_t cacti_interface(
     int REPEATERS_IN_HTREE_SEGMENTS_in,//TODO for now only wires with repeaters are supported
     int p_input);
 
+}
 
 #endif

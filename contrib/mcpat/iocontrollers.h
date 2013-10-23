@@ -42,6 +42,9 @@
 #include <vector>
 #include "basic_components.h"
 
+namespace McPAT
+{
+
 class NIUController : public Component {
   public:
 	ParseXML *XML;
@@ -84,3 +87,4 @@ class FlashController : public Component {
     ~FlashController(){};
 };
 
+}

@@ -39,6 +39,8 @@
 #include "mat.h"
 #include "htree2.h"
 
+namespace McPAT
+{
 
 class Bank : public Component
 {
@@ -69,6 +71,6 @@ class Bank : public Component
     double  cl_leakage;
 };
 
-
+}
 
 #endif

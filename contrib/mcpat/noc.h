@@ -39,6 +39,9 @@
 #include "basic_components.h"
 #include "router.h"
 
+namespace McPAT
+{
+
 class NoC :public Component {
   public:
 
@@ -71,5 +74,7 @@ class NoC :public Component {
 	void displayEnergy_link_bus(uint32_t indent = 0,int plevel = 100, bool is_tdp=true);
 	~NoC();
 };
+
+}
 
 #endif /* NOC_H_ */

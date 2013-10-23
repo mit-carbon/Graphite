@@ -38,6 +38,8 @@
 
 #include "subarray.h"
 
+namespace McPAT
+{
 
 Subarray::Subarray(const DynamicParameter & dp_, bool is_fa_):
   dp(dp_), num_rows(dp.num_r_subarray), num_cols(dp.num_c_subarray),
@@ -194,4 +196,4 @@ void Subarray::compute_C()
   }
 }
 
-
+}

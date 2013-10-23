@@ -100,6 +100,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+namespace McPAT
+{
+
 XMLCSTR XMLNode::getVersion() { return _CXML("v2.39"); }
 void freeXMLString(XMLSTR t){if(t)free(t);}
 
@@ -2888,3 +2891,4 @@ unsigned char *XMLParserBase64Tool::decode(XMLCSTR data, int *outlen, XMLError *
     return (unsigned char*)buf;
 }
 
+}

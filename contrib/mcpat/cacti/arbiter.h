@@ -41,6 +41,9 @@
 #include "mat.h"
 #include "wire.h"
 
+namespace McPAT
+{
+
 class Arbiter : public Component
 {
   public:
@@ -73,5 +76,7 @@ class Arbiter : public Component
     double min_w_pmos, Vdd;
 
 };
+
+}
 
 #endif

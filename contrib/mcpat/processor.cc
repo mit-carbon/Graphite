@@ -45,6 +45,9 @@
 #include "version.h"
 
 
+namespace McPAT
+{
+
 Processor::Processor(ParseXML *XML_interface)
 :XML(XML_interface),//TODO: using one global copy may have problems.
  mc(0),
@@ -874,3 +877,5 @@ Processor::~Processor(){
 		flashcontroller = 0;
 	}
 };
+
+}

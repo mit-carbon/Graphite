@@ -34,6 +34,9 @@
 #define ASPECT_THRESHOLD .8
 #define ADJ 1
 
+namespace McPAT
+{
+
 Crossbar::Crossbar(
     double n_inp_,
     double n_out_,
@@ -158,4 +161,4 @@ void Crossbar::print_crossbar()
   cout << "Crossbar Delay   : " << delay*1e12 << " ps\n";
 }
 
-
+}

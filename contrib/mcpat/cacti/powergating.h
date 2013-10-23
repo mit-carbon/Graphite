@@ -34,6 +34,9 @@
 
 #include "component.h"
 
+namespace McPAT
+{
+
 class Sleep_tx : public Component
 {
 public:
@@ -78,5 +81,7 @@ public:
 	void leakage_feedback(double temperature){};
 	~Sleep_tx(){};
 };
+
+}
 
 #endif /* POWERGATING_H_ */

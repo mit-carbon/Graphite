@@ -40,7 +40,8 @@
 #include "uca.h"
 
 
-
+namespace McPAT
+{
 
 struct solution
 {
@@ -114,5 +115,7 @@ struct calc_time_mt_wrapper_struct
 };
 
 void *calc_time_mt_wrapper(void * void_obj);
+
+}
 
 #endif

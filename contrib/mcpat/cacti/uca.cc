@@ -36,6 +36,8 @@
 
 #include "uca.h"
 
+namespace McPAT
+{
 
 UCA::UCA(const DynamicParameter & dyn_p)
  :dp(dyn_p), bank(dp), nbanks(g_ip->nbanks), refresh_power(0)
@@ -439,3 +441,4 @@ void UCA::compute_power_energy()
   assert(power.readOp.leakage  > 0);
 }
 
+}

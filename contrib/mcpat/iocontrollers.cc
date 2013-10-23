@@ -69,6 +69,9 @@ Further, if assuming I/O logic power is about 50% of I/Os then Total energy of F
  *
  */
 
+namespace McPAT
+{
+
 NIUController::NIUController(ParseXML *XML_interface,InputParameter* interface_ip_)
 :XML(XML_interface),
  interface_ip(*interface_ip_)
@@ -485,5 +488,7 @@ void FlashController::set_fc_param()
 		  interface_ip.lop_Vdd  = XML->sys.flashc.vdd;
 		  interface_ip.lstp_Vdd = XML->sys.flashc.vdd;
 	  }
+
+}
 
 }

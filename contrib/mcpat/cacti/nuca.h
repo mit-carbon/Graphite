@@ -44,7 +44,8 @@
 #include "router.h"
 #include <iostream>
 
-
+namespace McPAT
+{
 
 class nuca_org_t {
   public:
@@ -97,5 +98,6 @@ class Nuca : public Component
 
 };
 
+}
 
 #endif

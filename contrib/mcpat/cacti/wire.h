@@ -42,6 +42,9 @@
 #include <iostream>
 #include <list>
 
+namespace McPAT
+{
+
 class Wire : public Component
 {
   public:
@@ -123,5 +126,7 @@ class Wire : public Component
     TechnologyParameter::DeviceType *deviceType;
 
 };
+
+}
 
 #endif

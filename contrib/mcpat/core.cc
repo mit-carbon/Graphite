@@ -42,6 +42,9 @@
 #include "core.h"
 //#include "globalvar.h"
 
+namespace McPAT
+{
+
 InstFetchU::InstFetchU(ParseXML* XML_interface, int ithCore_, InputParameter* interface_ip_, const CoreDynParam & dyn_p_, bool exist_)
 :XML(XML_interface),
  ithCore(ithCore_),
@@ -4236,4 +4239,6 @@ if (coredynp.core_ty==OOO)
 	  interface_ip.lop_Vdd  = coredynp.vdd;
 	  interface_ip.lstp_Vdd = coredynp.vdd;
 	}
+}
+
 }

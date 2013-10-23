@@ -38,6 +38,9 @@
 #include <assert.h>
 #include <cmath>
 
+namespace McPAT
+{
+
 uint32_t _log2(uint64_t num)
 {
   uint32_t log2 = 0;
@@ -940,3 +943,4 @@ double shortcircuit(
   return (p_short_circuit);
 }
 
+}

@@ -36,6 +36,9 @@
 #include <iostream>
 #include "globalvar.h"
 
+namespace McPAT
+{
+
 interconnect::interconnect(
     string name_,
     enum Device_ty device_ty_,
@@ -223,3 +226,4 @@ void interconnect::leakage_feedback(double temperature)
   power.readOp.longer_channel_leakage = power.readOp.leakage*long_channel_device_reduction;
 }
 
+}

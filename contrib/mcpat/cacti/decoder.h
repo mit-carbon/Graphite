@@ -41,6 +41,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 class Decoder : public Component
 {
@@ -277,5 +279,6 @@ class Driver : public Component
   };
 };
 
+}
 
 #endif

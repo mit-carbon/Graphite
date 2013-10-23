@@ -41,6 +41,9 @@
 #include "basic_components.h"
 #include "sharedcache.h"
 
+namespace McPAT
+{
+
 class BranchPredictor :public Component {
   public:
 
@@ -258,5 +261,7 @@ class Core :public Component {
 	void displayEnergy(uint32_t indent = 0,int plevel = 100, bool is_tdp=true);
 	~Core();
 };
+
+}
 
 #endif /* CORE_H_ */

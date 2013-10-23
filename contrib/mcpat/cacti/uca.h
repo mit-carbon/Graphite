@@ -40,6 +40,8 @@
 #include "parameter.h"
 #include "htree2.h"
 
+namespace McPAT
+{
 
 class UCA : public Component
 {
@@ -93,6 +95,8 @@ class UCA : public Component
     double long_channel_leakage_reduction_periperal;
     double long_channel_leakage_reduction_memcell;
 };
+
+}
 
 #endif
 

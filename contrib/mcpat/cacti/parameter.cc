@@ -40,6 +40,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 InputParameter * g_ip;
 TechnologyParameter g_tp;
@@ -712,3 +714,4 @@ DynamicParameter::DynamicParameter(
   is_valid = true;
 }
 
+}

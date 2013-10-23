@@ -47,6 +47,8 @@
 
 using namespace std;
 
+namespace McPAT
+{
 
 bool mem_array::lt(const mem_array * m1, const mem_array * m2)
 {
@@ -184,4 +186,6 @@ void uca_org_t :: cleanup()
 uca_org_t :: ~uca_org_t()
 {
 //	cleanup();
+}
+
 }

@@ -39,6 +39,9 @@
 #include "cacti_interface.h"
 #include "io.h"
 
+namespace McPAT
+{
+
 // parameters which are functions of certain device technology
 class TechnologyParameter
 {
@@ -374,6 +377,8 @@ class DynamicParameter
 
 extern InputParameter * g_ip;
 extern TechnologyParameter g_tp;
+
+}
 
 #endif
 

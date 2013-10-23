@@ -38,6 +38,9 @@
 #include <stdio.h>
 #include <math.h>
 
+namespace McPAT
+{
+
 /*  The following are things you might want to change
  *  when compiling
  */
@@ -268,5 +271,6 @@ const double pppm_sc[4]   = {0,0,0,1};
 const double Ilinear_to_Isat_ratio =2.0;
 
 
+}
 
 #endif

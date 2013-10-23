@@ -31,6 +31,10 @@
 
 #include "wire.h"
 #include "cmath"
+
+namespace McPAT
+{
+
 // use this constructor to calculate wire stats
 Wire::Wire(
     enum Wire_type wire_model,
@@ -879,5 +883,7 @@ Wire::wire_dvs_update()
 	low_swing.delay = l_wire->delay;
 	low_swing.power = l_wire->power;
 	delete l_wire;
+
+}
 
 }

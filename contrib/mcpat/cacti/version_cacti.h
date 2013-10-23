@@ -34,10 +34,17 @@
 
 #include <string>
 
+namespace McPAT
+{
+
 #define VER_MAJOR_CACTI		6	/* CACTI-P and DVS */
 #define VER_MINOR_CACTI		5
+
 const string VER_postfix_CACTI =  "++";
+
 #define VER_COMMENT_CACTI	"CAM and fully associative cache, power gating, and DVS"
 #define VER_UPDATE_CACTI	"Aug, 2013"
+
+}
 
 #endif /* VERSION_H_ */

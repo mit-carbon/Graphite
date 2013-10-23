@@ -42,6 +42,9 @@
 #include "mat.h"
 #include "wire.h"
 
+namespace McPAT
+{
+
 class Crossbar : public Component
 {
   public:
@@ -77,7 +80,7 @@ class Crossbar : public Component
 
 };
 
-
+}
 
 
 #endif

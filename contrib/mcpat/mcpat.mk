@@ -67,7 +67,9 @@ SRCS  = \
   uca.cc \
   wire.cc \
   xmlParser.cc \
-  powergating.cc
+  powergating.cc \
+  core_wrapper.cc \
+  cache_wrapper.cc
 
 OBJS = $(patsubst %.cc,obj_$(TAG)/%.o,$(SRCS))
 

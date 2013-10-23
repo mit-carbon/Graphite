@@ -525,6 +525,8 @@ typedef struct{
 	double total_load_perc;
 } system_pcie;
 
+const int MAX_NUM_CORES = 1024;
+
 typedef struct{
 	//All number_of_* at the level of 'system' Ying 03/21/2009
 	int number_of_cores;
@@ -571,12 +573,12 @@ typedef struct{
     double total_cycles;
     double vdd;
 	//system.core(0-n):3rd level
-	system_core core[64];
-	system_L1Directory L1Directory[64];
-	system_L2Directory L2Directory[64];
-	system_L2 L2[64];
-	system_L3 L3[64];
-    system_NoC NoC[64];
+	system_core core[MAX_NUM_CORES];
+	system_L1Directory L1Directory[MAX_NUM_CORES];
+	system_L2Directory L2Directory[MAX_NUM_CORES];
+	system_L2 L2[MAX_NUM_CORES];
+	system_L3 L3[MAX_NUM_CORES];
+    system_NoC NoC[MAX_NUM_CORES];
     system_mem mem;
 	system_mc mc;
 	system_mc flashc;

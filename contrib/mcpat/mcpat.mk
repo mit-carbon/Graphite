@@ -20,10 +20,19 @@ else
   #OPT = -O0 -DNTHREADS=$(NTHREADS)
 endif
 
+ifeq ($(ARCH),ia32)
+  OPT += -m32
+endif
+
+ifneq ($(CACHE),)
+  OPT += -DENABLE_CACHE
+  LIBS += -ldb
+endif
+
 #CXXFLAGS = -Wall -Wno-unknown-pragmas -Winline $(DBG) $(OPT) 
 CXXFLAGS = -Wno-unknown-pragmas $(DBG) $(OPT) 
-CXX = g++ -m32
-CC  = gcc -m32
+CXX = g++
+CC  = gcc
 
 VPATH = cacti
 
@@ -65,7 +74,7 @@ SRCS  = \
 OBJS = $(patsubst %.cc,obj_$(TAG)/%.o,$(SRCS))
 
 all: obj_$(TAG)/$(TARGET)
-	cp -f obj_$(TAG)/$(TARGET) $(TARGET)
+	cp -f obj_$(TAG)/$(TARGET) $(TARGET)$(SUFFIX)
 
 obj_$(TAG)/$(TARGET) : $(OBJS)
 	$(CXX) $(OBJS) -o $@ $(INCS) $(CXXFLAGS) $(LIBS) -pthread

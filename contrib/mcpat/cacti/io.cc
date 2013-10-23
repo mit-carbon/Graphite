@@ -35,6 +35,9 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
+#ifdef ENABLE_CACHE
+#include <db.h>
+#endif
 
 #include "io.h"
 #include "area.h"
@@ -51,17 +54,17 @@ using namespace std;
 
 
 InputParameter::InputParameter()
-:  array_power_gated(false),
- bitline_floating(false),
- wl_power_gated(false),
- cl_power_gated(false),
- interconect_power_gated(false),
- power_gating(false),
- perfloss(0.01),
- cl_vertical (true),
- long_channel_device(false)
 {
 	dvs_voltage = std::vector<double>(0);
+
+   // Clear out all data used as the DB key, especially unused bits
+   // such that they're zero and not old data that might be different per run
+   size_t o1 = offsetof(InputParameter, first),
+          o2 = offsetof(InputParameter, last);
+   memset((char*)this + o1, 0, o2 - o1);
+
+  perfloss = 0.01;
+  cl_vertical = true;
 }
 
 /* Parses "cache.cfg" file */
@@ -1289,7 +1292,6 @@ uca_org_t cacti_interface(
 }
 
 
-
 bool InputParameter::error_checking()
 {
   int  A;
@@ -1731,22 +1733,22 @@ void output_data_csv(const uca_org_t & fin_res)
     file << g_ip->out_w << ", ";
     file << fin_res.access_time*1e+9 << ", ";
     file << fin_res.cycle_time*1e+9 << ", ";
-//    file << fin_res.data_array2->multisubbank_interleave_cycle_time*1e+9 << ", ";
-//    file << fin_res.data_array2->delay_request_network*1e+9 << ", ";
-//    file << fin_res.data_array2->delay_inside_mat*1e+9 <<  ", ";
+//    file << fin_res.data_array2.multisubbank_interleave_cycle_time*1e+9 << ", ";
+//    file << fin_res.data_array2.delay_request_network*1e+9 << ", ";
+//    file << fin_res.data_array2.delay_inside_mat*1e+9 <<  ", ";
 //    file << fin_res.data_array2.delay_reply_network*1e+9 << ", ";
 
 //    if (!(g_ip->fully_assoc || g_ip->pure_cam || g_ip->pure_ram))
 //        {
-//    	  file << fin_res.tag_array2->access_time*1e+9 << ", ";
+//    	  file << fin_res.tag_array2.access_time*1e+9 << ", ";
 //        }
 //    else
 //    {
 //    	file << 0 << ", ";
 //    }
-//    file << fin_res.data_array2->access_time*1e+9 << ", ";
-//    file << fin_res.data_array2->dram_refresh_period*1e+6 << ", ";
-//    file << fin_res.data_array2->dram_array_availability <<  ", ";
+//    file << fin_res.data_array2.access_time*1e+9 << ", ";
+//    file << fin_res.data_array2.dram_refresh_period*1e+6 << ", ";
+//    file << fin_res.data_array2.dram_array_availability <<  ", ";
     if (g_ip->fully_assoc || g_ip->pure_cam)
     {
     	file << fin_res.power.searchOp.dynamic*1e+9 << ", ";
@@ -1759,13 +1761,13 @@ void output_data_csv(const uca_org_t & fin_res)
     file << fin_res.power.writeOp.dynamic*1e+9 << ", ";
 //    if (!(g_ip->fully_assoc || g_ip->pure_cam || g_ip->pure_ram))
 //        {
-//        	file << fin_res.tag_array2->power.readOp.dynamic*1e+9 << ", ";
+//        	file << fin_res.tag_array2.power.readOp.dynamic*1e+9 << ", ";
 //        }
 //        	else
 //        {
 //        		file << "NA" << ", ";
 //        }
-//    file << fin_res.data_array2->power.readOp.dynamic*1e+9 << ", ";
+//    file << fin_res.data_array2.power.readOp.dynamic*1e+9 << ", ";
 //    if (g_ip->fully_assoc || g_ip->pure_cam)
 //        {
 //    	    file << fin_res.power.searchOp.dynamic*1000/fin_res.cycle_time << ", ";
@@ -1780,22 +1782,22 @@ void output_data_csv(const uca_org_t & fin_res)
 //    file << fin_res.data_array.refresh_power / fin_res.data_array.total_power.readOp.leakage << ", ";
     file << fin_res.area*1e-6 << ", ";
 
-    file << fin_res.data_array2->Ndwl << ", ";
-    file << fin_res.data_array2->Ndbl << ", ";
-    file << fin_res.data_array2->Nspd << ", ";
-    file << fin_res.data_array2->deg_bl_muxing << ", ";
-    file << fin_res.data_array2->Ndsam_lev_1 << ", ";
-    file << fin_res.data_array2->Ndsam_lev_2 << ", ";
-    file << fin_res.data_array2->area_efficiency << ", ";
+    file << fin_res.data_array2.Ndwl << ", ";
+    file << fin_res.data_array2.Ndbl << ", ";
+    file << fin_res.data_array2.Nspd << ", ";
+    file << fin_res.data_array2.deg_bl_muxing << ", ";
+    file << fin_res.data_array2.Ndsam_lev_1 << ", ";
+    file << fin_res.data_array2.Ndsam_lev_2 << ", ";
+    file << fin_res.data_array2.area_efficiency << ", ";
     if (!(g_ip->fully_assoc || g_ip->pure_cam || g_ip->pure_ram))
     {
-    file << fin_res.tag_array2->Ndwl << ", ";
-    file << fin_res.tag_array2->Ndbl << ", ";
-    file << fin_res.tag_array2->Nspd << ", ";
-    file << fin_res.tag_array2->deg_bl_muxing << ", ";
-    file << fin_res.tag_array2->Ndsam_lev_1 << ", ";
-    file << fin_res.tag_array2->Ndsam_lev_2 << ", ";
-    file << fin_res.tag_array2->area_efficiency << ", ";
+    file << fin_res.tag_array2.Ndwl << ", ";
+    file << fin_res.tag_array2.Ndbl << ", ";
+    file << fin_res.tag_array2.Nspd << ", ";
+    file << fin_res.tag_array2.deg_bl_muxing << ", ";
+    file << fin_res.tag_array2.Ndsam_lev_1 << ", ";
+    file << fin_res.tag_array2.Ndsam_lev_2 << ", ";
+    file << fin_res.tag_array2.area_efficiency << ", ";
     }
     else
     {
@@ -1839,8 +1841,8 @@ void output_data_csv(const uca_org_t & fin_res)
 void output_UCA(uca_org_t *fr)
 {
 
-double long_channel_leakage_reduction = 0.1 + 0.9*(0.8*fr->data_array2->long_channel_leakage_reduction_memcell
-														+ 0.2*fr->data_array2->long_channel_leakage_reduction_periperal);//TODO
+double long_channel_leakage_reduction = 0.1 + 0.9*(0.8*fr->data_array2.long_channel_leakage_reduction_memcell
+														+ 0.2*fr->data_array2.long_channel_leakage_reduction_periperal);//TODO
 double areaoverhead, overhead_data, overhead_tag;
 double wakeup_E, wakeup_T,  wakeup_E_data, wakeup_T_data,  wakeup_E_tag, wakeup_T_tag;
 int dvs_levels = g_ip->dvs_voltage.size();
@@ -1919,16 +1921,16 @@ bool dvs  = !g_ip->dvs_voltage.empty();
 		  }
   cout<< endl;
   if (g_ip->data_arr_ram_cell_tech_type >= 4) {
-    cout << "    Precharge Delay (ns): " << fr->data_array2->precharge_delay*1e9 << endl;
-    cout << "    Activate Energy (nJ): " << fr->data_array2->activate_energy*1e9 << endl;
-    cout << "    Read Energy (nJ): " << fr->data_array2->read_energy*1e9 << endl;
-    cout << "    Write Energy (nJ): " << fr->data_array2->write_energy*1e9 << endl;
-    cout << "    Precharge Energy (nJ): " << fr->data_array2->precharge_energy*1e9 << endl;
-    cout << "    Leakage Power Closed Page (mW): " << fr->data_array2->leak_power_subbank_closed_page*1e3 << endl;
-    cout << "    Leakage Power Open Page (mW): " << fr->data_array2->leak_power_subbank_open_page*1e3 << endl;
-    cout << "    Leakage Power I/O (mW): " << fr->data_array2->leak_power_request_and_reply_networks*1e3 << endl;
+    cout << "    Precharge Delay (ns): " << fr->data_array2.precharge_delay*1e9 << endl;
+    cout << "    Activate Energy (nJ): " << fr->data_array2.activate_energy*1e9 << endl;
+    cout << "    Read Energy (nJ): " << fr->data_array2.read_energy*1e9 << endl;
+    cout << "    Write Energy (nJ): " << fr->data_array2.write_energy*1e9 << endl;
+    cout << "    Precharge Energy (nJ): " << fr->data_array2.precharge_energy*1e9 << endl;
+    cout << "    Leakage Power Closed Page (mW): " << fr->data_array2.leak_power_subbank_closed_page*1e3 << endl;
+    cout << "    Leakage Power Open Page (mW): " << fr->data_array2.leak_power_subbank_open_page*1e3 << endl;
+    cout << "    Leakage Power I/O (mW): " << fr->data_array2.leak_power_request_and_reply_networks*1e3 << endl;
     cout << "    Refresh power (mW): " <<
-      fr->data_array2->refresh_power*1e3 << endl;
+      fr->data_array2.refresh_power*1e3 << endl;
   }
   else {
 	  if ((g_ip->fully_assoc|| g_ip->pure_cam))
@@ -2001,18 +2003,18 @@ bool dvs  = !g_ip->dvs_voltage.empty();
 	  areaoverhead = (fr->cache_ht*fr->cache_len/fr->uca_pg_reference->cache_ht/fr->uca_pg_reference->cache_len-1)*100;//%
 	  cout <<  "    \tPower gating circuits (sleep transistors) induced area overhead: " <<
 			  areaoverhead << " % " <<  endl ;
-	  wakeup_E = wakeup_E_data = fr->data_array2->sram_sleep_wakeup_energy
-			  + fr->data_array2->wl_sleep_wakeup_energy
-			  + fr->data_array2->bl_floating_wakeup_energy;
-	  wakeup_T = wakeup_T_data=MAX(fr->data_array2->sram_sleep_wakeup_latency,
-			  MAX(fr->data_array2->wl_sleep_wakeup_latency,fr->data_array2->bl_floating_wakeup_latency));
+	  wakeup_E = wakeup_E_data = fr->data_array2.sram_sleep_wakeup_energy
+			  + fr->data_array2.wl_sleep_wakeup_energy
+			  + fr->data_array2.bl_floating_wakeup_energy;
+	  wakeup_T = wakeup_T_data=MAX(fr->data_array2.sram_sleep_wakeup_latency,
+			  MAX(fr->data_array2.wl_sleep_wakeup_latency,fr->data_array2.bl_floating_wakeup_latency));
 	  if ((!(g_ip->pure_ram|| g_ip->pure_cam || g_ip->fully_assoc)) && !g_ip->is_main_mem)
 	  {
-		  wakeup_E_tag = fr->tag_array2->sram_sleep_wakeup_energy
-				  + fr->tag_array2->wl_sleep_wakeup_energy
-				  + fr->tag_array2->bl_floating_wakeup_energy;
-		  wakeup_T_tag=MAX(fr->tag_array2->sram_sleep_wakeup_latency,
-				  MAX(fr->tag_array2->wl_sleep_wakeup_latency,fr->tag_array2->bl_floating_wakeup_latency));
+		  wakeup_E_tag = fr->tag_array2.sram_sleep_wakeup_energy
+				  + fr->tag_array2.wl_sleep_wakeup_energy
+				  + fr->tag_array2.bl_floating_wakeup_energy;
+		  wakeup_T_tag=MAX(fr->tag_array2.sram_sleep_wakeup_latency,
+				  MAX(fr->tag_array2.wl_sleep_wakeup_latency,fr->tag_array2.bl_floating_wakeup_latency));
 
 		  wakeup_E += wakeup_E_tag;
 		  wakeup_T = MAX(wakeup_T_tag, wakeup_T_data);
@@ -2024,24 +2026,24 @@ bool dvs  = !g_ip->dvs_voltage.empty();
 			  wakeup_E*1e9 << endl ;
   }
   cout <<endl << endl;
-  cout << "    Best Ndwl : " << fr->data_array2->Ndwl << endl;
-  cout << "    Best Ndbl : " << fr->data_array2->Ndbl << endl;
-  cout << "    Best Nspd : " << fr->data_array2->Nspd << endl;
-  cout << "    Best Ndcm : " << fr->data_array2->deg_bl_muxing << endl;
-  cout << "    Best Ndsam L1 : " << fr->data_array2->Ndsam_lev_1 << endl;
-  cout << "    Best Ndsam L2 : " << fr->data_array2->Ndsam_lev_2 << endl << endl;
+  cout << "    Best Ndwl : " << fr->data_array2.Ndwl << endl;
+  cout << "    Best Ndbl : " << fr->data_array2.Ndbl << endl;
+  cout << "    Best Nspd : " << fr->data_array2.Nspd << endl;
+  cout << "    Best Ndcm : " << fr->data_array2.deg_bl_muxing << endl;
+  cout << "    Best Ndsam L1 : " << fr->data_array2.Ndsam_lev_1 << endl;
+  cout << "    Best Ndsam L2 : " << fr->data_array2.Ndsam_lev_2 << endl << endl;
 
   if ((!(g_ip->pure_ram|| g_ip->pure_cam || g_ip->fully_assoc)) && !g_ip->is_main_mem)
   {
-    cout << "    Best Ntwl : " << fr->tag_array2->Ndwl << endl;
-    cout << "    Best Ntbl : " << fr->tag_array2->Ndbl << endl;
-    cout << "    Best Ntspd : " << fr->tag_array2->Nspd << endl;
-    cout << "    Best Ntcm : " << fr->tag_array2->deg_bl_muxing << endl;
-    cout << "    Best Ntsam L1 : " << fr->tag_array2->Ndsam_lev_1 << endl;
-    cout << "    Best Ntsam L2 : " << fr->tag_array2->Ndsam_lev_2 << endl;
+    cout << "    Best Ntwl : " << fr->tag_array2.Ndwl << endl;
+    cout << "    Best Ntbl : " << fr->tag_array2.Ndbl << endl;
+    cout << "    Best Ntspd : " << fr->tag_array2.Nspd << endl;
+    cout << "    Best Ntcm : " << fr->tag_array2.deg_bl_muxing << endl;
+    cout << "    Best Ntsam L1 : " << fr->tag_array2.Ndsam_lev_1 << endl;
+    cout << "    Best Ntsam L2 : " << fr->tag_array2.Ndsam_lev_2 << endl;
   }
 
-  switch (fr->data_array2->wt) {
+  switch (fr->data_array2.wt) {
     case (0):
       cout <<  "    Data array, H-tree wire type: Delay optimized global wires\n";
       break;
@@ -2061,12 +2063,12 @@ bool dvs  = !g_ip->dvs_voltage.empty();
       cout <<  "    Data array, wire type: Low swing wires\n";
       break;
     default:
-      cout << "ERROR - Unknown wire type " << (int) fr->data_array2->wt <<endl;
+      cout << "ERROR - Unknown wire type " << (int) fr->data_array2.wt <<endl;
       exit(0);
   }
 
   if (!(g_ip->pure_ram|| g_ip->pure_cam || g_ip->fully_assoc)) {
-    switch (fr->tag_array2->wt) {
+    switch (fr->tag_array2.wt) {
       case (0):
         cout <<  "    Tag array, H-tree wire type: Delay optimized global wires\n";
         break;
@@ -2086,7 +2088,7 @@ bool dvs  = !g_ip->dvs_voltage.empty();
         cout <<  "    Tag array, wire type: Low swing wires\n";
         break;
       default:
-        cout << "ERROR - Unknown wire type " << (int) fr->tag_array2->wt <<endl;
+        cout << "ERROR - Unknown wire type " << (int) fr->tag_array2.wt <<endl;
         exit(-1);
     }
   }
@@ -2103,18 +2105,18 @@ if(0){ //detailed power-gating output
 		  areaoverhead = fr->cache_ht*fr->cache_len/fr->uca_pg_reference->cache_ht/fr->uca_pg_reference->cache_len-1;
 		  cout <<  "    Power gating circuits (sleep transistors) induced area overhead: " <<
 		  	  			  areaoverhead << " % " <<  endl ;
-		  wakeup_E = wakeup_E_data = fr->data_array2->sram_sleep_wakeup_energy
-				     + fr->data_array2->wl_sleep_wakeup_energy
-				     + fr->data_array2->bl_floating_wakeup_energy;
-		  wakeup_T = wakeup_T_data=MAX(fr->data_array2->sram_sleep_wakeup_latency,
-				  MAX(fr->data_array2->wl_sleep_wakeup_latency,fr->data_array2->bl_floating_wakeup_latency));
+		  wakeup_E = wakeup_E_data = fr->data_array2.sram_sleep_wakeup_energy
+				     + fr->data_array2.wl_sleep_wakeup_energy
+				     + fr->data_array2.bl_floating_wakeup_energy;
+		  wakeup_T = wakeup_T_data=MAX(fr->data_array2.sram_sleep_wakeup_latency,
+				  MAX(fr->data_array2.wl_sleep_wakeup_latency,fr->data_array2.bl_floating_wakeup_latency));
 		  if ((!(g_ip->pure_ram|| g_ip->pure_cam || g_ip->fully_assoc)) && !g_ip->is_main_mem)
 		  {
-			  wakeup_E_tag = fr->tag_array2->sram_sleep_wakeup_energy
-					     + fr->tag_array2->wl_sleep_wakeup_energy
-					     + fr->tag_array2->bl_floating_wakeup_energy;
-			  wakeup_T_tag=MAX(fr->tag_array2->sram_sleep_wakeup_latency,
-					  MAX(fr->tag_array2->wl_sleep_wakeup_latency,fr->tag_array2->bl_floating_wakeup_latency));
+			  wakeup_E_tag = fr->tag_array2.sram_sleep_wakeup_energy
+					     + fr->tag_array2.wl_sleep_wakeup_energy
+					     + fr->tag_array2.bl_floating_wakeup_energy;
+			  wakeup_T_tag=MAX(fr->tag_array2.sram_sleep_wakeup_latency,
+					  MAX(fr->tag_array2.wl_sleep_wakeup_latency,fr->tag_array2.bl_floating_wakeup_latency));
 
 			  wakeup_E += wakeup_E_tag;
 			  wakeup_T = MAX(wakeup_T_tag, wakeup_T_data);
@@ -2135,95 +2137,95 @@ if(0){ //detailed power-gating output
 			  cout <<  "  Fully associative cache array: " << endl;
 
 		  cout <<  "\t Sub-array Sleep Tx size (um) - " <<
-		  fr->data_array2->sram_sleep_tx_width << endl;
+		  fr->data_array2.sram_sleep_tx_width << endl;
 
 		  //    cout <<  "\t Sub-array Sleep Tx total size (um) - " <<
-		  //      fr->data_array2->sram_sleep_tx_width << endl;
+		  //      fr->data_array2.sram_sleep_tx_width << endl;
 
 		  cout <<  "\t Sub-array Sleep Tx total area (mm^2) - " <<
-		  fr->data_array2->sram_sleep_tx_area*1e-6 << endl;
+		  fr->data_array2.sram_sleep_tx_area*1e-6 << endl;
 
 		  cout <<  "\t Sub-array wakeup time (ns) - " <<
-		  fr->data_array2->sram_sleep_wakeup_latency*1e9 << endl;
+		  fr->data_array2.sram_sleep_wakeup_latency*1e9 << endl;
 
 		  cout <<  "\t Sub-array Tx energy (nJ) - " <<
-		  fr->data_array2->sram_sleep_wakeup_energy*1e9 << endl;
+		  fr->data_array2.sram_sleep_wakeup_energy*1e9 << endl;
 		  //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		  cout << endl;
 		  cout <<  "\t WL Sleep Tx size (um) - " <<
-		  fr->data_array2->wl_sleep_tx_width << endl;
+		  fr->data_array2.wl_sleep_tx_width << endl;
 
 		  //    cout <<  "\t WL Sleep total Tx size (um) - " <<
-		  //      fr->data_array2->wl_sleep_tx_width << endl;
+		  //      fr->data_array2.wl_sleep_tx_width << endl;
 
 		  cout <<  "\t WL Sleep Tx total area (mm^2) - " <<
-		  fr->data_array2->wl_sleep_tx_area*1e-6 << endl;
+		  fr->data_array2.wl_sleep_tx_area*1e-6 << endl;
 
 		  cout <<  "\t WL wakeup time (ns) - " <<
-		  fr->data_array2->wl_sleep_wakeup_latency*1e9 << endl;
+		  fr->data_array2.wl_sleep_wakeup_latency*1e9 << endl;
 
 		  cout <<  "\t WL Tx energy (nJ) - " <<
-		  fr->data_array2->wl_sleep_wakeup_energy*1e9 << endl;
+		  fr->data_array2.wl_sleep_wakeup_energy*1e9 << endl;
 		  //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		  cout << endl;
 		  cout <<  "\t BL floating wakeup time (ns) - " <<
-		  fr->data_array2->bl_floating_wakeup_latency*1e9 << endl;
+		  fr->data_array2.bl_floating_wakeup_latency*1e9 << endl;
 
 		  cout <<  "\t BL floating Tx energy (nJ) - " <<
-		  fr->data_array2->bl_floating_wakeup_energy*1e9 << endl;
+		  fr->data_array2.bl_floating_wakeup_energy*1e9 << endl;
 		  //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 		  cout << endl;
 
-		  cout <<  "\t Active mats per access - " << fr->data_array2->num_active_mats<<endl;
-		  cout <<  "\t Active subarrays per mat - " << fr->data_array2->num_submarray_mats<<endl;
+		  cout <<  "\t Active mats per access - " << fr->data_array2.num_active_mats<<endl;
+		  cout <<  "\t Active subarrays per mat - " << fr->data_array2.num_submarray_mats<<endl;
 		  cout << endl;
 		  /* Tag array area stats */
 		  if ((!(g_ip->pure_ram|| g_ip->pure_cam || g_ip->fully_assoc)) && !g_ip->is_main_mem)
 		  {
 			  cout <<  "  Tag array: " << endl;
 			  cout <<  "\t Sub-array Sleep Tx size (um) - " <<
-			  fr->tag_array2->sram_sleep_tx_width << endl;
+			  fr->tag_array2.sram_sleep_tx_width << endl;
 
 			  //    cout <<  "\t Sub-array Sleep Tx total size (um) - " <<
-			  //      fr->tag_array2->sram_sleep_tx_width << endl;
+			  //      fr->tag_array2.sram_sleep_tx_width << endl;
 
 			  cout <<  "\t Sub-array Sleep Tx total area (mm^2) - " <<
-			  fr->tag_array2->sram_sleep_tx_area*1e-6 << endl;
+			  fr->tag_array2.sram_sleep_tx_area*1e-6 << endl;
 
 			  cout <<  "\t Sub-array wakeup time (ns) - " <<
-			  fr->tag_array2->sram_sleep_wakeup_latency*1e9 << endl;
+			  fr->tag_array2.sram_sleep_wakeup_latency*1e9 << endl;
 
 			  cout <<  "\t Sub-array Tx energy (nJ) - " <<
-			  fr->tag_array2->sram_sleep_wakeup_energy*1e9 << endl;
+			  fr->tag_array2.sram_sleep_wakeup_energy*1e9 << endl;
 			  //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			  cout << endl;
 			  cout <<  "\t WL Sleep Tx size (um) - " <<
-			  fr->tag_array2->wl_sleep_tx_width << endl;
+			  fr->tag_array2.wl_sleep_tx_width << endl;
 
 			  //    cout <<  "\t WL Sleep total Tx size (um) - " <<
-			  //      fr->tag_array2->wl_sleep_tx_width << endl;
+			  //      fr->tag_array2.wl_sleep_tx_width << endl;
 
 			  cout <<  "\t WL Sleep Tx total area (mm^2) - " <<
-			  fr->tag_array2->wl_sleep_tx_area*1e-6 << endl;
+			  fr->tag_array2.wl_sleep_tx_area*1e-6 << endl;
 
 			  cout <<  "\t WL wakeup time (ns) - " <<
-			  fr->tag_array2->wl_sleep_wakeup_latency*1e9 << endl;
+			  fr->tag_array2.wl_sleep_wakeup_latency*1e9 << endl;
 
 			  cout <<  "\t WL Tx energy (nJ) - " <<
-			  fr->tag_array2->wl_sleep_wakeup_energy*1e9 << endl;
+			  fr->tag_array2.wl_sleep_wakeup_energy*1e9 << endl;
 			  //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			  cout << endl;
 			  cout <<  "\t BL floating wakeup time (ns) - " <<
-			  fr->tag_array2->bl_floating_wakeup_latency*1e9 << endl;
+			  fr->tag_array2.bl_floating_wakeup_latency*1e9 << endl;
 
 			  cout <<  "\t BL floating Tx energy (nJ) - " <<
-			  fr->tag_array2->bl_floating_wakeup_energy*1e9 << endl;
+			  fr->tag_array2.bl_floating_wakeup_energy*1e9 << endl;
 			  //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 			  cout << endl;
 
-			  cout <<  "\t Active mats per access - " << fr->tag_array2->num_active_mats<<endl;
-			  cout <<  "\t Active subarrays per mat - " << fr->tag_array2->num_submarray_mats<<endl;
+			  cout <<  "\t Active mats per access - " << fr->tag_array2.num_active_mats<<endl;
+			  cout <<  "\t Active subarrays per mat - " << fr->tag_array2.num_submarray_mats<<endl;
 			  cout << endl;
 		  }
 }
@@ -2233,92 +2235,92 @@ if(0){ //detailed power-gating output
     cout << endl << "Time Components:" << endl << endl;
 
     cout << "  Data side (with Output driver) (ns): " <<
-    		fr->data_array2->access_time/1e-9;
+    		fr->data_array2.access_time/1e-9;
     if (dvs)
     {
     	cout<<" (@DVS_Level0); ";
     	for (i = 0; i<dvs_levels; i++)
-    		cout<<fr->uca_q[i]->data_array2->access_time/1e-9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+    		cout<<fr->uca_q[i]->data_array2.access_time/1e-9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
     }
     cout<< endl;
 
     cout <<  "\tH-tree delay outside banks (ns): " <<
-      fr->data_array2->delay_route_to_bank * 1e9 ;
+      fr->data_array2.delay_route_to_bank * 1e9 ;
     if (dvs)
     {
     	cout<<" (@DVS_Level0); ";
     	for (i = 0; i<dvs_levels; i++)
-    		cout<<fr->uca_q[i]->data_array2->delay_route_to_bank * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+    		cout<<fr->uca_q[i]->data_array2.delay_route_to_bank * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
     }
     cout<< endl;
 
     cout <<  "\tH-tree input delay (inside a bank) (ns): " <<
-      fr->data_array2->delay_input_htree * 1e9 ;
+      fr->data_array2.delay_input_htree * 1e9 ;
     if (dvs)
     {
     	cout<<" (@DVS_Level0); ";
     	for (i = 0; i<dvs_levels; i++)
-    		cout<<fr->uca_q[i]->data_array2->delay_input_htree * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+    		cout<<fr->uca_q[i]->data_array2.delay_input_htree * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
     }
     cout<< endl;
 
     if (!(g_ip->pure_cam || g_ip->fully_assoc))
     {
       cout <<  "\tDecoder + wordline delay (ns): " <<
-        fr->data_array2->delay_row_predecode_driver_and_block * 1e9 +
-        fr->data_array2->delay_row_decoder * 1e9;
+        fr->data_array2.delay_row_predecode_driver_and_block * 1e9 +
+        fr->data_array2.delay_row_decoder * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->data_array2->delay_row_predecode_driver_and_block * 1e9 +
-      		fr->uca_q[i]->data_array2->delay_row_decoder * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->data_array2.delay_row_predecode_driver_and_block * 1e9 +
+      		fr->uca_q[i]->data_array2.delay_row_decoder * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
     }
     else
     {
         cout <<  "\tCAM search delay (ns): " <<
-          fr->data_array2->delay_matchlines * 1e9;
+          fr->data_array2.delay_matchlines * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->delay_matchlines * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.delay_matchlines * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
     }
 
     cout <<  "\tBitline delay (ns): " <<
-      fr->data_array2->delay_bitlines/1e-9 ;
+      fr->data_array2.delay_bitlines/1e-9 ;
     if (dvs)
     {
     	cout<<" (@DVS_Level0); ";
     	for (i = 0; i<dvs_levels; i++)
-    		cout<<fr->uca_q[i]->data_array2->delay_bitlines/1e-9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+    		cout<<fr->uca_q[i]->data_array2.delay_bitlines/1e-9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
     }
     cout<< endl;
 
     cout <<  "\tSense Amplifier delay (ns): " <<
-      fr->data_array2->delay_sense_amp * 1e9 ;
+      fr->data_array2.delay_sense_amp * 1e9 ;
     if (dvs)
     {
     	cout<<" (@DVS_Level0); ";
     	for (i = 0; i<dvs_levels; i++)
-    		cout<<fr->uca_q[i]->data_array2->delay_sense_amp*1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+    		cout<<fr->uca_q[i]->data_array2.delay_sense_amp*1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
     }
     cout<< endl;
 
 
     cout <<  "\tH-tree output delay (inside a bank) (ns): " <<
-      fr->data_array2->delay_subarray_output_driver * 1e9 +
-      fr->data_array2->delay_dout_htree * 1e9;
+      fr->data_array2.delay_subarray_output_driver * 1e9 +
+      fr->data_array2.delay_dout_htree * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->data_array2->delay_subarray_output_driver * 1e9 +
-      		fr->uca_q[i]->data_array2->delay_dout_htree * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->data_array2.delay_subarray_output_driver * 1e9 +
+      		fr->uca_q[i]->data_array2.delay_dout_htree * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
     cout<< endl;
     if (g_ip->power_gating)
@@ -2331,85 +2333,85 @@ if(0){ //detailed power-gating output
     {
       /* tag array stats */
       cout << endl << "  Tag side (with Output driver) (ns): " <<
-        fr->tag_array2->access_time/1e-9 ;
+        fr->tag_array2.access_time/1e-9 ;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->access_time/1e-9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.access_time/1e-9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout << endl;
       cout <<  "\tH-tree delay outside banks (ns): " <<
-        fr->tag_array2->delay_route_to_bank * 1e9;
+        fr->tag_array2.delay_route_to_bank * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->delay_route_to_bank * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.delay_route_to_bank * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout << endl;
 
       cout <<  "\tH-tree input delay (inside a bank) (ns): " <<
-        fr->tag_array2->delay_input_htree * 1e9;
+        fr->tag_array2.delay_input_htree * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->delay_input_htree * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.delay_input_htree * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout << endl;
 
       cout <<  "\tDecoder + wordline delay (ns): " <<
-        fr->tag_array2->delay_row_predecode_driver_and_block * 1e9 +
-        fr->tag_array2->delay_row_decoder * 1e9;
+        fr->tag_array2.delay_row_predecode_driver_and_block * 1e9 +
+        fr->tag_array2.delay_row_decoder * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->delay_row_predecode_driver_and_block * 1e9 +
-            fr->uca_q[i]->tag_array2->delay_row_decoder * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.delay_row_predecode_driver_and_block * 1e9 +
+            fr->uca_q[i]->tag_array2.delay_row_decoder * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout << endl;
 
       cout <<  "\tBitline delay (ns): " <<
-        fr->tag_array2->delay_bitlines/1e-9;
+        fr->tag_array2.delay_bitlines/1e-9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->delay_bitlines * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.delay_bitlines * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout << endl;
 
       cout <<  "\tSense Amplifier delay (ns): " <<
-        fr->tag_array2->delay_sense_amp * 1e9 ;
+        fr->tag_array2.delay_sense_amp * 1e9 ;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->delay_sense_amp * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.delay_sense_amp * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout << endl;
 
       cout <<  "\tComparator delay (ns): " <<
-        fr->tag_array2->delay_comparator * 1e9;
+        fr->tag_array2.delay_comparator * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->delay_comparator * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.delay_comparator * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout << endl;
 
       cout <<  "\tH-tree output delay (inside a bank) (ns): " <<
-        fr->tag_array2->delay_subarray_output_driver * 1e9 +
-        fr->tag_array2->delay_dout_htree * 1e9 ;
+        fr->tag_array2.delay_subarray_output_driver * 1e9 +
+        fr->tag_array2.delay_dout_htree * 1e9 ;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->delay_subarray_output_driver * 1e9 +
-            fr->uca_q[i]->tag_array2->delay_dout_htree * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.delay_subarray_output_driver * 1e9 +
+            fr->uca_q[i]->tag_array2.delay_dout_htree * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout << endl;
       if (g_ip->power_gating)
@@ -2427,29 +2429,29 @@ if(0){ //detailed power-gating output
     if (!(g_ip->pure_cam || g_ip->fully_assoc))
     {
     	cout << "  Data array: Total dynamic read energy/access  (nJ): " <<
-    			fr->data_array2->power.readOp.dynamic * 1e9;
+    			fr->data_array2.power.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power.readOp.dynamic * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power.readOp.dynamic * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	if (g_ip->power_gating)
     	{
     		cout << "\tTotal leakage power of a bank, power gated with retaining memory content, including its network outside (mW): " <<
-    				(g_ip->long_channel_device ? fr->data_array2->power.readOp.power_gated_leakage*long_channel_leakage_reduction : fr->data_array2->power.readOp.power_gated_leakage)*1e3 << endl;
+    				(g_ip->long_channel_device ? fr->data_array2.power.readOp.power_gated_leakage*long_channel_leakage_reduction : fr->data_array2.power.readOp.power_gated_leakage)*1e3 << endl;
     	}
 //    	else
 //    	{
     		cout << "\tTotal leakage power of a bank without power gating, including its network outside (mW): " <<
-    				(g_ip->long_channel_device ? fr->data_array2->power.readOp.leakage*long_channel_leakage_reduction : fr->data_array2->power.readOp.leakage)*1e3;
+    				(g_ip->long_channel_device ? fr->data_array2.power.readOp.leakage*long_channel_leakage_reduction : fr->data_array2.power.readOp.leakage)*1e3;
             if (dvs)
             {
             	cout<<" (@DVS_Level0); ";
             	for (i = 0; i<dvs_levels; i++)
-            		cout<< (g_ip->long_channel_device ?fr->uca_q[i]->data_array2->power.readOp.leakage*long_channel_leakage_reduction : fr->uca_q[i]->data_array2->power.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+            		cout<< (g_ip->long_channel_device ?fr->uca_q[i]->data_array2.power.readOp.leakage*long_channel_leakage_reduction : fr->uca_q[i]->data_array2.power.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
             }
             cout<< endl;
 
@@ -2457,131 +2459,131 @@ if(0){ //detailed power-gating output
 
     	cout << "\tTotal energy in H-tree outside banks (that includes both "
     			"address and data transfer) (nJ): " <<
-    			(fr->data_array2->power_routing_to_bank.readOp.dynamic) * 1e9 ;
+    			(fr->data_array2.power_routing_to_bank.readOp.dynamic) * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_routing_to_bank.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_routing_to_bank.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout << "\tInput H-tree inside bank Energy (nJ): " <<
-    			(fr->data_array2->power_addr_input_htree.readOp.dynamic) * 1e9 ;
+    			(fr->data_array2.power_addr_input_htree.readOp.dynamic) * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_addr_input_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_addr_input_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
 
     	cout << "\tOutput Htree inside bank Energy (nJ): " <<
-    			fr->data_array2->power_data_output_htree.readOp.dynamic * 1e9 ;
+    			fr->data_array2.power_data_output_htree.readOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_data_output_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_data_output_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tDecoder (nJ): " <<
-    			fr->data_array2->power_row_predecoder_drivers.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_row_predecoder_blocks.readOp.dynamic * 1e9 ;
+    			fr->data_array2.power_row_predecoder_drivers.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_row_predecoder_blocks.readOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<(fr->uca_q[i]->data_array2->power_row_predecoder_drivers.readOp.dynamic * 1e9 +
-    			       fr->uca_q[i]->data_array2->power_row_predecoder_blocks.readOp.dynamic * 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<(fr->uca_q[i]->data_array2.power_row_predecoder_drivers.readOp.dynamic * 1e9 +
+    			       fr->uca_q[i]->data_array2.power_row_predecoder_blocks.readOp.dynamic * 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tWordline (nJ): " <<
-    			fr->data_array2->power_row_decoders.readOp.dynamic * 1e9;
+    			fr->data_array2.power_row_decoders.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_row_decoders.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_row_decoders.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tBitline mux & associated drivers (nJ): " <<
-    			fr->data_array2->power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_bit_mux_decoders.readOp.dynamic * 1e9;
+    			fr->data_array2.power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_bit_mux_decoders.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<(fr->uca_q[i]->data_array2->power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_bit_mux_decoders.readOp.dynamic * 1e9)
+        		cout<<(fr->uca_q[i]->data_array2.power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_bit_mux_decoders.readOp.dynamic * 1e9)
             			<<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tSense amp mux & associated drivers (nJ): " <<
-    			fr->data_array2->power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
-    			fr->data_array2->power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9;
+    			fr->data_array2.power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
+    			fr->data_array2.power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<( fr->uca_q[i]->data_array2->power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9)
+        		cout<<( fr->uca_q[i]->data_array2.power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9)
             			<<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tBitlines precharge and equalization circuit (nJ): " <<
-    			fr->data_array2->power_prechg_eq_drivers.readOp.dynamic * 1e9;
+    			fr->data_array2.power_prechg_eq_drivers.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_prechg_eq_drivers.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_prechg_eq_drivers.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tBitlines (nJ): " <<
-    			fr->data_array2->power_bitlines.readOp.dynamic * 1e9 ;
+    			fr->data_array2.power_bitlines.readOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_bitlines.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_bitlines.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tSense amplifier energy (nJ): " <<
-    			fr->data_array2->power_sense_amps.readOp.dynamic * 1e9 ;
+    			fr->data_array2.power_sense_amps.readOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_sense_amps.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_sense_amps.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tSub-array output driver (nJ): " <<
-    			fr->data_array2->power_output_drivers_at_subarray.readOp.dynamic * 1e9 ;
+    			fr->data_array2.power_output_drivers_at_subarray.readOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_output_drivers_at_subarray.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_output_drivers_at_subarray.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
@@ -2590,40 +2592,40 @@ if(0){ //detailed power-gating output
     	{
     		cout << "\tTotal leakage power in H-tree outside a bank when power gated (that includes both "
     				"address and data network) ((mW)): " <<
-    				(g_ip->long_channel_device?fr->data_array2->power_routing_to_bank.readOp.power_gated_leakage * long_channel_leakage_reduction: fr->data_array2->power_routing_to_bank.readOp.power_gated_leakage) * 1e3 << endl;
+    				(g_ip->long_channel_device?fr->data_array2.power_routing_to_bank.readOp.power_gated_leakage * long_channel_leakage_reduction: fr->data_array2.power_routing_to_bank.readOp.power_gated_leakage) * 1e3 << endl;
     	}
 //    	else
 //    	{
     		cout << "\tTotal leakage power in H-tree outside a bank (that includes both "
     				"address and data network) ((mW)): " <<
-    				(g_ip->long_channel_device? fr->data_array2->power_routing_to_bank.readOp.leakage * long_channel_leakage_reduction: fr->data_array2->power_routing_to_bank.readOp.leakage) * 1e3 ;
+    				(g_ip->long_channel_device? fr->data_array2.power_routing_to_bank.readOp.leakage * long_channel_leakage_reduction: fr->data_array2.power_routing_to_bank.readOp.leakage) * 1e3 ;
             if (dvs)
             {
             	cout<<" (@DVS_Level0); ";
             	for (i = 0; i<dvs_levels; i++)
-            		cout<<(g_ip->long_channel_device? fr->uca_q[i]->data_array2->power_routing_to_bank.readOp.leakage* long_channel_leakage_reduction: fr->uca_q[i]->data_array2->power_routing_to_bank.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+            		cout<<(g_ip->long_channel_device? fr->uca_q[i]->data_array2.power_routing_to_bank.readOp.leakage* long_channel_leakage_reduction: fr->uca_q[i]->data_array2.power_routing_to_bank.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
             }
             cout<< endl;
 
 //    	}
     	//    	cout << "\tTotal leakage power in H-tree (that includes both "
     	//    	      "address and data network) ((mW)): " <<
-    	//    	        (fr->data_array2->power_addr_input_htree.readOp.leakage +
-    	//    	         fr->data_array2->power_data_output_htree.readOp.leakage +
-    	//    	         fr->data_array2->power_routing_to_bank.readOp.leakage) * 1e3 << endl;
+    	//    	        (fr->data_array2.power_addr_input_htree.readOp.leakage +
+    	//    	         fr->data_array2.power_data_output_htree.readOp.leakage +
+    	//    	         fr->data_array2.power_routing_to_bank.readOp.leakage) * 1e3 << endl;
 
     	//    	cout << "\tTotal leakage power in cells (mW): " <<
-    	//    	        (fr->data_array2->array_leakage) * 1e3 << endl;
+    	//    	        (fr->data_array2.array_leakage) * 1e3 << endl;
     	//    	cout << "\tTotal leakage power in row logic(mW): " <<
-    	//    	        (fr->data_array2->wl_leakage) * 1e3 << endl;
+    	//    	        (fr->data_array2.wl_leakage) * 1e3 << endl;
     	//    	cout << "\tTotal leakage power in column logic(mW): " <<
-    	//    	        (fr->data_array2->cl_leakage) * 1e3 << endl;
+    	//    	        (fr->data_array2.cl_leakage) * 1e3 << endl;
     	//
     	//    	cout << "\tTotal gate leakage power in H-tree (that includes both "
     	//    	      "address and data network) ((mW)): " <<
-    	//    	        (fr->data_array2->power_addr_input_htree.readOp.gate_leakage +
-    	//    	         fr->data_array2->power_data_output_htree.readOp.gate_leakage +
-    	//    	         fr->data_array2->power_routing_to_bank.readOp.gate_leakage) * 1e3 << endl;
+    	//    	        (fr->data_array2.power_addr_input_htree.readOp.gate_leakage +
+    	//    	         fr->data_array2.power_data_output_htree.readOp.gate_leakage +
+    	//    	         fr->data_array2.power_routing_to_bank.readOp.gate_leakage) * 1e3 << endl;
     }
 
     if (g_ip->pure_cam||g_ip->fully_assoc)
@@ -2631,316 +2633,316 @@ if(0){ //detailed power-gating output
 
     	if (g_ip->pure_cam) cout << "  CAM array:"<<endl;
     	//            	cout << "  Total dynamic associative search energy/access  (nJ): " <<
-    	//                      fr->data_array2->power.searchOp.dynamic * 1e9 << endl;
+    	//                      fr->data_array2.power.searchOp.dynamic * 1e9 << endl;
     	//    	        cout << "\tTotal energy in H-tree (that includes both "
     	//    	            	      "match key and data transfer) (nJ): " <<
-    	//    	              (fr->data_array2->power_htree_in_search.searchOp.dynamic +
-    	//    	               fr->data_array2->power_htree_out_search.searchOp.dynamic +
-    	//    	               fr->data_array2->power_routing_to_bank.searchOp.dynamic) * 1e9 << endl;
+    	//    	              (fr->data_array2.power_htree_in_search.searchOp.dynamic +
+    	//    	               fr->data_array2.power_htree_out_search.searchOp.dynamic +
+    	//    	               fr->data_array2.power_routing_to_bank.searchOp.dynamic) * 1e9 << endl;
     	//    	        cout << "\tKeyword input and result output Htrees inside bank Energy (nJ): " <<
-    	//    	              (fr->data_array2->power_htree_in_search.searchOp.dynamic +
-    	//    	       	               fr->data_array2->power_htree_out_search.searchOp.dynamic) * 1e9 << endl;
+    	//    	              (fr->data_array2.power_htree_in_search.searchOp.dynamic +
+    	//    	       	               fr->data_array2.power_htree_out_search.searchOp.dynamic) * 1e9 << endl;
     	//    	        cout <<  "\tSearchlines (nJ): " <<
-    	//    	          	   fr->data_array2->power_searchline.searchOp.dynamic * 1e9 +
-    	//    	          	   fr->data_array2->power_searchline_precharge.searchOp.dynamic * 1e9 << endl;
+    	//    	          	   fr->data_array2.power_searchline.searchOp.dynamic * 1e9 +
+    	//    	          	   fr->data_array2.power_searchline_precharge.searchOp.dynamic * 1e9 << endl;
     	//    	        cout <<  "\tMatchlines  (nJ): " <<
-    	//    	               fr->data_array2->power_matchlines.searchOp.dynamic * 1e9 +
-    	//    	        	   fr->data_array2->power_matchline_precharge.searchOp.dynamic * 1e9 << endl;
+    	//    	               fr->data_array2.power_matchlines.searchOp.dynamic * 1e9 +
+    	//    	        	   fr->data_array2.power_matchline_precharge.searchOp.dynamic * 1e9 << endl;
     	//    	        cout <<  "\tSub-array output driver (nJ): " <<
-    	//    	          	   fr->data_array2->power_output_drivers_at_subarray.searchOp.dynamic * 1e9 << endl;
+    	//    	          	   fr->data_array2.power_output_drivers_at_subarray.searchOp.dynamic * 1e9 << endl;
     	//
     	//
     	//            	cout <<endl<< "  Total dynamic read energy/access  (nJ): " <<
-    	//            	      fr->data_array2->power.readOp.dynamic * 1e9 << endl;
+    	//            	      fr->data_array2.power.readOp.dynamic * 1e9 << endl;
     	//    	        cout << "\tTotal energy in H-tree (that includes both "
     	//    	            	      "address and data transfer) (nJ): " <<
-    	//    	              (fr->data_array2->power_addr_input_htree.readOp.dynamic +
-    	//    	               fr->data_array2->power_data_output_htree.readOp.dynamic +
-    	//    	               fr->data_array2->power_routing_to_bank.readOp.dynamic) * 1e9 << endl;
+    	//    	              (fr->data_array2.power_addr_input_htree.readOp.dynamic +
+    	//    	               fr->data_array2.power_data_output_htree.readOp.dynamic +
+    	//    	               fr->data_array2.power_routing_to_bank.readOp.dynamic) * 1e9 << endl;
     	//    	        cout << "\tOutput Htree inside bank Energy (nJ): " <<
-    	//    	          	   fr->data_array2->power_data_output_htree.readOp.dynamic * 1e9 << endl;
+    	//    	          	   fr->data_array2.power_data_output_htree.readOp.dynamic * 1e9 << endl;
     	//    	        cout <<  "\tDecoder (nJ): " <<
-    	//    	          	   fr->data_array2->power_row_predecoder_drivers.readOp.dynamic * 1e9 +
-    	//    	          	   fr->data_array2->power_row_predecoder_blocks.readOp.dynamic * 1e9 << endl;
+    	//    	          	   fr->data_array2.power_row_predecoder_drivers.readOp.dynamic * 1e9 +
+    	//    	          	   fr->data_array2.power_row_predecoder_blocks.readOp.dynamic * 1e9 << endl;
     	//    	        cout <<  "\tWordline (nJ): " <<
-    	//    	          	   fr->data_array2->power_row_decoders.readOp.dynamic * 1e9 << endl;
+    	//    	          	   fr->data_array2.power_row_decoders.readOp.dynamic * 1e9 << endl;
     	//    	        cout <<  "\tBitline mux & associated drivers (nJ): " <<
-    	//    	          	   fr->data_array2->power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
-    	//    	          	   fr->data_array2->power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
-    	//    	           	   fr->data_array2->power_bit_mux_decoders.readOp.dynamic * 1e9 << endl;
+    	//    	          	   fr->data_array2.power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
+    	//    	          	   fr->data_array2.power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
+    	//    	           	   fr->data_array2.power_bit_mux_decoders.readOp.dynamic * 1e9 << endl;
     	//    	        cout <<  "\tSense amp mux & associated drivers (nJ): " <<
-    	//    	         	   fr->data_array2->power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
-    	//    	          	   fr->data_array2->power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
-    	//    	          	   fr->data_array2->power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
-    	//    	           	   fr->data_array2->power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
-    	//    	           	   fr->data_array2->power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
-    	//    	          	   fr->data_array2->power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9 << endl;
+    	//    	         	   fr->data_array2.power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
+    	//    	          	   fr->data_array2.power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
+    	//    	          	   fr->data_array2.power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
+    	//    	           	   fr->data_array2.power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
+    	//    	           	   fr->data_array2.power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
+    	//    	          	   fr->data_array2.power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9 << endl;
     	//    	        cout <<  "\tBitlines (nJ): " <<
-    	//    	          	   fr->data_array2->power_bitlines.readOp.dynamic * 1e9 +
-    	//    	          	   fr->data_array2->power_prechg_eq_drivers.readOp.dynamic * 1e9<< endl;
+    	//    	          	   fr->data_array2.power_bitlines.readOp.dynamic * 1e9 +
+    	//    	          	   fr->data_array2.power_prechg_eq_drivers.readOp.dynamic * 1e9<< endl;
     	//    	        cout <<  "\tSense amplifier energy (nJ): " <<
-    	//    	          	   fr->data_array2->power_sense_amps.readOp.dynamic * 1e9 << endl;
+    	//    	          	   fr->data_array2.power_sense_amps.readOp.dynamic * 1e9 << endl;
     	//    	        cout <<  "\tSub-array output driver (nJ): " <<
-    	//    	          	   fr->data_array2->power_output_drivers_at_subarray.readOp.dynamic * 1e9 << endl;
+    	//    	          	   fr->data_array2.power_output_drivers_at_subarray.readOp.dynamic * 1e9 << endl;
     	//
     	//            	cout << endl <<"  Total leakage power of a bank (mW): " <<
-    	//                      fr->data_array2->power.readOp.leakage * 1e3 << endl;
+    	//                      fr->data_array2.power.readOp.leakage * 1e3 << endl;
     	//        }
     	//        else
     	//        {
     	if (g_ip->fully_assoc)  cout << "  Fully associative array:"<<endl;
 
     	cout << "  Total dynamic associative search energy/access  (nJ): " <<
-    			fr->data_array2->power.searchOp.dynamic * 1e9 ;
+    			fr->data_array2.power.searchOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power.searchOp.dynamic * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power.searchOp.dynamic * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout << "\tTotal energy in H-tree outside banks(that includes both "
     			"match key and data transfer) (nJ): " <<
-    			(fr->data_array2->power_routing_to_bank.searchOp.dynamic) * 1e9;
+    			(fr->data_array2.power_routing_to_bank.searchOp.dynamic) * 1e9;
         if (dvs)
          {
          	cout<<" (@DVS_Level0); ";
          	for (i = 0; i<dvs_levels; i++)
-         		cout<<fr->uca_q[i]->data_array2->power_routing_to_bank.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+         		cout<<fr->uca_q[i]->data_array2.power_routing_to_bank.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
          }
          cout<< endl;
 
     	cout << "\tMatch Key input Htrees inside bank Energy (nJ): " <<
-    	    			(fr->data_array2->power_htree_in_search.searchOp.dynamic ) * 1e9 ;
+    	    			(fr->data_array2.power_htree_in_search.searchOp.dynamic ) * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_htree_in_search.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_htree_in_search.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout << "\tResult output Htrees inside bank Energy (nJ): " <<
-    			(fr->data_array2->power_htree_out_search.searchOp.dynamic) * 1e9 ;
+    			(fr->data_array2.power_htree_out_search.searchOp.dynamic) * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_htree_out_search.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_htree_out_search.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tSearchlines (nJ): " <<
-    			fr->data_array2->power_searchline.searchOp.dynamic * 1e9 +
-    			fr->data_array2->power_searchline_precharge.searchOp.dynamic * 1e9 ;
+    			fr->data_array2.power_searchline.searchOp.dynamic * 1e9 +
+    			fr->data_array2.power_searchline_precharge.searchOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_searchline.searchOp.dynamic * 1e9 +
-    				  fr->uca_q[i]->data_array2->power_searchline_precharge.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_searchline.searchOp.dynamic * 1e9 +
+    				  fr->uca_q[i]->data_array2.power_searchline_precharge.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tMatchlines  (nJ): " <<
-    			fr->data_array2->power_matchlines.searchOp.dynamic * 1e9 +
-    			fr->data_array2->power_matchline_precharge.searchOp.dynamic * 1e9;
+    			fr->data_array2.power_matchlines.searchOp.dynamic * 1e9 +
+    			fr->data_array2.power_matchline_precharge.searchOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_matchlines.searchOp.dynamic * 1e9 +
-    				  fr->uca_q[i]->data_array2->power_matchline_precharge.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_matchlines.searchOp.dynamic * 1e9 +
+    				  fr->uca_q[i]->data_array2.power_matchline_precharge.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	if (g_ip->fully_assoc)
     	{
     		cout <<  "\tData portion wordline (nJ): " <<
-    				fr->data_array2->power_matchline_to_wordline_drv.searchOp.dynamic * 1e9 ;
+    				fr->data_array2.power_matchline_to_wordline_drv.searchOp.dynamic * 1e9 ;
             if (dvs)
             {
             	cout<<" (@DVS_Level0); ";
             	for (i = 0; i<dvs_levels; i++)
-            		cout<<fr->uca_q[i]->data_array2->power_matchline_to_wordline_drv.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+            		cout<<fr->uca_q[i]->data_array2.power_matchline_to_wordline_drv.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
             }
             cout<< endl;
 
     		cout <<  "\tData Bitlines (nJ): " <<
-    				fr->data_array2->power_bitlines.searchOp.dynamic * 1e9 +
-    				fr->data_array2->power_prechg_eq_drivers.searchOp.dynamic * 1e9;
+    				fr->data_array2.power_bitlines.searchOp.dynamic * 1e9 +
+    				fr->data_array2.power_prechg_eq_drivers.searchOp.dynamic * 1e9;
             if (dvs)
             {
             	cout<<" (@DVS_Level0); ";
             	for (i = 0; i<dvs_levels; i++)
-            		cout<<(fr->uca_q[i]->data_array2->power_bitlines.searchOp.dynamic * 1e9 +
-            			   fr->uca_q[i]->data_array2->power_prechg_eq_drivers.searchOp.dynamic * 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+            		cout<<(fr->uca_q[i]->data_array2.power_bitlines.searchOp.dynamic * 1e9 +
+            			   fr->uca_q[i]->data_array2.power_prechg_eq_drivers.searchOp.dynamic * 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
             }
             cout<< endl;
 
     		cout <<  "\tSense amplifier energy (nJ): " <<
-    				fr->data_array2->power_sense_amps.searchOp.dynamic * 1e9 ;
+    				fr->data_array2.power_sense_amps.searchOp.dynamic * 1e9 ;
             if (dvs)
             {
             	cout<<" (@DVS_Level0); ";
             	for (i = 0; i<dvs_levels; i++)
-            		cout<<fr->uca_q[i]->data_array2->power_sense_amps.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+            		cout<<fr->uca_q[i]->data_array2.power_sense_amps.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
             }
             cout<< endl;
     	}
 
     	cout <<  "\tSub-array output driver (nJ): " <<
-    			fr->data_array2->power_output_drivers_at_subarray.searchOp.dynamic * 1e9 ;
+    			fr->data_array2.power_output_drivers_at_subarray.searchOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_output_drivers_at_subarray.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_output_drivers_at_subarray.searchOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<endl<< "  Total dynamic read energy/access  (nJ): " <<
-    			fr->data_array2->power.readOp.dynamic * 1e9;
+    			fr->data_array2.power.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
 
     	cout << "\tTotal energy in H-tree outside banks(that includes both "
     			"address and data transfer) (nJ): " <<
-    			(fr->data_array2->power_routing_to_bank.readOp.dynamic) * 1e9;
+    			(fr->data_array2.power_routing_to_bank.readOp.dynamic) * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_routing_to_bank.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_routing_to_bank.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout << "\tInput Htree inside bank Energy (nJ): " <<
-    	    			(fr->data_array2->power_addr_input_htree.readOp.dynamic ) * 1e9 ;
+    	    			(fr->data_array2.power_addr_input_htree.readOp.dynamic ) * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_addr_input_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_addr_input_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout << "\tOutput Htree inside bank Energy (nJ): " <<
-    			fr->data_array2->power_data_output_htree.readOp.dynamic * 1e9 ;
+    			fr->data_array2.power_data_output_htree.readOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_data_output_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_data_output_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tDecoder (nJ): " <<
-    			fr->data_array2->power_row_predecoder_drivers.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_row_predecoder_blocks.readOp.dynamic * 1e9;
+    			fr->data_array2.power_row_predecoder_drivers.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_row_predecoder_blocks.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<(fr->uca_q[i]->data_array2->power_row_predecoder_drivers.readOp.dynamic * 1e9 +
-    			       fr->uca_q[i]->data_array2->power_row_predecoder_blocks.readOp.dynamic * 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<(fr->uca_q[i]->data_array2.power_row_predecoder_drivers.readOp.dynamic * 1e9 +
+    			       fr->uca_q[i]->data_array2.power_row_predecoder_blocks.readOp.dynamic * 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tWordline (nJ): " <<
-    			fr->data_array2->power_row_decoders.readOp.dynamic * 1e9 ;
+    			fr->data_array2.power_row_decoders.readOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_row_decoders.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_row_decoders.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tBitline mux & associated drivers (nJ): " <<
-    			fr->data_array2->power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_bit_mux_decoders.readOp.dynamic * 1e9;
+    			fr->data_array2.power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_bit_mux_decoders.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<(fr->uca_q[i]->data_array2->power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_bit_mux_decoders.readOp.dynamic * 1e9)
+        		cout<<(fr->uca_q[i]->data_array2.power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_bit_mux_decoders.readOp.dynamic * 1e9)
             			<<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tSense amp mux & associated drivers (nJ): " <<
-    			fr->data_array2->power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
-    			fr->data_array2->power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9;
+    			fr->data_array2.power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
+    			fr->data_array2.power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<( fr->uca_q[i]->data_array2->power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
-            			fr->uca_q[i]->data_array2->power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9)
+        		cout<<( fr->uca_q[i]->data_array2.power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
+            			fr->uca_q[i]->data_array2.power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9)
             			<<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
 
     	cout <<  "\tBitlines (nJ): " <<
-    			fr->data_array2->power_bitlines.readOp.dynamic * 1e9 +
-    			fr->data_array2->power_prechg_eq_drivers.readOp.dynamic * 1e9;
+    			fr->data_array2.power_bitlines.readOp.dynamic * 1e9 +
+    			fr->data_array2.power_prechg_eq_drivers.readOp.dynamic * 1e9;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<(fr->uca_q[i]->data_array2->power_bitlines.readOp.dynamic * 1e9 +
-    			       fr->uca_q[i]->data_array2->power_prechg_eq_drivers.readOp.dynamic* 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<(fr->uca_q[i]->data_array2.power_bitlines.readOp.dynamic * 1e9 +
+    			       fr->uca_q[i]->data_array2.power_prechg_eq_drivers.readOp.dynamic* 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tSense amplifier energy (nJ): " <<
-    			fr->data_array2->power_sense_amps.readOp.dynamic * 1e9 ;
+    			fr->data_array2.power_sense_amps.readOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_sense_amps.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_sense_amps.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
     	cout <<  "\tSub-array output driver (nJ): " <<
-    			fr->data_array2->power_output_drivers_at_subarray.readOp.dynamic * 1e9 ;
+    			fr->data_array2.power_output_drivers_at_subarray.readOp.dynamic * 1e9 ;
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<fr->uca_q[i]->data_array2->power_output_drivers_at_subarray.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<fr->uca_q[i]->data_array2.power_output_drivers_at_subarray.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
 
     	cout << endl <<"  Total leakage power of a bank, including its network outside (mW): " <<
-    			(g_ip->long_channel_device ? fr->data_array2->power.readOp.leakage*long_channel_leakage_reduction : fr->data_array2->power.readOp.leakage)*1e3; //CAM/FA does not support PG yet
+    			(g_ip->long_channel_device ? fr->data_array2.power.readOp.leakage*long_channel_leakage_reduction : fr->data_array2.power.readOp.leakage)*1e3; //CAM/FA does not support PG yet
         if (dvs)
         {
         	cout<<" (@DVS_Level0); ";
         	for (i = 0; i<dvs_levels; i++)
-        		cout<<(g_ip->long_channel_device ?fr->uca_q[i]->data_array2->power.readOp.leakage*long_channel_leakage_reduction : fr->uca_q[i]->data_array2->power.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+        		cout<<(g_ip->long_channel_device ?fr->uca_q[i]->data_array2.power.readOp.leakage*long_channel_leakage_reduction : fr->uca_q[i]->data_array2.power.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
         }
         cout<< endl;
 
@@ -2951,161 +2953,161 @@ if(0){ //detailed power-gating output
     if ((!(g_ip->pure_ram|| g_ip->pure_cam || g_ip->fully_assoc)) && !g_ip->is_main_mem)
     {
       cout << endl << "  Tag array:  Total dynamic read energy/access (nJ): " <<
-        fr->tag_array2->power.readOp.dynamic * 1e9;
+        fr->tag_array2.power.readOp.dynamic * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->power.readOp.dynamic * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.power.readOp.dynamic * 1e9  <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
       if (g_ip->power_gating)
             {
           	  cout << "\tTotal leakage power of a bank, power gated with retaining memory content, including its network outside (mW): " <<
-          			  (g_ip->long_channel_device ? fr->tag_array2->power.readOp.power_gated_leakage*long_channel_leakage_reduction :  fr->tag_array2->power.readOp.power_gated_leakage)* 1e3 << endl;
+          			  (g_ip->long_channel_device ? fr->tag_array2.power.readOp.power_gated_leakage*long_channel_leakage_reduction :  fr->tag_array2.power.readOp.power_gated_leakage)* 1e3 << endl;
           	 }
 //            else
 //            {
           	  cout << "\tTotal leakage power of a bank without power gating, including its network outside (mW): " <<
-          			(g_ip->long_channel_device ? fr->tag_array2->power.readOp.leakage * long_channel_leakage_reduction: fr->tag_array2->power.readOp.leakage)* 1e3;
+          			(g_ip->long_channel_device ? fr->tag_array2.power.readOp.leakage * long_channel_leakage_reduction: fr->tag_array2.power.readOp.leakage)* 1e3;
               if (dvs)
               {
               	cout<<" (@DVS_Level0); ";
               	for (i = 0; i<dvs_levels; i++)
-              		cout<<(g_ip->long_channel_device ? fr->uca_q[i]->tag_array2->power.readOp.leakage *long_channel_leakage_reduction: fr->uca_q[i]->tag_array2->power.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+              		cout<<(g_ip->long_channel_device ? fr->uca_q[i]->tag_array2.power.readOp.leakage *long_channel_leakage_reduction: fr->uca_q[i]->tag_array2.power.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
               }
               cout<< endl;
 
 //            }
 //      cout << "\tTotal leakage read/write power of a bank (mW): " <<
-//          fr->tag_array2->power.readOp.leakage * 1e3 << endl;
+//          fr->tag_array2.power.readOp.leakage * 1e3 << endl;
       cout << "\tTotal energy in H-tree outside banks (that includes both "
         "address and data transfer) (nJ): " <<
-          (fr->tag_array2->power_routing_to_bank.readOp.dynamic) * 1e9;
+          (fr->tag_array2.power_routing_to_bank.readOp.dynamic) * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->power_routing_to_bank.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.power_routing_to_bank.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
 
       cout << "\tInput H-tree inside banks Energy (nJ): " <<
-          (fr->tag_array2->power_addr_input_htree.readOp.dynamic) * 1e9;
+          (fr->tag_array2.power_addr_input_htree.readOp.dynamic) * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->power_addr_input_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.power_addr_input_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
       cout << "\tOutput Htree inside a bank Energy (nJ): " <<
-        fr->tag_array2->power_data_output_htree.readOp.dynamic * 1e9;
+        fr->tag_array2.power_data_output_htree.readOp.dynamic * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->power_data_output_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.power_data_output_htree.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
       cout <<  "\tDecoder (nJ): " <<
-        fr->tag_array2->power_row_predecoder_drivers.readOp.dynamic * 1e9 +
-        fr->tag_array2->power_row_predecoder_blocks.readOp.dynamic * 1e9;
+        fr->tag_array2.power_row_predecoder_drivers.readOp.dynamic * 1e9 +
+        fr->tag_array2.power_row_predecoder_blocks.readOp.dynamic * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<(fr->uca_q[i]->tag_array2->power_row_predecoder_drivers.readOp.dynamic * 1e9 +
-  			       fr->uca_q[i]->tag_array2->power_row_predecoder_blocks.readOp.dynamic * 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<(fr->uca_q[i]->tag_array2.power_row_predecoder_drivers.readOp.dynamic * 1e9 +
+  			       fr->uca_q[i]->tag_array2.power_row_predecoder_blocks.readOp.dynamic * 1e9) <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
       cout <<  "\tWordline (nJ): " <<
-        fr->tag_array2->power_row_decoders.readOp.dynamic * 1e9;
+        fr->tag_array2.power_row_decoders.readOp.dynamic * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->power_row_decoders.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.power_row_decoders.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
       cout <<  "\tBitline mux & associated drivers (nJ): " <<
-        fr->tag_array2->power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
-        fr->tag_array2->power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
-        fr->tag_array2->power_bit_mux_decoders.readOp.dynamic * 1e9 ;
+        fr->tag_array2.power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
+        fr->tag_array2.power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
+        fr->tag_array2.power_bit_mux_decoders.readOp.dynamic * 1e9 ;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<(fr->uca_q[i]->tag_array2->power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
-          			fr->uca_q[i]->tag_array2->power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
-          			fr->uca_q[i]->tag_array2->power_bit_mux_decoders.readOp.dynamic * 1e9)
+      		cout<<(fr->uca_q[i]->tag_array2.power_bit_mux_predecoder_drivers.readOp.dynamic * 1e9 +
+          			fr->uca_q[i]->tag_array2.power_bit_mux_predecoder_blocks.readOp.dynamic * 1e9 +
+          			fr->uca_q[i]->tag_array2.power_bit_mux_decoders.readOp.dynamic * 1e9)
           			<<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
       cout <<  "\tSense amp mux & associated drivers (nJ): " <<
-        fr->tag_array2->power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
-        fr->tag_array2->power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
-        fr->tag_array2->power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
-        fr->tag_array2->power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
-        fr->tag_array2->power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
-        fr->tag_array2->power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9;
+        fr->tag_array2.power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
+        fr->tag_array2.power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
+        fr->tag_array2.power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
+        fr->tag_array2.power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
+        fr->tag_array2.power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
+        fr->tag_array2.power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<( fr->uca_q[i]->tag_array2->power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
-          			fr->uca_q[i]->tag_array2->power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
-          			fr->uca_q[i]->tag_array2->power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
-          			fr->uca_q[i]->tag_array2->power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
-          			fr->uca_q[i]->tag_array2->power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
-          			fr->uca_q[i]->tag_array2->power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9)
+      		cout<<( fr->uca_q[i]->tag_array2.power_senseamp_mux_lev_1_predecoder_drivers.readOp.dynamic * 1e9 +
+          			fr->uca_q[i]->tag_array2.power_senseamp_mux_lev_1_predecoder_blocks.readOp.dynamic * 1e9 +
+          			fr->uca_q[i]->tag_array2.power_senseamp_mux_lev_1_decoders.readOp.dynamic * 1e9  +
+          			fr->uca_q[i]->tag_array2.power_senseamp_mux_lev_2_predecoder_drivers.readOp.dynamic * 1e9 +
+          			fr->uca_q[i]->tag_array2.power_senseamp_mux_lev_2_predecoder_blocks.readOp.dynamic * 1e9 +
+          			fr->uca_q[i]->tag_array2.power_senseamp_mux_lev_2_decoders.readOp.dynamic * 1e9)
           			<<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
       cout <<  "\tBitlines precharge and equalization circuit (nJ): " <<
-    		  fr->tag_array2->power_prechg_eq_drivers.readOp.dynamic * 1e9;
+    		  fr->tag_array2.power_prechg_eq_drivers.readOp.dynamic * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->power_prechg_eq_drivers.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.power_prechg_eq_drivers.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
       cout <<  "\tBitlines (nJ): " <<
-    		  fr->tag_array2->power_bitlines.readOp.dynamic * 1e9;
+    		  fr->tag_array2.power_bitlines.readOp.dynamic * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->power_bitlines.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.power_bitlines.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
       cout <<  "\tSense amplifier energy (nJ): " <<
-    		  fr->tag_array2->power_sense_amps.readOp.dynamic * 1e9;
+    		  fr->tag_array2.power_sense_amps.readOp.dynamic * 1e9;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->power_sense_amps.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.power_sense_amps.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
       cout <<  "\tSub-array output driver (nJ): " <<
-    		  fr->tag_array2->power_output_drivers_at_subarray.readOp.dynamic * 1e9 ;
+    		  fr->tag_array2.power_output_drivers_at_subarray.readOp.dynamic * 1e9 ;
       if (dvs)
       {
       	cout<<" (@DVS_Level0); ";
       	for (i = 0; i<dvs_levels; i++)
-      		cout<<fr->uca_q[i]->tag_array2->power_output_drivers_at_subarray.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+      		cout<<fr->uca_q[i]->tag_array2.power_output_drivers_at_subarray.readOp.dynamic * 1e9 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
       }
       cout<< endl;
 
@@ -3113,70 +3115,70 @@ if(0){ //detailed power-gating output
       {
     	  cout << "\tTotal leakage power in H-tree outside a bank when power gated (that includes both "
     			  "address and data network) ((mW)): " <<
-    			  (g_ip->long_channel_device ? fr->tag_array2->power_routing_to_bank.readOp.power_gated_leakage*long_channel_leakage_reduction : fr->tag_array2->power_routing_to_bank.readOp.power_gated_leakage) * 1e3 << endl;
+    			  (g_ip->long_channel_device ? fr->tag_array2.power_routing_to_bank.readOp.power_gated_leakage*long_channel_leakage_reduction : fr->tag_array2.power_routing_to_bank.readOp.power_gated_leakage) * 1e3 << endl;
       }
 //      else
 //      {
     	  cout << "\tTotal leakage power in H-tree outside a bank (that includes both "
     			  "address and data network) without power gating((mW)): " <<
-    			  (g_ip->long_channel_device ? fr->tag_array2->power_routing_to_bank.readOp.leakage*long_channel_leakage_reduction : fr->tag_array2->power_routing_to_bank.readOp.leakage) * 1e3;
+    			  (g_ip->long_channel_device ? fr->tag_array2.power_routing_to_bank.readOp.leakage*long_channel_leakage_reduction : fr->tag_array2.power_routing_to_bank.readOp.leakage) * 1e3;
           if (dvs)
           {
           	cout<<" (@DVS_Level0); ";
           	for (i = 0; i<dvs_levels; i++)
-          		cout<<(g_ip->long_channel_device ? fr->uca_q[i]->tag_array2->power_routing_to_bank.readOp.leakage *long_channel_leakage_reduction : fr->uca_q[i]->tag_array2->power_routing_to_bank.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
+          		cout<<(g_ip->long_channel_device ? fr->uca_q[i]->tag_array2.power_routing_to_bank.readOp.leakage *long_channel_leakage_reduction : fr->uca_q[i]->tag_array2.power_routing_to_bank.readOp.leakage) * 1e3 <<" (@DVS_Level"<< i+1<<"_Vdd=" << g_ip->dvs_voltage[i]<<"); ";
           }
           cout<< endl;
 //      }
 
 //    	cout << "\tTotal leakage power of a bank (mW): " <<
-//    	        fr->tag_array2->power.readOp.leakage * 1e3 << endl;
+//    	        fr->tag_array2.power.readOp.leakage * 1e3 << endl;
 //    	cout << "\tTotal leakage power in H-tree (that includes both "
 //    	      "address and data network) ((mW)): " <<
-//    	        (fr->tag_array2->power_addr_input_htree.readOp.leakage +
-//    	         fr->tag_array2->power_data_output_htree.readOp.leakage +
-//    	         fr->tag_array2->power_routing_to_bank.readOp.leakage) * 1e3 << endl;
+//    	        (fr->tag_array2.power_addr_input_htree.readOp.leakage +
+//    	         fr->tag_array2.power_data_output_htree.readOp.leakage +
+//    	         fr->tag_array2.power_routing_to_bank.readOp.leakage) * 1e3 << endl;
 //
 //    	cout << "\tTotal leakage power in cells (mW): " <<
-//    	        (fr->tag_array2->array_leakage) * 1e3 << endl;
+//    	        (fr->tag_array2.array_leakage) * 1e3 << endl;
 //    	cout << "\tTotal leakage power in row logic(mW): " <<
-//    	        (fr->tag_array2->wl_leakage) * 1e3 << endl;
+//    	        (fr->tag_array2.wl_leakage) * 1e3 << endl;
 //    	cout << "\tTotal leakage power in column logic(mW): " <<
-//    	        (fr->tag_array2->cl_leakage) * 1e3 << endl;
+//    	        (fr->tag_array2.cl_leakage) * 1e3 << endl;
 //    	cout << "\tTotal gate leakage power in H-tree (that includes both "
 //    	      "address and data network) ((mW)): " <<
-//    	        (fr->tag_array2->power_addr_input_htree.readOp.gate_leakage +
-//    	         fr->tag_array2->power_data_output_htree.readOp.gate_leakage +
-//    	         fr->tag_array2->power_routing_to_bank.readOp.gate_leakage) * 1e3 << endl;
+//    	        (fr->tag_array2.power_addr_input_htree.readOp.gate_leakage +
+//    	         fr->tag_array2.power_data_output_htree.readOp.gate_leakage +
+//    	         fr->tag_array2.power_routing_to_bank.readOp.gate_leakage) * 1e3 << endl;
     }
 
     cout << endl << endl <<  "Area Components:" << endl << endl;
     /* Data array area stats */
     if (!(g_ip->pure_cam || g_ip->fully_assoc))
-    	cout <<  "  Data array: Area (mm2): " << fr->data_array2->area * 1e-6 << endl;
+    	cout <<  "  Data array: Area (mm2): " << fr->data_array2.area * 1e-6 << endl;
     else if (g_ip->pure_cam)
-    	cout <<  "  CAM array: Area (mm2): " << fr->data_array2->area * 1e-6 << endl;
+    	cout <<  "  CAM array: Area (mm2): " << fr->data_array2.area * 1e-6 << endl;
     else
-    	cout <<  "  Fully associative cache array: Area (mm2): " << fr->data_array2->area * 1e-6 << endl;
+    	cout <<  "  Fully associative cache array: Area (mm2): " << fr->data_array2.area * 1e-6 << endl;
 
     cout <<  "\tHeight (mm): " <<
-      fr->data_array2->all_banks_height*1e-3 << endl;
+      fr->data_array2.all_banks_height*1e-3 << endl;
     cout <<  "\tWidth (mm): " <<
-      fr->data_array2->all_banks_width*1e-3 << endl;
+      fr->data_array2.all_banks_width*1e-3 << endl;
     if (g_ip->print_detail) {
       cout <<  "\tArea efficiency (Memory cell area/Total area) - " <<
-        fr->data_array2->area_efficiency << " %" << endl;
+        fr->data_array2.area_efficiency << " %" << endl;
       cout << "\t\tMAT Height (mm): " <<
-        fr->data_array2->mat_height*1e-3 << endl;
+        fr->data_array2.mat_height*1e-3 << endl;
       cout << "\t\tMAT Length (mm): " <<
-        fr->data_array2->mat_length*1e-3 << endl;
+        fr->data_array2.mat_length*1e-3 << endl;
       cout << "\t\tSubarray Height (mm): " <<
-        fr->data_array2->subarray_height*1e-3 << endl;
+        fr->data_array2.subarray_height*1e-3 << endl;
       cout << "\t\tSubarray Length (mm): " <<
-    		  fr->data_array2->subarray_length*1e-3 << endl;
+    		  fr->data_array2.subarray_length*1e-3 << endl;
       if (g_ip->power_gating)
       {
-    	  overhead_data = (fr->data_array2->area/fr->uca_pg_reference->data_array2->area-1)*100;//%;
+    	  overhead_data = (fr->data_array2.area/fr->uca_pg_reference->data_array2.area-1)*100;//%;
     	  cout <<  "  Power gating circuits (sleep transistors) induced area overhead: " << overhead_data <<"%" <<endl;
       }
     }
@@ -3184,29 +3186,29 @@ if(0){ //detailed power-gating output
     /* Tag array area stats */
     if ((!(g_ip->pure_ram|| g_ip->pure_cam || g_ip->fully_assoc)) && !g_ip->is_main_mem)
     {
-      cout << endl << "  Tag array: Area (mm2): " << fr->tag_array2->area * 1e-6 << endl;
+      cout << endl << "  Tag array: Area (mm2): " << fr->tag_array2.area * 1e-6 << endl;
       cout <<  "\tHeight (mm): " <<
-        fr->tag_array2->all_banks_height*1e-3 << endl;
+        fr->tag_array2.all_banks_height*1e-3 << endl;
       cout <<  "\tWidth (mm): " <<
-        fr->tag_array2->all_banks_width*1e-3 << endl;
+        fr->tag_array2.all_banks_width*1e-3 << endl;
 
       if (g_ip->print_detail)
       {
         cout <<  "\tArea efficiency (Memory cell area/Total area) - " <<
-          fr->tag_array2->area_efficiency << " %" << endl;
+          fr->tag_array2.area_efficiency << " %" << endl;
       cout << "\t\tMAT Height (mm): " <<
-        fr->tag_array2->mat_height*1e-3 << endl;
+        fr->tag_array2.mat_height*1e-3 << endl;
       cout << "\t\tMAT Length (mm): " <<
-        fr->tag_array2->mat_length*1e-3 << endl;
+        fr->tag_array2.mat_length*1e-3 << endl;
       cout << "\t\tSubarray Height (mm): " <<
-        fr->tag_array2->subarray_height*1e-3 << endl;
+        fr->tag_array2.subarray_height*1e-3 << endl;
       cout << "\t\tSubarray Length (mm): " <<
-    		  fr->tag_array2->subarray_length*1e-3 << endl;
+    		  fr->tag_array2.subarray_length*1e-3 << endl;
       }
 
       if (g_ip->power_gating)
       {
-    	  overhead_tag = (fr->tag_array2->area/fr->uca_pg_reference->tag_array2->area-1)*100;//%;
+    	  overhead_tag = (fr->tag_array2.area/fr->uca_pg_reference->tag_array2.area-1)*100;//%;
     	  cout <<  "  Power gating circuits (sleep transistors) induced area overhead: " << overhead_tag <<"%" <<endl<<endl;
       }
     }
@@ -3348,7 +3350,58 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
   init_tech_params(g_ip->F_sz_um, false);
   Wire winit; // Do not delete this line. It initializes wires.
 
+
+#ifdef ENABLE_CACHE
+  static DB *dbp = NULL;
+
+  if (dbp == NULL)
+  {
+    char filename[1024];
+    snprintf(filename, 1024, "%s/mcpat-%s.db", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp", getenv("USER"));
+    db_create(&dbp, NULL, 0);
+    dbp->open(dbp, NULL, filename, NULL, DB_HASH, DB_CREATE, 0);
+  }
+
+  DBT key, data;
+  memset(&key, 0, sizeof(DBT));
+  memset(&data, 0, sizeof(DBT));
+
+  size_t o1 = offsetof(InputParameter, first),
+         o2 = offsetof(InputParameter, last);
+
+  // Create a clean copy of our input parameters, with zeroes on all unused locations
+  InputParameter clean_ip;
+  memset((char*)&clean_ip + o1, 0, o2 - o1); // Set everything to zero
+  clean_ip = *g_ip; // Copies over actual (used) data
+
+  key.data = (char*)&clean_ip + o1;
+  key.size = o2 - o1;
+
+  if (DB_NOTFOUND == dbp->get(dbp, NULL, &key, &data, 0) /* Not found in DB */
+      || sizeof(fin_res) != data.size /* Or from a different version */)
+  {
   solve(&fin_res);
+
+    // If found (but size is wrong): delete it
+    if (DB_NOTFOUND != dbp->get(dbp, NULL, &key, &data, 0))
+      dbp->del(dbp, NULL, &key, 0);
+
+    data.data = &fin_res;
+    data.size = sizeof(fin_res);
+    int res = dbp->put(dbp, NULL, &key, &data, DB_NOOVERWRITE);
+    if (res)
+      printf("DB write error: %d\n", res);
+    dbp->sync(dbp, 0);
+  }
+  else
+  {
+    assert(sizeof(fin_res) == data.size);
+    memcpy(&fin_res, data.data, sizeof(fin_res));
+  }
+#else
+  solve(&fin_res);
+#endif
+
 
   if (!g_ip->dvs_voltage.empty())
   {

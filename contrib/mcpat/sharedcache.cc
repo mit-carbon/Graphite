@@ -764,18 +764,18 @@ void SharedCache::computeEnergy(bool is_tdp)
 	if (!((cachep.dir_ty==ST&& cacheL==L1Directory)||(cachep.dir_ty==ST&& cacheL==L2Directory)))
 	{
 		unicache.power_t.readOp.dynamic	+= (unicache.caches->stats_t.readAc.hit*unicache.caches->local_result.power.readOp.dynamic+
-				unicache.caches->stats_t.readAc.miss*unicache.caches->local_result.tag_array2->power.readOp.dynamic+
-				unicache.caches->stats_t.writeAc.miss*unicache.caches->local_result.tag_array2->power.writeOp.dynamic+
+				unicache.caches->stats_t.readAc.miss*unicache.caches->local_result.tag_array2.power.readOp.dynamic+
+				unicache.caches->stats_t.writeAc.miss*unicache.caches->local_result.tag_array2.power.writeOp.dynamic+
 				unicache.caches->stats_t.writeAc.access*unicache.caches->local_result.power.writeOp.dynamic);//write miss will also generate a write later
 
 		if (cachep.dir_ty==SBT)
 		{
-			unicache.power_t.readOp.dynamic	+= homenode_stats_t.readAc.hit * (unicache.caches->local_result.data_array2->power.readOp.dynamic*dir_overhead +
-						unicache.caches->local_result.tag_array2->power.readOp.dynamic) +
-					homenode_stats_t.readAc.miss*unicache.caches->local_result.tag_array2->power.readOp.dynamic +
-					homenode_stats_t.writeAc.miss*unicache.caches->local_result.tag_array2->power.readOp.dynamic +
-			        homenode_stats_t.writeAc.hit*(unicache.caches->local_result.data_array2->power.writeOp.dynamic*dir_overhead +
-							unicache.caches->local_result.tag_array2->power.readOp.dynamic+
+			unicache.power_t.readOp.dynamic	+= homenode_stats_t.readAc.hit * (unicache.caches->local_result.data_array2.power.readOp.dynamic*dir_overhead +
+						unicache.caches->local_result.tag_array2.power.readOp.dynamic) +
+					homenode_stats_t.readAc.miss*unicache.caches->local_result.tag_array2.power.readOp.dynamic +
+					homenode_stats_t.writeAc.miss*unicache.caches->local_result.tag_array2.power.readOp.dynamic +
+			        homenode_stats_t.writeAc.hit*(unicache.caches->local_result.data_array2.power.writeOp.dynamic*dir_overhead +
+							unicache.caches->local_result.tag_array2.power.readOp.dynamic+
 					homenode_stats_t.writeAc.miss*unicache.caches->local_result.power.writeOp.dynamic);//write miss on dynamic home node will generate a replacement write on whole cache block
 
 

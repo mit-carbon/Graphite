@@ -104,6 +104,38 @@ void ParseXML::parse(char* filepath)
 //		exit(0);
 //	}
 
+   if (sys.number_of_cores > MAX_NUM_CORES)
+   {
+      cerr << "Cannot have more than " << MAX_NUM_CORES << " cores" << endl;
+      exit(1);
+   }
+   if (sys.number_of_L1Directories > MAX_NUM_CORES)
+   {
+      cerr << "Cannot have more than " << MAX_NUM_CORES << " L1Directories" << endl;
+      exit(1);
+   }
+   if (sys.number_of_L2Directories > MAX_NUM_CORES)
+   {
+      cerr << "Cannot have more than " << MAX_NUM_CORES << " L2Directories" << endl;
+      exit(1);
+   }
+   if (sys.number_of_L2s > MAX_NUM_CORES)
+   {
+      cerr << "Cannot have more than " << MAX_NUM_CORES << " L2s" << endl;
+      exit(1);
+   }
+   if (sys.number_of_L3s > MAX_NUM_CORES)
+   {
+      cerr << "Cannot have more than " << MAX_NUM_CORES << " L3s" << endl;
+      exit(1);
+   }
+   if (sys.number_of_NoCs > MAX_NUM_CORES)
+   {
+      cerr << "Cannot have more than " << MAX_NUM_CORES << " NoCs" << endl;
+      exit(1);
+   }
+
+
 	itmp=xNode2.nChildNode("stat");
 	for(i=0; i<itmp; i++)
 	{

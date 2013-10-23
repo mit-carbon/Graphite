@@ -3156,7 +3156,7 @@ void LoadStoreU::computeEnergy(bool is_tdp)
 	LSQ->power_t.reset();
     dcache.power_t.readOp.dynamic	+= (dcache.caches->stats_t.readAc.hit*dcache.caches->local_result.power.readOp.dynamic+
     		dcache.caches->stats_t.readAc.miss*dcache.caches->local_result.power.readOp.dynamic+ //assuming D cache is in the fast model which read tag and data together
-    		dcache.caches->stats_t.writeAc.miss*dcache.caches->local_result.tag_array2->power.readOp.dynamic+
+    		dcache.caches->stats_t.writeAc.miss*dcache.caches->local_result.tag_array2.power.readOp.dynamic+
     		dcache.caches->stats_t.writeAc.access*dcache.caches->local_result.power.writeOp.dynamic);
 
     if (cache_p==Write_back)

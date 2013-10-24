@@ -83,7 +83,7 @@ McPATCoreInterface::~McPATCoreInterface()
 McPAT::CoreWrapper* McPATCoreInterface::createCoreWrapper(double voltage, double max_frequency_at_voltage)
 {
    // Set frequency and voltage in XML object
-   _xml->sys.vdd = voltage;
+   _xml->sys.core[0].vdd = voltage;
    // Frequency (in MHz)
    _xml->sys.target_core_clockrate = max_frequency_at_voltage * 1000;
    _xml->sys.core[0].clock_rate = max_frequency_at_voltage * 1000;

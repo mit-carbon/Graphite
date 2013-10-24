@@ -70,7 +70,7 @@ McPATCacheInterface::~McPATCacheInterface()
 McPAT::CacheWrapper* McPATCacheInterface::createCacheWrapper(double voltage, double max_frequency_at_voltage)
 {
    // Set frequency and voltage in XML object
-   _xml->sys.vdd = voltage;
+   _xml->sys.L2[0].vdd = voltage;
    // Frequency (in MHz)
    _xml->sys.target_core_clockrate = max_frequency_at_voltage * 1000;
    _xml->sys.L2[0].clockrate = max_frequency_at_voltage * 1000;

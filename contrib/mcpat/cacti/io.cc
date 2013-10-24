@@ -30,13 +30,14 @@
  ***************************************************************************/
 
 
-
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string.h>
 #ifdef ENABLE_CACHE
 #include <db.h>
+#include "../../db_utils/access.h"
 #endif
 
 #include "io.h"
@@ -48,12 +49,22 @@
 #include "crossbar.h"
 #include "arbiter.h"
 #include "version_cacti.h"
-//#include "highradix.h"
 
 using namespace std;
 
 namespace McPAT
 {
+
+#ifdef ENABLE_CACHE
+static DB* _database = NULL;
+
+void initializeDatabase(string mcpat_path)
+{
+   string mcpat_dbname = "mcpat-" + (string) getenv("USER") + ".db";
+   string mcpat_libname = mcpat_path + "/libmcpat.a";
+   initializeDatabase(_database, mcpat_dbname, mcpat_libname);
+}
+#endif
 
 InputParameter::InputParameter()
 {
@@ -3354,19 +3365,10 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
 
 
 #ifdef ENABLE_CACHE
-  static DB *dbp = NULL;
-
-  if (dbp == NULL)
-  {
-    char filename[1024];
-    snprintf(filename, 1024, "%s/mcpat-%s.db", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp", getenv("USER"));
-    db_create(&dbp, NULL, 0);
-    dbp->open(dbp, NULL, filename, NULL, DB_HASH, DB_CREATE, 0);
-  }
-
+  // Get data stored in database
   DBT key, data;
-  memset(&key, 0, sizeof(DBT));
-  memset(&data, 0, sizeof(DBT));
+  memset(&key, 0, sizeof(key));
+  memset(&data, 0, sizeof(data));
 
   size_t o1 = offsetof(InputParameter, first),
          o2 = offsetof(InputParameter, last);
@@ -3379,31 +3381,37 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
   key.data = (char*)&clean_ip + o1;
   key.size = o2 - o1;
 
-  if (DB_NOTFOUND == dbp->get(dbp, NULL, &key, &data, 0) /* Not found in DB */
-      || sizeof(fin_res) != data.size /* Or from a different version */)
-  {
-  solve(&fin_res);
+  int ret;
 
-    // If found (but size is wrong): delete it
-    if (DB_NOTFOUND != dbp->get(dbp, NULL, &key, &data, 0))
-      dbp->del(dbp, NULL, &key, 0);
-
-    data.data = &fin_res;
-    data.size = sizeof(fin_res);
-    int res = dbp->put(dbp, NULL, &key, &data, DB_NOOVERWRITE);
-    if (res)
-      printf("DB write error: %d\n", res);
-    dbp->sync(dbp, 0);
-  }
-  else
+  ret = _database->get(_database, NULL, &key, &data, 0);
+  if (ret == 0)
   {
     assert(sizeof(fin_res) == data.size);
     memcpy(&fin_res, data.data, sizeof(fin_res));
   }
+  else if (ret == DB_NOTFOUND)
+  {
+    solve(&fin_res);
+
+    data.data = &fin_res;
+    data.size = sizeof(fin_res);
+
+    ret = _database->put(_database, NULL, &key, &data, DB_NOOVERWRITE);
+    if ((ret != 0) && (ret != DB_KEYEXIST))
+    {
+       _database->err(_database, ret, "DB->put");
+       exit(EXIT_FAILURE);
+    }
+    _database->sync(_database, 0);
+  }
+  else
+  {
+    _database->err(_database, ret, "DB->get");
+    exit(EXIT_FAILURE);
+  }
 #else
   solve(&fin_res);
 #endif
-
 
   if (!g_ip->dvs_voltage.empty())
   {

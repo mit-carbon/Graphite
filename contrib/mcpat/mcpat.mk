@@ -8,19 +8,10 @@ ifndef NTHREADS
 endif
 
 ifeq ($(TAG),dbg)
-  DBG = -Wall 
-  OPT = -ggdb -g -O0 -DNTHREADS=1 -Icacti
+  DBG = -ggdb 
+  OPT = -O0 -DNTHREADS=1 -Icacti
 else
-  DBG = -Wall
   OPT = -O3 -msse2 -mfpmath=sse -DNTHREADS=$(NTHREADS) -Icacti
-endif
-
-ifeq ($(ARCH),ia32)
-  OPT += -m32
-endif
-
-ifneq ($(CACHE),)
-  OPT += -DENABLE_CACHE
 endif
 
 CXXFLAGS = -Wall -Wno-unknown-pragmas $(DBG) $(OPT)

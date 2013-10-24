@@ -8,7 +8,7 @@ ifndef NTHREADS
 endif
 
 ifeq ($(TAG),dbg)
-  DBG = -ggdb 
+  DBG = -ggdb
   OPT = -O0 -DNTHREADS=1 -Icacti
 else
   OPT = -O3 -msse2 -mfpmath=sse -DNTHREADS=$(NTHREADS) -Icacti

@@ -728,6 +728,10 @@ void ParseXML::parse(char* filepath)
 						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"write_accesses")==0) {sys.L1Directory[i].write_accesses=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"read_misses")==0) {sys.L1Directory[i].read_misses=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"write_misses")==0) {sys.L1Directory[i].write_misses=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"tag_array_reads")==0) {sys.L1Directory[i].tag_array_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"tag_array_writes")==0) {sys.L1Directory[i].tag_array_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"data_array_reads")==0) {sys.L1Directory[i].data_array_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"data_array_writes")==0) {sys.L1Directory[i].data_array_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"conflicts")==0) {sys.L1Directory[i].conflicts=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"duty_cycle")==0) {sys.L1Directory[i].duty_cycle=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 					}
@@ -841,6 +845,10 @@ void ParseXML::parse(char* filepath)
 						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"write_accesses")==0) {sys.L2Directory[i].write_accesses=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"read_misses")==0) {sys.L2Directory[i].read_misses=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
      					if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"write_misses")==0) {sys.L2Directory[i].write_misses=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"tag_array_reads")==0) {sys.L2Directory[i].tag_array_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"tag_array_writes")==0) {sys.L2Directory[i].tag_array_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"data_array_reads")==0) {sys.L2Directory[i].data_array_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"data_array_writes")==0) {sys.L2Directory[i].data_array_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"conflicts")==0) {sys.L2Directory[i].conflicts=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 						if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"duty_cycle")==0) {sys.L2Directory[i].duty_cycle=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 
@@ -971,6 +979,10 @@ void ParseXML::parse(char* filepath)
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"prefetch_buffer_hits")==0) {sys.L2[i].prefetch_buffer_hits=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"wbb_writes")==0) {sys.L2[i].wbb_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"wbb_reads")==0) {sys.L2[i].wbb_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"tag_array_reads")==0) {sys.L2[i].tag_array_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"tag_array_writes")==0) {sys.L2[i].tag_array_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"data_array_reads")==0) {sys.L2[i].data_array_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"data_array_writes")==0) {sys.L2[i].data_array_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"conflicts")==0) {sys.L2[i].conflicts=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"duty_cycle")==0) {sys.L2[i].duty_cycle=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 
@@ -1109,6 +1121,10 @@ void ParseXML::parse(char* filepath)
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"prefetch_buffer_hits")==0) {sys.L3[i].prefetch_buffer_hits=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"wbb_writes")==0) {sys.L3[i].wbb_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"wbb_reads")==0) {sys.L3[i].wbb_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"tag_array_reads")==0) {sys.L3[i].tag_array_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"tag_array_writes")==0) {sys.L3[i].tag_array_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"data_array_reads")==0) {sys.L3[i].data_array_reads=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
+							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"data_array_writes")==0) {sys.L3[i].data_array_writes=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"conflicts")==0) {sys.L3[i].conflicts=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 							if (strcmp(xNode3.getChildNode("stat",k).getAttribute("name"),"duty_cycle")==0) {sys.L3[i].duty_cycle=atof(xNode3.getChildNode("stat",k).getAttribute("value"));continue;}
 
@@ -1665,6 +1681,10 @@ void ParseXML::initialize() //Initialize all
 		sys.L1Directory[i].total_accesses=1;
 		sys.L1Directory[i].read_accesses=1;
 		sys.L1Directory[i].write_accesses=1;
+      sys.L1Directory[i].tag_array_reads=1;
+      sys.L1Directory[i].tag_array_writes=1;
+      sys.L1Directory[i].data_array_reads=1;
+      sys.L1Directory[i].data_array_writes=1;
 		sys.L1Directory[i].duty_cycle =1;
 	}
 	//system_L2directory
@@ -1680,6 +1700,10 @@ void ParseXML::initialize() //Initialize all
 		sys.L2Directory[i].total_accesses=1;
 		sys.L2Directory[i].read_accesses=1;
 		sys.L2Directory[i].write_accesses=1;
+      sys.L2Directory[i].tag_array_reads=1;
+      sys.L2Directory[i].tag_array_writes=1;
+      sys.L2Directory[i].data_array_reads=1;
+      sys.L2Directory[i].data_array_writes=1;
 		sys.L2Directory[i].duty_cycle =1;
 	}
 	for (i=0; i<=63; i++)
@@ -1711,6 +1735,10 @@ void ParseXML::initialize() //Initialize all
 		sys.L2[i].prefetch_buffer_hits=1;
 		sys.L2[i].wbb_writes=1;
 		sys.L2[i].wbb_reads=1;
+      sys.L2[i].tag_array_reads=1;
+      sys.L2[i].tag_array_writes=1;
+      sys.L2[i].data_array_reads=1;
+      sys.L2[i].data_array_writes=1;
 		sys.L2[i].duty_cycle =1;
 		sys.L2[i].merged_dir=false;
 		sys.L2[i].homenode_read_accesses =1;
@@ -1750,6 +1778,10 @@ void ParseXML::initialize() //Initialize all
 		sys.L3[i].prefetch_buffer_hits=1;
 		sys.L3[i].wbb_writes=1;
 		sys.L3[i].wbb_reads=1;
+      sys.L3[i].tag_array_reads=1;
+      sys.L3[i].tag_array_writes=1;
+      sys.L3[i].data_array_reads=1;
+      sys.L3[i].data_array_writes=1;
 		sys.L3[i].duty_cycle =1;
 		sys.L3[i].merged_dir=false;
 		sys.L3[i].homenode_read_accesses =1;

@@ -63,6 +63,12 @@ class ArrayST :public Component{
   statsDef       stats_t;
   powerDef       power_t;
 
+  // Tag/Data array reads/writes
+  double         tag_array_reads;
+  double         tag_array_writes;
+  double         data_array_reads;
+  double         data_array_writes;
+  
   virtual void optimize_array();
   virtual void compute_base_power();
   virtual ~ArrayST();

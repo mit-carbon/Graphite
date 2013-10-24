@@ -12,7 +12,7 @@ public:
    void run();
 
 private:
-   static const int STACK_SIZE=65536;
+   static const int STACK_SIZE=1048576;
 
    THREADID m_thread_p;
    Thread::ThreadFunc m_func;

@@ -312,7 +312,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    updatePipelineStallCounters(instruction, memory_stall_time, execution_unit_stall_time);
 
    // Update Event Counters
-   m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getTile()->getFrequency()));
+   // m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getTile()->getFrequency()));
 }
 
 pair<Time,Time>

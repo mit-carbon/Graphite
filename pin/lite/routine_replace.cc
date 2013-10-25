@@ -679,7 +679,7 @@ carbon_thread_t emuCarbonSpawnThread(CONTEXT* context,
   
    carbon_thread_t carbon_thread_id = CarbonSpawnThread(thread_func, arg);
 
-   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   __attribute__((unused)) ADDRINT reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_create_func_ptr = getFunptr(context, "pthread_create");
    LOG_ASSERT_ERROR(pthread_create_func_ptr, "Could not find pthread_create at instruction(%#lx)", reg_inst_ptr);
 
@@ -750,7 +750,7 @@ void emuCarbonJoinThread(CONTEXT* context,
    // Do thread cleanup functions in Graphite
    CarbonJoinThread(carbon_thread_id);
 
-   __attribute(__unused__) ADDRINT reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
+   __attribute__((unused)) ADDRINT reg_inst_ptr = PIN_GetContextReg(context, REG_INST_PTR);
    AFUNPTR pthread_join_func_ptr = getFunptr(context, "pthread_join");
    LOG_ASSERT_ERROR(pthread_join_func_ptr != NULL, "Could not find pthread_join at instruction(%#lx)", reg_inst_ptr);
 

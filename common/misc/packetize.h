@@ -83,7 +83,7 @@ UnstructuredBuffer& UnstructuredBuffer::operator<<(const T & data)
 template<class T>
 UnstructuredBuffer& UnstructuredBuffer::operator>>(T & data)
 {
-    __attribute(__unused__) bool res = get<T>(data);
+    __attribute__((unused)) bool res = get<T>(data);
     assert(res);
     return *this;
 }

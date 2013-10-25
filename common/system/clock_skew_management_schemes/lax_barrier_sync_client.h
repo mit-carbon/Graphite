@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 #include "fixed_types.h"
 #include "packetize.h"
 #include "time_types.h"
@@ -10,7 +10,7 @@
 // Forward Decls
 class Core;
 
-class LaxBarrierSyncClient : public ClockSkewMinimizationClient
+class LaxBarrierSyncClient : public ClockSkewManagementClient
 {
 private:
    Core* m_core;

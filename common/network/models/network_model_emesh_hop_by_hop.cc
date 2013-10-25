@@ -284,7 +284,7 @@ NetworkModelEMeshHopByHop::computeDistance(tile_id_t sender, tile_id_t receiver)
 {
    SInt32 num_application_tiles = (SInt32) Config::getSingleton()->getApplicationTiles();
    SInt32 mesh_width = (SInt32) floor(sqrt(1.0 * num_application_tiles));
-   __attribute__((__unused__)) SInt32 mesh_height = (SInt32) ceil(1.0 * num_application_tiles / mesh_width);
+   __attribute__((unused)) SInt32 mesh_height = (SInt32) ceil(1.0 * num_application_tiles / mesh_width);
 
    SInt32 sx, sy, dx, dy;
    sx = sender % mesh_width;

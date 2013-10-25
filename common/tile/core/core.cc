@@ -9,7 +9,7 @@
 #include "network_types.h"
 #include "memory_manager.h"
 #include "pin_memory_manager.h"
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 #include "config.h"
 #include "log.h"
 #include "dvfs_manager.h"
@@ -33,8 +33,8 @@ Core::Core(Tile *tile, core_type_t core_type)
 
    _sync_client = new SyncClient(this);
    _syscall_model = new SyscallMdl(this);
-   _clock_skew_minimization_client =
-      ClockSkewMinimizationClient::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme","none"), this);
+   _clock_skew_management_client =
+      ClockSkewManagementClient::create(Sim()->getCfg()->getString("clock_skew_management/scheme","none"), this);
  
    if (Config::getSingleton()->isSimulatingSharedMemory())
       _pin_memory_manager = new PinMemoryManager(this);
@@ -55,8 +55,8 @@ Core::~Core()
    if (_pin_memory_manager)
       delete _pin_memory_manager;
 
-   if (_clock_skew_minimization_client)
-      delete _clock_skew_minimization_client;
+   if (_clock_skew_management_client)
+      delete _clock_skew_management_client;
 
    delete _syscall_model;
    delete _sync_client;
@@ -262,7 +262,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
          _core_model->pushDynamicInstructionInfo(info);
    }
 
-   return make_pair<UInt32, Time>(num_misses, memory_access_time);
+   return make_pair(num_misses, memory_access_time);
 }
 
 PacketType
@@ -315,8 +315,8 @@ Core::enableModels()
    _enabled = true;
    if (_core_model)
       _core_model->enable();
-   if (_clock_skew_minimization_client)
-      _clock_skew_minimization_client->enable();
+   if (_clock_skew_management_client)
+      _clock_skew_management_client->enable();
 }
 
 void
@@ -325,8 +325,8 @@ Core::disableModels()
    _enabled = false;
    if (_core_model)
       _core_model->disable();
-   if (_clock_skew_minimization_client)
-      _clock_skew_minimization_client->disable();
+   if (_clock_skew_management_client)
+      _clock_skew_management_client->disable();
 }
 
 void

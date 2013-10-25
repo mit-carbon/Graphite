@@ -8,7 +8,7 @@
 #include "transport.h"
 #include "simulator.h"
 #include "mcp.h"
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 #include "network.h"
 #include "message_types.h"
 #include "tile.h"
@@ -201,10 +201,10 @@ void ThreadManager::masterOnThreadExit(tile_id_t tile_id, UInt32 core_type, SInt
          "Exiting: thread on core ID(%d,%d), IDX(%d) is NOT running", tile_id, core_type, thread_idx);
    m_thread_state[tile_id][thread_idx].status = Core::IDLE;
 
-   if (Sim()->getMCP()->getClockSkewMinimizationServer())
-      Sim()->getMCP()->getClockSkewMinimizationServer()->signal();
+   if (Sim()->getMCP()->getClockSkewManagementServer())
+      Sim()->getMCP()->getClockSkewManagementServer()->signal();
 
-   __attribute__((__unused__)) bool woken_up = wakeUpWaiter(core_id, thread_idx, Time(time));
+   __attribute__((unused)) bool woken_up = wakeUpWaiter(core_id, thread_idx, Time(time));
 
    m_thread_scheduler->masterOnThreadExit(core_id, thread_idx);
 
@@ -265,7 +265,7 @@ SInt32 ThreadManager::spawnThread(tile_id_t dest_tile_id, thread_func_t func, vo
 
    dest_core_id = *(core_id_t*)((Byte*) pkt.data);
    dest_tile_id = dest_core_id.tile_id;
-   thread_id_t dest_thread_index = *(thread_id_t*) ((Byte*) pkt.data + sizeof(core_id_t));
+   __attribute__((unused)) thread_id_t dest_thread_index = *(thread_id_t*) ((Byte*) pkt.data + sizeof(core_id_t));
    thread_id_t dest_thread_id = *(thread_id_t*) ((Byte*) pkt.data + sizeof(core_id_t) + sizeof(thread_id_t));
    LOG_PRINT("Thread: %i spawned on core(%d, %d), idx(%i)", dest_thread_id, dest_tile_id, dest_core_id.core_type, dest_thread_index);
 
@@ -803,8 +803,8 @@ void ThreadManager::stallThread(tile_id_t tile_id, thread_id_t thread_index)
    m_thread_state[tile_id][thread_index].status = Core::STALLED;
    m_last_stalled_thread[tile_id] = thread_index;
    
-   if (Sim()->getMCP()->getClockSkewMinimizationServer())
-      Sim()->getMCP()->getClockSkewMinimizationServer()->signal();
+   if (Sim()->getMCP()->getClockSkewManagementServer())
+      Sim()->getMCP()->getClockSkewManagementServer()->signal();
 }
 
 void ThreadManager::resumeThread(core_id_t core_id)

@@ -2,7 +2,7 @@
 #define CORE_MODEL_H
 // This class represents the actual performance model for a given core
 
-#include <queue>
+#include <boost/circular_buffer.hpp>
 #include <iostream>
 #include <string>
 
@@ -73,8 +73,8 @@ protected:
 
    friend class SpawnInstruction;
 
-   typedef std::queue<DynamicInstructionInfo> DynamicInstructionInfoQueue;
-   typedef std::queue<Instruction*> InstructionQueue;
+   typedef boost::circular_buffer<DynamicInstructionInfo> DynamicInstructionInfoQueue;
+   typedef boost::circular_buffer<Instruction*> InstructionQueue;
 
    Core* m_core;
 
@@ -101,12 +101,12 @@ private:
    Time m_checkpointed_time;
    UInt64 m_total_cycles;
 
-   bool m_enabled;
+   BranchPredictor *m_bp;
 
    InstructionQueue m_instruction_queue;
    DynamicInstructionInfoQueue m_dynamic_info_queue;
 
-   BranchPredictor *m_bp;
+   bool m_enabled;
 
    // Instruction costs
    typedef std::vector<Time> CoreStaticInstructionCosts;

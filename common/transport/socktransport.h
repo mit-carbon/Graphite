@@ -41,7 +41,7 @@ private:
       UInt32 length;
       SInt32 tag;
       Byte data;
-   } __attribute__((__packed__));
+   } __attribute__((packed));
 
    struct Header
    {

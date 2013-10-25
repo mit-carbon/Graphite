@@ -10,7 +10,7 @@ class Tile;
 class CoreModel;
 class SyscallMdl;
 class SyncClient;
-class ClockSkewMinimizationClient;
+class ClockSkewManagementClient;
 class PinMemoryManager;
 
 #include "mem_component.h"
@@ -70,7 +70,7 @@ public:
    CoreModel *getModel()                     { return _core_model; }
    SyncClient *getSyncClient()               { return _sync_client; }
    SyscallMdl *getSyscallMdl()               { return _syscall_model; }
-   ClockSkewMinimizationClient* getClockSkewMinimizationClient() { return _clock_skew_minimization_client; }
+   ClockSkewManagementClient* getClockSkewManagementClient() { return _clock_skew_management_client; }
    PinMemoryManager *getPinMemoryManager()   { return _pin_memory_manager; }
 
    State getState()                          { return _state; }
@@ -93,7 +93,7 @@ private:
    CoreModel *_core_model;
    SyncClient *_sync_client;
    SyscallMdl *_syscall_model;
-   ClockSkewMinimizationClient *_clock_skew_minimization_client;
+   ClockSkewManagementClient *_clock_skew_management_client;
    State _state;
    PinMemoryManager *_pin_memory_manager;
    bool _enabled;

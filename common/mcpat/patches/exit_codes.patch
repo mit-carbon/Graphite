@@ -1,0 +1,64 @@
+commit e41efe46b000a204af475331665d5c79f80f7f5f
+Author: George Kurian <gkurian@mit.edu>
+Date:   Mon Dec 17 01:48:27 2012 -0500
+
+    [exit codes][cacti] Put valid exit codes for interfacing with Graphite
+
+diff --git a/cacti/Ucache.cc b/cacti/Ucache.cc
+index 8f78fd6..a2de0b3 100644
+--- a/cacti/Ucache.cc
++++ b/cacti/Ucache.cc
+@@ -513,7 +513,7 @@ void find_optimal_uca(uca_org_t *res, min_values_t * minval, list<uca_org_t> & u
+   if (ulist.empty() == true)
+   {
+     cout << "ERROR: no valid cache organizations found" << endl;
+-    exit(0);
++    exit(-1);
+   }
+ 
+   for (list<uca_org_t>::iterator niter = ulist.begin(); niter != ulist.end(); niter++)
+@@ -575,7 +575,7 @@ void find_optimal_uca(uca_org_t *res, min_values_t * minval, list<uca_org_t> & u
+   if (min_cost == BIGNUM)
+   {
+     cout << "ERROR: no cache organizations met optimization criteria" << endl;
+-    exit(0);
++    exit(-1);
+   }
+ }
+ 
+@@ -591,7 +591,7 @@ void filter_tag_arr(const min_values_t * min, list<mem_array *> & list)
+   if (list.empty() == true)
+   {
+     cout << "ERROR: no valid tag organizations found" << endl;
+-    exit(1);
++    exit(-1);
+   }
+ 
+ 
+@@ -628,7 +628,7 @@ void filter_tag_arr(const min_values_t * min, list<mem_array *> & list)
+   if(!res)
+   {
+     cout << "ERROR: no valid tag organizations found" << endl;
+-    exit(0);
++    exit(-1);
+   }
+ 
+   list.push_back(res);
+@@ -641,7 +641,7 @@ void filter_data_arr(list<mem_array *> & curr_list)
+   if (curr_list.empty() == true)
+   {
+     cout << "ERROR: no valid data array organizations found" << endl;
+-    exit(1);
++    exit(-1);
+   }
+ 
+   list<mem_array *>::iterator iter;
+@@ -650,7 +650,7 @@ void filter_data_arr(list<mem_array *> & curr_list)
+   {
+     mem_array * m = *iter;
+ 
+-    if (m == NULL) exit(1);
++    if (m == NULL) exit(-1);
+ 
+     if(((m->access_time - m->arr_min->min_delay)/m->arr_min->min_delay > 0.5) &&
+        ((m->power.readOp.dynamic - m->arr_min->min_dyn)/m->arr_min->min_dyn > 0.5))

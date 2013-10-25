@@ -16,9 +16,9 @@ void CarbonEnableModels()
    {
       fprintf(stderr, "[[Graphite]] --> [ Enabling Performance and Power Models ]\n");
       
-      SInt32 curr_proc_num = Config::getSingleton()->getCurrentProcessNum();
+      __attribute__((unused)) SInt32 curr_proc_num = Config::getSingleton()->getCurrentProcessNum();
       Core* core = Sim()->getTileManager()->getCurrentCore();
-      tile_id_t curr_tile_id = core->getTile()->getId();
+      __attribute__((unused)) tile_id_t curr_tile_id = core->getTile()->getId();
       
       LOG_ASSERT_ERROR(curr_proc_num == 0 && curr_tile_id == 0, "Curr Process Num(%i), Curr Tile ID(%i)",
                        curr_proc_num, curr_tile_id);
@@ -49,9 +49,9 @@ void CarbonDisableModels()
    {
       fprintf(stderr, "[[Graphite]] --> [ Disabling Performance and Power Models ]\n");
       
-      SInt32 curr_proc_num = Config::getSingleton()->getCurrentProcessNum();
+      __attribute__((unused)) SInt32 curr_proc_num = Config::getSingleton()->getCurrentProcessNum();
       Core* core = Sim()->getTileManager()->getCurrentCore();
-      tile_id_t curr_tile_id = core->getTile()->getId();
+      __attribute__((unused)) tile_id_t curr_tile_id = core->getTile()->getId();
       
       LOG_ASSERT_ERROR(curr_proc_num == 0 && curr_tile_id == 0, "Curr Process Num(%i), Curr Tile ID(%i)",
                        curr_proc_num, curr_tile_id);

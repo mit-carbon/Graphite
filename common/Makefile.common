@@ -16,7 +16,7 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
           $(SIM_ROOT)/common/misc/            									\
           $(SIM_ROOT)/common/config/	      									\
           $(SIM_ROOT)/common/system/          									\
-          $(SIM_ROOT)/common/system/clock_skew_minimization_schemes/		\
+          $(SIM_ROOT)/common/system/clock_skew_management_schemes/		\
 			 $(SIM_ROOT)/common/shared_models/      								\
           $(SIM_ROOT)/common/shared_models/queue_models/     				\
           $(SIM_ROOT)/common/user/													\
@@ -30,8 +30,15 @@ INCLUDE_DIRECTORIES = $(DIRECTORIES)												\
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
-# Debug information in binary
-DEBUG = # -ggdb
+# Debug Graphite & Application: Set to 'true' to debug, 'false' not to debug
+DBG = false
+
+ifeq ($(DBG),true)
+	DBG_FLAGS = -ggdb
+	OPT_FLAGS = -O0
+else
+	OPT_FLAGS = -O2
+endif
 
 KERNEL = SQUEEZE
 #KERNEL = LENNY
@@ -44,9 +51,9 @@ BOOST_SUFFIX = mt
 LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX)
 
 # Include paths
-CXXFLAGS += -c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
+CXXFLAGS += $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
             -Wall -Werror -Wno-deprecated-declarations -Wno-unknown-pragmas \
-			   $(DEBUG) -O2 -fPIC -DKERNEL_$(KERNEL)
+			   $(DBG_FLAGS) $(OPT_FLAGS) -fPIC -DKERNEL_$(KERNEL)
 
 # Build rules for dependency generation
 %.d: %.cpp
@@ -60,10 +67,10 @@ CXXFLAGS += -c $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \
 
 # Build rules for object generation
 %.o : %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $<
+	$(CXX) -c $(CXXFLAGS) -o $@ $<
 	
 %.o : %.cc
-	$(CXX) $(CXXFLAGS) -o $@ $<
+	$(CXX) -c $(CXXFLAGS) -o $@ $<
 	
 %.o : %.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<

@@ -16,11 +16,11 @@ LaxBarrierSyncClient::LaxBarrierSyncClient(Core* core):
 {
    try
    {
-      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("clock_skew_minimization/lax_barrier/quantum"); 
+      m_barrier_interval = (UInt64) Sim()->getCfg()->getInt("clock_skew_management/lax_barrier/quantum"); 
    }
    catch(...)
    {
-      LOG_PRINT_ERROR("Error Reading 'clock_skew_minimization/barrier/quantum' from the config file");
+      LOG_PRINT_ERROR("Error Reading 'clock_skew_management/barrier/quantum' from the config file");
    }
    m_next_sync_time = m_barrier_interval;
 }
@@ -41,7 +41,7 @@ LaxBarrierSyncClient::synchronize(Time time)
    if (curr_time_ns >= m_next_sync_time)
    {
       // Send 'SIM_BARRIER_WAIT' request
-      int msg_type = MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION;
+      int msg_type = MCP_MESSAGE_CLOCK_SKEW_MANAGEMENT;
 
       m_send_buff << msg_type << curr_time_ns;
       m_core->getTile()->getNetwork()->netSend(Config::getSingleton()->getMCPCoreId(), MCP_SYSTEM_TYPE, m_send_buff.getBuffer(), m_send_buff.size());

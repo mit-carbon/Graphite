@@ -36,8 +36,10 @@ CoreModel::CoreModel(Core *core)
    , m_total_time(0)
    , m_checkpointed_time(0)
    , m_total_cycles(0)
-   , m_enabled(false)
    , m_bp(0)
+   , m_instruction_queue(2)  // Max 2 instructions
+   , m_dynamic_info_queue(3) // Max 3 dynamic instruction info objects
+   , m_enabled(false)
 {
    // Create Branch Predictor
    m_bp = BranchPredictor::create();
@@ -232,7 +234,8 @@ void CoreModel::queueInstruction(Instruction* instruction)
 {
    if (!m_enabled)
       return;
-   m_instruction_queue.push(instruction);
+   assert(!m_instruction_queue.full());
+   m_instruction_queue.push_back(instruction);
 }
 
 void CoreModel::iterate()
@@ -242,19 +245,9 @@ void CoreModel::iterate()
 
    while (m_instruction_queue.size() > 1)
    {
-      LOG_PRINT("Instruction Queue Size(%lu)", m_instruction_queue.size());
       Instruction* instruction = m_instruction_queue.front();
-
-      try
-      {
-         handleInstruction(instruction);
-         m_instruction_queue.pop();
-      }
-      catch (DynamicInstructionInfoNotAvailableException)
-      {
-         LOG_PRINT("Throwing DynamicInstructionInfoNotAvailable!");
-         return;
-      }
+      handleInstruction(instruction);
+      m_instruction_queue.pop_front();
    }
 }
 
@@ -263,7 +256,8 @@ void CoreModel::pushDynamicInstructionInfo(DynamicInstructionInfo &i)
    if (!m_enabled)
       return;
 
-   m_dynamic_info_queue.push(i);
+   assert(!m_dynamic_info_queue.full());
+   m_dynamic_info_queue.push_back(i);
 }
 
 void CoreModel::popDynamicInstructionInfo()
@@ -273,10 +267,7 @@ void CoreModel::popDynamicInstructionInfo()
 
    LOG_ASSERT_ERROR(m_dynamic_info_queue.size() > 0,
                     "Expected some dynamic info to be available.");
-   LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
-                    "Dynamic info queue is growing too big.");
-   LOG_PRINT("Pop Info(%u)", m_dynamic_info_queue.front().type);
-   m_dynamic_info_queue.pop();
+   m_dynamic_info_queue.pop_front();
 }
 
 DynamicInstructionInfo& CoreModel::getDynamicInstructionInfo()
@@ -291,10 +282,5 @@ DynamicInstructionInfo& CoreModel::getDynamicInstructionInfo()
 
    if (m_dynamic_info_queue.empty())
       throw DynamicInstructionInfoNotAvailableException();
-
-   LOG_ASSERT_ERROR(m_dynamic_info_queue.size() < 5000,
-                    "Dynamic info queue is growing too big.");
-
-   LOG_PRINT("Get Info(%u)", m_dynamic_info_queue.front().type);
    return m_dynamic_info_queue.front();
 }

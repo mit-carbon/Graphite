@@ -1,0 +1,51 @@
+commit f7333685abeea658abea0c6550d11d20feddedb7
+Author: George Kurian <gkurian@mit.edu>
+Date:   Mon Dec 17 01:45:45 2012 -0500
+
+    [64-bit] Compiling on 64-bit architectures only
+
+diff --git a/cacti/cacti.mk b/cacti/cacti.mk
+index 4d6de8d..b710669 100644
+--- a/cacti/cacti.mk
++++ b/cacti/cacti.mk
+@@ -21,8 +21,8 @@ endif
+ 
+ #CXXFLAGS = -Wall -Wno-unknown-pragmas -Winline $(DBG) $(OPT) 
+ CXXFLAGS = -Wno-unknown-pragmas $(DBG) $(OPT) 
+-CXX = g++ -m32
+-CC  = gcc -m32
++CXX = g++
++CC  = gcc
+ 
+ SRCS  = area.cc bank.cc mat.cc main.cc Ucache.cc io.cc technology.cc basic_circuit.cc parameter.cc \
+ 		decoder.cc component.cc uca.cc subarray.cc wire.cc htree2.cc \
+diff --git a/mcpat.mk b/mcpat.mk
+index 9aacbe0..317b73d 100644
+--- a/mcpat.mk
++++ b/mcpat.mk
+@@ -22,8 +22,8 @@ endif
+ 
+ #CXXFLAGS = -Wall -Wno-unknown-pragmas -Winline $(DBG) $(OPT) 
+ CXXFLAGS = -Wno-unknown-pragmas $(DBG) $(OPT) 
+-CXX = g++ -m32
+-CC  = gcc -m32
++CXX = g++
++CC  = gcc
+ 
+ VPATH = cacti
+ 
+diff --git a/mcpatXeonCore.mk b/mcpatXeonCore.mk
+index 20cf0dd..b46e3e3 100644
+--- a/mcpatXeonCore.mk
++++ b/mcpatXeonCore.mk
+@@ -22,8 +22,8 @@ endif
+ 
+ #CXXFLAGS = -Wall -Wno-unknown-pragmas -Winline $(DBG) $(OPT) 
+ CXXFLAGS = -Wno-unknown-pragmas $(DBG) $(OPT) 
+-CXX = g++ -m32
+-CC  = gcc -m32
++CXX = g++
++CC  = gcc
+ 
+ VPATH = cacti
+ 

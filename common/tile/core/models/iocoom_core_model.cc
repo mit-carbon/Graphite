@@ -15,6 +15,7 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
    , m_register_wait_unit_list(512)
    , m_store_buffer(NULL)
    , m_load_buffer(NULL)
+   , m_write_info(2) // Max 2 memory write operands
 {
    config::Config *cfg = Sim()->getCfg();
 
@@ -96,9 +97,6 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // - update write operands
    const OperandList &ops = instruction->getOperands();
 
-   // buffer write operands to be updated after instruction executes
-   DynamicInstructionInfoQueue write_info;
-
    // Time when register operands are ready (waiting for either the load unit or the execution unit)
    Time read_register_operands_ready_load_unit_wait = instruction_ready;
    Time read_register_operands_ready_execution_unit_wait = instruction_ready;
@@ -176,7 +174,8 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
          LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_WRITE,
                           "Expected memory write info, got: %d.", info.type);
 
-         write_info.push(info);
+         assert(!m_write_info.full());
+         m_write_info.push_back(info);
       }
       
       popDynamicInstructionInfo();
@@ -238,10 +237,11 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
       // Instruction has a MEMORY WRITE operand
       has_memory_write_operand = true;
 
-      const DynamicInstructionInfo &info = write_info.front();
+      assert(m_write_info.size() > 0);
+      const DynamicInstructionInfo &info = m_write_info.front();
       // This just updates the contents of the store buffer
       Time store_time = executeStore(write_operands_ready, info);
-      write_info.pop();
+      m_write_info.pop_front();
 
       if (store_buffer_ready < store_time)
          store_buffer_ready = store_time;
@@ -304,7 +304,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
       }
    }
 
-   LOG_ASSERT_ERROR(write_info.empty(), "Some write info left over?");
+   LOG_ASSERT_ERROR(m_write_info.size() == 0, "Some write info left over?");
 
    // Update Statistics
    m_instruction_count++;
@@ -324,12 +324,12 @@ IOCOOMCoreModel::executeLoad(Time time, const DynamicInstructionInfo &info)
    StoreBuffer::Status status = m_store_buffer->isAddressAvailable(time, info.memory_info.addr);
 
    if (status == StoreBuffer::VALID)
-      return make_pair<Time,Time>(time,Time(0));
+      return make_pair(time,Time(0));
 
    // a miss in the l1 forces a miss in the store buffer
    Time latency(info.memory_info.latency);
 
-   return make_pair<Time,Time>(m_load_buffer->execute(time, latency), latency);
+   return make_pair(m_load_buffer->execute(time, latency), latency);
 }
 
 Time IOCOOMCoreModel::executeStore(Time time, const DynamicInstructionInfo &info)

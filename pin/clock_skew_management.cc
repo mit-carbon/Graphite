@@ -1,13 +1,13 @@
-#include "clock_skew_minimization.h"
+#include "clock_skew_management.h"
 #include "simulator.h"
 #include "tile_manager.h"
 #include "tile.h"
 #include "core.h"
-#include "clock_skew_minimization_object.h"
+#include "clock_skew_management_object.h"
 
 static bool enabled()
 {
-   std::string scheme = Sim()->getCfg()->getString("clock_skew_minimization/scheme", "lax");
+   std::string scheme = Sim()->getCfg()->getString("clock_skew_management/scheme", "lax");
    return (scheme != "lax");
 }
 
@@ -24,7 +24,7 @@ void handlePeriodicSync()
       return;
    }
 
-   ClockSkewMinimizationClient *client = core->getClockSkewMinimizationClient();
+   ClockSkewManagementClient *client = core->getClockSkewManagementClient();
    if (client)
       client->synchronize();
 }

@@ -1,0 +1,21 @@
+commit 9774fcf6efd2e41288692f65cbb5ba6cb4a09327
+Author: George Kurian <gkurian@mit.edu>
+Date:   Mon Dec 17 01:50:10 2012 -0500
+
+    [sharedcache][bugfix] While calculating power
+
+diff --git a/sharedcache.cc b/sharedcache.cc
+index c422235..9464f2c 100644
+--- a/sharedcache.cc
++++ b/sharedcache.cc
+@@ -815,8 +815,8 @@ void SharedCache::computeEnergy(bool is_tdp)
+ 		unicache.rt_power = unicache.power_t + (unicache.caches->local_result.power)*pppm_lkg;
+ 		if (!((cachep.dir_ty==ST&& cacheL==L1Directory)||(cachep.dir_ty==ST&& cacheL==L2Directory)))
+ 		{
+-			(unicache.rt_power = unicache.rt_power +
+-					unicache.missb->local_result.power +
++			unicache.rt_power = unicache.rt_power +
++					(unicache.missb->local_result.power +
+ 					unicache.ifb->local_result.power +
+ 					unicache.prefetchb->local_result.power +
+ 					unicache.wbb->local_result.power)*pppm_lkg;

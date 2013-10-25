@@ -81,7 +81,7 @@ void* thread_func(void* threadid)
    assert(matrix_size % num_threads == 0);
 
    int64_t initial_sum = 0;
-   __attribute((__unused__)) int64_t junk = 0;
+   __attribute__((unused)) int64_t junk = 0;
 
    // Each processor reads certain rows of the initial and final matrices into the local cache
    for (int32_t i = (tid * num_rows_per_thread); i < ((tid+1) * num_rows_per_thread); i++)

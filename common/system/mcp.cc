@@ -22,15 +22,15 @@ MCP::MCP(Network & network)
    , m_vm_manager()
    , m_syscall_server(m_network, m_send_buff, m_recv_buff, m_MCP_SERVER_MAX_BUFF, m_scratch)
    , m_sync_server(m_network, m_recv_buff)
-   , m_clock_skew_minimization_server(NULL)
+   , m_clock_skew_management_server(NULL)
 {
-   m_clock_skew_minimization_server = ClockSkewMinimizationServer::create(Sim()->getCfg()->getString("clock_skew_minimization/scheme"), m_network, m_recv_buff);
+   m_clock_skew_management_server = ClockSkewManagementServer::create(Sim()->getCfg()->getString("clock_skew_management/scheme"), m_network, m_recv_buff);
 }
 
 MCP::~MCP()
 {
-   if (m_clock_skew_minimization_server)
-      delete m_clock_skew_minimization_server;
+   if (m_clock_skew_management_server)
+      delete m_clock_skew_management_server;
    delete [] m_scratch;
 }
 
@@ -143,9 +143,9 @@ void MCP::processPacket()
       Sim()->getThreadManager()->masterJoinThread((ThreadJoinRequest*)recv_pkt.data, recv_pkt.time);
       break;
 
-   case MCP_MESSAGE_CLOCK_SKEW_MINIMIZATION:
-      assert(m_clock_skew_minimization_server);
-      m_clock_skew_minimization_server->processSyncMsg(recv_pkt.sender);
+   case MCP_MESSAGE_CLOCK_SKEW_MANAGEMENT:
+      assert(m_clock_skew_management_server);
+      m_clock_skew_management_server->processSyncMsg(recv_pkt.sender);
       break;
 
    default:
@@ -174,7 +174,7 @@ void MCP::finish()
 
 void MCP::run()
 {
-   __attribute(__unused__) int tid =  syscall(__NR_gettid);
+   __attribute__((unused)) int tid =  syscall(__NR_gettid);
    LOG_PRINT("In MCP thread ... initializing thread (%i) with id: %i", (int)tid, Config::getSingleton()->getMCPTileNum());
 
    core_id_t mcp_core_id = Config::getSingleton()->getMCPCoreId();

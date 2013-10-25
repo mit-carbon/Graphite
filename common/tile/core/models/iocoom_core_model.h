@@ -94,6 +94,10 @@ private:
    StoreBuffer *m_store_buffer;
    LoadBuffer *m_load_buffer;
 
+   // Memory Write dynamic instruction info
+   // Buffer write operands to be updated after instruction executes
+   DynamicInstructionInfoQueue m_write_info;
+
    // Pipeline Stall Counters
    Time m_total_load_buffer_stall_time;
    Time m_total_store_buffer_stall_time;

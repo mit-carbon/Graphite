@@ -41,7 +41,7 @@ Network::Network(Tile *tile)
    }
 
    // Shared Memory Shortcut enabled
-   _sharedMemoryShortcutEnabled = Sim()->getCfg()->getBool("general/enable_shared_memory_shortcut_for_network", false);
+   _sharedMemoryShortcutEnabled = Sim()->getCfg()->getBool("network/enable_shared_memory_shortcut", false);
    if (_sharedMemoryShortcutEnabled)
    {
       LOG_ASSERT_ERROR(Config::getSingleton()->getProcessCount() == 1,
@@ -189,14 +189,14 @@ SInt32 Network::netSend(NetPacket& packet)
       for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getTotalTiles(); i++)
       {
          packet.receiver = CORE_ID(i);
-         __attribute(__unused__) SInt32 ret = forwardPacket(packet);
+         __attribute__((unused)) SInt32 ret = forwardPacket(packet);
          LOG_ASSERT_ERROR(ret == (SInt32) packet.length, "forwardPacket-ret(%i) != packet.length(%u)", ret, packet.length);
       }
    }
 
    else // (packet.receiver != NetPacket::BROADCAST) || (model->hasBroadcastCapability())
    {
-      __attribute(__unused__) SInt32 ret = forwardPacket(packet);
+      __attribute__((unused)) SInt32 ret = forwardPacket(packet);
       LOG_ASSERT_ERROR(ret == (SInt32) packet.length, "forwardPacket-ret(%i) != packet.length(%u)", ret, packet.length);
    }
 

@@ -1,0 +1,24 @@
+commit 69e14cb0d315bfcb02b06b893bd86430122e5a5d
+Author: George Kurian <gkurian@mit.edu>
+Date:   Mon Dec 17 01:50:56 2012 -0500
+
+    [sharedcache] Output tag/data array read/write energies
+
+diff --git a/sharedcache.cc b/sharedcache.cc
+index 9464f2c..9309296 100644
+--- a/sharedcache.cc
++++ b/sharedcache.cc
+@@ -839,8 +839,12 @@ void SharedCache::displayEnergy(uint32_t indent,bool is_tdp)
+ 		cout << indent_str << "Subthreshold Leakage = "
+ 			<< (long_channel? power.readOp.longer_channel_leakage:power.readOp.leakage) <<" W" << endl;
+ 		//cout << indent_str << "Subthreshold Leakage = " << power.readOp.longer_channel_leakage <<" W" << endl;
+-		cout << indent_str << "Gate Leakage = " << power.readOp.gate_leakage << " W" << endl;
++      cout << indent_str << "Gate Leakage = " << power.readOp.gate_leakage << " W" << endl;
+ 		cout << indent_str << "Runtime Dynamic = " << rt_power.readOp.dynamic/cachep.executionTime << " W" << endl;
++		cout << indent_str << "Tag Array Read Energy = " << unicache.caches->local_result.tag_array2->power.readOp.dynamic << " J" << endl;
++		cout << indent_str << "Tag Array Write Energy = " << unicache.caches->local_result.tag_array2->power.writeOp.dynamic << " J" << endl;
++		cout << indent_str << "Data Array Read Energy = " << unicache.caches->local_result.data_array2->power.readOp.dynamic << " J" << endl;
++		cout << indent_str << "Data Array Write Energy = " << unicache.caches->local_result.data_array2->power.writeOp.dynamic << " J" << endl;
+ 		cout <<endl;
+ 	}
+ 	else

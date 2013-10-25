@@ -236,7 +236,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
       // Instruction has a MEMORY WRITE operand
       has_memory_write_operand = true;
 
-      assert(m_write_info.size() > 0);
+      assert(!m_write_info.empty());
       const DynamicInstructionInfo &info = m_write_info.front();
       // This just updates the contents of the store buffer
       Time store_time = executeStore(write_operands_ready, info);
@@ -303,7 +303,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
       }
    }
 
-   LOG_ASSERT_ERROR(m_write_info.size() == 0, "Some write info left over?");
+   LOG_ASSERT_ERROR(m_write_info.empty(), "Some write info left over?");
 
    // Update Statistics
    m_instruction_count++;

@@ -11,6 +11,7 @@
 //---------------------------------------------------------------------------
 McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 load_buffer_size, UInt32 store_buffer_size)
    : _last_energy_compute_time(Time(0))
+   , _execution_unit_list(2) // An instruction can access a max of 2 units
 {
 
    LOG_ASSERT_ERROR(frequency!=0 && voltage != 0, "Frequency and voltage must be greater than zero.");
@@ -371,14 +372,17 @@ void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cy
 
    // Execution Unit Accesses
    // A single instruction can access multiple execution units
-   // FIXME: Find out whether we need the whole instruction for this purpose
-   ExecutionUnitList access_list = getExecutionUnitAccessList(instruction->getType());
-   for (UInt32 i = 0; i < access_list.size(); i++)
-      updateExecutionUnitAccessCounters(access_list[i]);
-
    // Count access to multiple execution units as additional micro-ops
-   for (UInt32 i = 1; i < access_list.size(); i++)
+   // FIXME: Find out whether we need the whole instruction for this purpose
+   assert(_execution_unit_list.empty());
+   getExecutionUnitAccessList(instruction->getType(), _execution_unit_list);
+   while (!_execution_unit_list.empty())
+   {
+      updateExecutionUnitAccessCounters(_execution_unit_list.front());
       updateInstructionCounters(instruction_type, total_branch_misprediction_count);
+      _execution_unit_list.pop_front();
+   }
+   assert(_execution_unit_list.empty());
 
    // Update Cycle Counters
    updateCycleCounters(cycle_count);
@@ -1289,10 +1293,8 @@ isXMMReg(UInt32 reg_id)
    return false;
 }
 
-__attribute__((weak)) McPATCoreInterface::ExecutionUnitList
-getExecutionUnitAccessList(InstructionType type)
+__attribute__((weak)) void
+getExecutionUnitAccessList(InstructionType type, McPATCoreInterface::ExecutionUnitList& unit_list)
 {
-   McPATCoreInterface::ExecutionUnitList access_list;
-   access_list.push_back(McPATCoreInterface::ALU);
-   return access_list;
+   unit_list.push_back(McPATCoreInterface::ALU);
 }

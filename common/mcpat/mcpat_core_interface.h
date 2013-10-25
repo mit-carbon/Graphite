@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <boost/circular_buffer.hpp>
 #include <map>
 using std::map;
 #include "fixed_types.h"
@@ -95,7 +96,7 @@ public:
       MUL,
       FPU
    };
-   typedef vector<ExecutionUnitType> ExecutionUnitList;
+   typedef boost::circular_buffer<ExecutionUnitType> ExecutionUnitList;
    
    // McPAT Core Interface Constructor
    McPATCoreInterface(double frequency, double voltage, UInt32 load_buffer_size, UInt32 store_buffer_size);
@@ -129,6 +130,9 @@ private:
    mcpat_core_output _mcpat_core_out;
    // Last Energy Compute Time
    Time _last_energy_compute_time;
+
+   // Execution Unit Access List
+   ExecutionUnitList _execution_unit_list;
 
    // Architectural Parameters
    // |---- General Parameters
@@ -292,7 +296,7 @@ private:
 };
 
 McPATCoreInterface::McPATInstructionType getMcPATInstructionType(InstructionType type);
-McPATCoreInterface::ExecutionUnitList getExecutionUnitAccessList(InstructionType type);
+void getExecutionUnitAccessList(InstructionType type, McPATCoreInterface::ExecutionUnitList& unit_list);
 bool isIntegerReg(UInt32 reg_id);
 bool isFloatingPointReg(UInt32 reg_id);
 bool isXMMReg(UInt32 reg_id);

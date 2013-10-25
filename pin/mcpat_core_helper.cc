@@ -50,37 +50,33 @@ isXMMReg(UInt32 reg_id)
    return REG_is_xmm((REG) reg_id);
 }
 
-McPATCoreInterface::ExecutionUnitList
-getExecutionUnitAccessList(InstructionType type)
+void
+getExecutionUnitAccessList(InstructionType type, McPATCoreInterface::ExecutionUnitList& unit_list)
 {
    // can be a vector of {ALU, MUL, FPU}
    // 
    // For SSE instructions, make it two FPU accesses for now
    // This is not entirely correct (but good for a 1st pass)
-     
-   McPATCoreInterface::ExecutionUnitList access_list;
-   
+
    if (type == INST_IALU)
    {   
-      access_list.push_back(McPATCoreInterface::ALU);
+      unit_list.push_back(McPATCoreInterface::ALU);
    }
    else if ((type == INST_IMUL) || (type == INST_IDIV))
    {
-      access_list.push_back(McPATCoreInterface::MUL);
+      unit_list.push_back(McPATCoreInterface::MUL);
    }
    else if ((type == INST_FALU) || (type == INST_FMUL) || (type == INST_FDIV))
    {
-      access_list.push_back(McPATCoreInterface::FPU);
+      unit_list.push_back(McPATCoreInterface::FPU);
    }
    else if ((type == INST_XMM_SS) || (type == INST_XMM_SD))
    {
-      access_list.push_back(McPATCoreInterface::FPU);
+      unit_list.push_back(McPATCoreInterface::FPU);
    }
    else if (type == INST_XMM_PS)
    {
-      access_list.push_back(McPATCoreInterface::FPU);
-      access_list.push_back(McPATCoreInterface::FPU);
+      unit_list.push_back(McPATCoreInterface::FPU);
+      unit_list.push_back(McPATCoreInterface::FPU);
    }
-   
-   return access_list; 
 }

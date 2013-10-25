@@ -265,8 +265,7 @@ void CoreModel::popDynamicInstructionInfo()
    if (!m_enabled)
       return;
 
-   LOG_ASSERT_ERROR(m_dynamic_info_queue.size() > 0,
-                    "Expected some dynamic info to be available.");
+   LOG_ASSERT_ERROR(!m_dynamic_info_queue.empty(), "Expected some dynamic info to be available.");
    m_dynamic_info_queue.pop_front();
 }
 

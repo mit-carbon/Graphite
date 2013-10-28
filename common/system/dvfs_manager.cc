@@ -526,6 +526,14 @@ DVFSManager::printAsynchronousMap(ostream& os, module_t module, AsynchronousMap 
    if (asynchronous_map.empty())
       return;
 
+   AsynchronousMap::iterator it;
+   for (it = asynchronous_map.begin(); it != asynchronous_map.end(); it++){
+      if (it->second.getTime() != 0)
+         break;
+   }
+   if (it == asynchronous_map.end())
+      return;
+
    string padding("  ");
    if (module == CORE)
       padding = "";

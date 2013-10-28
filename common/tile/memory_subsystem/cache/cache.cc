@@ -562,7 +562,7 @@ Cache::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr
 Time
 Cache::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(_module, module) && _shmem_perf_model->isEnabled()){
+   if (!DVFSManager::hasSameDVFSDomain(_module, module) && _enabled){
       _asynchronous_map[module] += _perf_model->getSynchronizationDelay();
       return _perf_model->getSynchronizationDelay();
 ;

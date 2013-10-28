@@ -17,8 +17,6 @@ public:
    void enable()     { _enabled = true;  }
    void disable()    { _enabled = false; }
    
-   bool isEnabled(){return _enabled;}
-
 private:
    Time _curr_time;
    bool _enabled;

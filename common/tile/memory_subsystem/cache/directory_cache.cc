@@ -445,7 +445,7 @@ DirectoryCache::setDVFS(double frequency, voltage_option_t voltage_flag, const T
 Time
 DirectoryCache::getSynchronizationDelay(module_t module)
 {
-   if (!DVFSManager::hasSameDVFSDomain(DIRECTORY, module) && _shmem_perf_model->isEnabled()){
+   if (!DVFSManager::hasSameDVFSDomain(DIRECTORY, module) && _enabled){
       _asynchronous_map[module] += _synchronization_delay;
       return _synchronization_delay;
    }

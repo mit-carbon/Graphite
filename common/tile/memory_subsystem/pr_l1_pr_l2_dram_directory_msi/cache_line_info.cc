@@ -47,7 +47,7 @@ PrL2CacheLineInfo::setCachedLoc(MemComponent::Type cached_loc)
 void
 PrL2CacheLineInfo::setForcedCachedLoc(MemComponent::Type cached_loc)
 {
-   assert((cached_loc == MemComponent::L1_DCACHE) && (_cached_loc == MemComponent::L1_ICACHE));
+   assert(cached_loc == MemComponent::L1_DCACHE);
    _cached_loc = cached_loc;
 }
 

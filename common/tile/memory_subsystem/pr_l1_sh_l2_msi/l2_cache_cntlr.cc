@@ -596,12 +596,12 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             
             if (L2_cache_line_info.getCachingComponent() != requester_mem_component)
             {
-               assert(L2_cache_line_info.getCachingComponent() == MemComponent::L1_ICACHE);
-               assert(requester_mem_component == MemComponent::L1_DCACHE);
                assert(directory_entry->getNumSharers() == 1);
                assert(directory_entry->hasSharer(requester));
                
-               // LOG_PRINT_WARNING("Address(%#lx) cached first in (L1-ICACHE), then in (L1-DCACHE)", address);
+               // LOG_PRINT_WARNING("Address(%#lx) cached first in (%s), then in (%s)",
+               //                   address, SPELL_MEMCOMP(L2_cache_line_info.getCachingComponent()),
+               //                   SPELL_MEMCOMP(requester_mem_component));
                L2_cache_line_info.setCachingComponent(MemComponent::L1_DCACHE);
                
                // Read the cache-line from the L2 cache and send it to L1
@@ -613,7 +613,8 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
 
             LOG_ASSERT_ERROR(L2_cache_line_info.getCachingComponent() == requester_mem_component,
                              "Address(%#lx), Num sharers(%i), caching component(%u), requester component(%u)",
-                             address, directory_entry->getNumSharers(), L2_cache_line_info.getCachingComponent(), requester_mem_component);
+                             address, directory_entry->getNumSharers(),
+                             L2_cache_line_info.getCachingComponent(), requester_mem_component);
 
             // Try to add the sharer to the sharer list
             bool add_result = directory_entry->addSharer(requester);

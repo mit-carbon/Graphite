@@ -239,11 +239,11 @@ L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, C
       // Set that the cache line in present in the L1 cache in the L2 tags
       if (L2_cache_line_info.getCachedLoc() != MemComponent::INVALID)
       {
-         assert(L2_cache_line_info.getCachedLoc() == MemComponent::L1_ICACHE);
-         assert(mem_component == MemComponent::L1_DCACHE);
+         assert(L2_cache_line_info.getCachedLoc() != mem_component);
          assert(L2_cstate == CacheState::SHARED);
-         // LOG_PRINT_WARNING("Address(%#lx) cached first in (L1-ICACHE), then in (L1-DCACHE)", address);
-         L2_cache_line_info.setForcedCachedLoc(mem_component);
+         // LOG_PRINT_WARNING("Address(%#lx) cached first in (%s), then in (%s)",
+         //                   address, SPELL_MEMCOMP(L2_cache_line_info.getCachedLoc()), SPELL_MEMCOMP(mem_component));
+         L2_cache_line_info.setForcedCachedLoc(MemComponent::L1_DCACHE);
       }
       else // (L2_cache_line_info.getCachedLoc() == MemComponent::INVALID)
       {

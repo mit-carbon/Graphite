@@ -596,7 +596,6 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             
             if (L2_cache_line_info.getCachingComponent() != requester_mem_component)
             {
-               assert(directory_entry->getNumSharers() == 1);
                assert(directory_entry->hasSharer(requester));
                
                // LOG_PRINT_WARNING("Address(%#lx) cached first in (%s), then in (%s)",

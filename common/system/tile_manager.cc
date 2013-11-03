@@ -60,7 +60,7 @@ TileManager::~TileManager()
    delete m_tile_index_tls;
    m_tile_index_tls = NULL;
    delete m_thread_id_tls;
-   m_thread_index_tls = NULL;
+   m_thread_id_tls = NULL;
    delete m_thread_index_tls;
    m_thread_index_tls = NULL;
    delete m_thread_type_tls;
@@ -110,7 +110,7 @@ void TileManager::initializeCommId(SInt32 comm_id)
    LOG_PRINT("Finished.");
 }
 
-void TileManager::initializeThread(core_id_t core_id, thread_id_t thread_index, thread_id_t thread_id)
+void TileManager::initializeThread(core_id_t core_id, SInt32 thread_index, thread_id_t thread_id)
 {
    const Config::TileList &tile_list = Config::getSingleton()->getTileListForProcess(Config::getSingleton()->getCurrentProcessNum());
    LOG_ASSERT_ERROR(tile_list.size() == Config::getSingleton()->getNumLocalTiles(),
@@ -138,7 +138,7 @@ void TileManager::initializeThread(core_id_t core_id, thread_id_t thread_index, 
    LOG_PRINT_ERROR("initializeThread - Requested tile %d does not live on process %d.", core_id.tile_id, Config::getSingleton()->getCurrentProcessNum());
 }
 
-void TileManager::doInitializeThread(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id)
+void TileManager::doInitializeThread(UInt32 tile_index, SInt32 thread_index, thread_id_t thread_id)
 {
     LOG_PRINT("doInitializeThread[Tile Index(%u), Thread Index(%u), Thread ID(%i)] start",
               tile_index, thread_index, thread_id);
@@ -162,7 +162,7 @@ void TileManager::doInitializeThread(UInt32 tile_index, UInt32 thread_index, SIn
                      m_tile_tls->get(), (void*)(m_tiles.at(tile_index)));
 }
 
-void TileManager::updateTLS(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id)
+void TileManager::updateTLS(UInt32 tile_index, SInt32 thread_index, thread_id_t thread_id)
 {
     LOG_PRINT("in updateTLS");
     int src_thread_idx = m_thread_index_tls->getInt();
@@ -187,7 +187,7 @@ void TileManager::terminateThread()
    LOG_ASSERT_WARNING(m_tile_tls->get() != NULL, "Thread not initialized while terminating.");
 
    tile_id_t tile_index = m_tile_index_tls->getInt();
-   thread_id_t thread_index = m_thread_index_tls->getInt();
+   SInt32 thread_index = m_thread_index_tls->getInt();
 
    m_initialized_cores.at(tile_index) = false;
 
@@ -219,7 +219,7 @@ Tile *TileManager::getCurrentTile()
 
 Core *TileManager::getCurrentCore()
 {
-   Tile* tile = getCurrentTile();
+   Tile *tile = getCurrentTile();
    return tile ? tile->getCore() : NULL;
 }
 

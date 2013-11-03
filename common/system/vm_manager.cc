@@ -27,11 +27,11 @@ VMManager::VMManager()
    m_end_stack_segment = m_start_stack_segment + total_tiles * stack_size_per_core;
 
    LOG_ASSERT_ERROR(m_end_stack_segment > m_start_stack_segment,
-       "Problem with Application Stack: start_stack_segment(0x%x), end_stack_segment(0x%x)",
+       "Problem with Application Stack: start_stack_segment(%#lx), end_stack_segment(%#lx)",
        m_start_stack_segment, m_end_stack_segment); 
 
    LOG_ASSERT_ERROR(m_start_stack_segment > m_start_data_segment,
-       "Problem with Application Stack: start_data_segment(0x%x), start_stack_segment(0x%x)",
+       "Problem with Application Stack: start_data_segment(%#lx), start_stack_segment(%#lx)",
        m_start_data_segment, m_start_stack_segment);
 
    m_start_dynamic_segment = 0xf000000000;
@@ -39,7 +39,7 @@ VMManager::VMManager()
    m_end_dynamic_segment = m_start_dynamic_segment;
 
    LOG_ASSERT_ERROR(m_start_dynamic_segment > m_end_stack_segment,
-       "Problem with Application Stack: end_stack_segment(0x%x), start_dynamic_segment(0x%x)",
+       "Problem with Application Stack: end_stack_segment(%#lx), start_dynamic_segment(%#lx)",
        m_end_stack_segment, m_start_dynamic_segment);
 }
 
@@ -58,11 +58,11 @@ void *VMManager::brk(void *end_data_segment)
    }
 
    LOG_ASSERT_ERROR(m_start_data_segment < ((IntPtr) end_data_segment),
-       "Problem with brk() system call: start_data_segment(0x%x), end_data_segment(0x%x)",
+       "Problem with brk() system call: start_data_segment(%#lx), end_data_segment(%#lx)",
        m_start_data_segment, (IntPtr) end_data_segment);
 
    LOG_ASSERT_ERROR(m_start_stack_segment > ((IntPtr) end_data_segment),
-       "Problem with brk() system call: No more memory to allocate! end_data_segment(0x%x), start_stack_segment(0x%x)",
+       "Problem with brk() system call: No more memory to allocate! end_data_segment(%#lx), start_stack_segment(%#lx)",
        (IntPtr) end_data_segment, m_start_stack_segment);
 
    m_end_data_segment = (IntPtr) end_data_segment;
@@ -73,7 +73,7 @@ void *VMManager::brk(void *end_data_segment)
 
 void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
-   LOG_PRINT("VMManager: mmap(start = %p, length = 0x%x, flags = 0x%x, fd = %i, offset = %u)",
+   LOG_PRINT("VMManager: mmap(start = %p, length = %#x, flags = %#x, fd = %i, offset = %u)",
          start, length, flags, fd, flags);
 
    LOG_ASSERT_ERROR(fd == -1, 
@@ -86,7 +86,7 @@ void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, o
          "Mmap() system call, MAP_PRIVATE should be set in flags");
    
    LOG_ASSERT_ERROR(m_end_stack_segment < (m_start_dynamic_segment - length),
-         "Mmap() system call: No more memory to allocate! end_stack_segment(0x%x), start_dynamic_segment(0x%x)",
+         "Mmap() system call: No more memory to allocate! end_stack_segment(%#lx), start_dynamic_segment(%#lx)",
          m_end_stack_segment, m_start_dynamic_segment - length);
 
    m_start_dynamic_segment -= length;
@@ -97,12 +97,11 @@ void *VMManager::mmap(void *start, size_t length, int prot, int flags, int fd, o
 
 int VMManager::munmap(void *start, size_t length)
 {
-   LOG_PRINT("VMManager: munmap(start = %p, length = 0x%x",
-         start, length);
+   LOG_PRINT("VMManager: munmap(start = %p, length = %#x", start, length);
 
    // Ignore for now
    LOG_ASSERT_ERROR(m_start_dynamic_segment <= ((IntPtr) start),
-         "Munmap() system call, start(0x%x), start_dynamic_segment(0x%x)",
+         "Munmap() system call, start(%#lx), start_dynamic_segment(%#lx)",
          (IntPtr) start, m_start_dynamic_segment);
 
    LOG_PRINT("VMManager: munmap() returned 0");

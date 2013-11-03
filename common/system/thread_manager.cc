@@ -100,7 +100,7 @@ ThreadManager::~ThreadManager()
 
 void ThreadManager::onThreadStart(ThreadSpawnRequest *req)
 {
-   LOG_PRINT("onThreadStart(Core: (%i,%i) Thread: %i tid: %i)",
+   LOG_PRINT("onThreadStart[Core: (%i,%i) Thread: %i tid: %i]",
          req->destination.tile_id, req->destination.core_type, req->destination_tidx, req->destination_tid);
 
    m_tile_manager->initializeThread(req->destination, req->destination_tidx, req->destination_tid);

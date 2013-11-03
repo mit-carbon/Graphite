@@ -10,6 +10,9 @@ using std::vector;
 #include "tile.h"
 #include "core.h"
 #include "core_model.h"
+#include "hash_map.h"
+
+extern HashMap core_map;
 
 static UInt64 applicationStartTime;
 static TLS_KEY threadCounterKey;
@@ -30,9 +33,8 @@ static UInt64 getTime()
    return time - applicationStartTime;
 }
 
-static FILE* getFileDescriptor()
+static FILE* getFileDescriptor(Tile* tile)
 {
-   Tile *tile = Sim()->getTileManager()->getCurrentTile();
    tile_id_t id = tile->getId();
 
    if (!tile) return NULL;
@@ -51,12 +53,13 @@ static FILE* getFileDescriptor()
    return f;
 }
 
-static VOID traceProgress()
+static VOID traceProgress(THREADID thread_id)
 {
    UInt64* counter_ptr = (UInt64*) PIN_GetThreadData(threadCounterKey);
    UInt64 counter = *counter_ptr;
 
-   CoreModel *pm = Sim()->getTileManager()->getCurrentCore()->getModel();
+   Core *core = core_map.get<Core>(thread_id);
+   CoreModel *pm = core->getModel();
 
    UInt64 curr_time = pm->getCurrTime().getTime();
 
@@ -64,7 +67,7 @@ static VOID traceProgress()
 
    if (curr_time - counter > interval)
    {
-      FILE *f = getFileDescriptor();
+      FILE *f = getFileDescriptor(core->getTile());
 
       if (f)
          fprintf(f, "time: %llu, curr_time: %llu\n", \
@@ -128,5 +131,8 @@ VOID addProgressTrace(INS ins)
    if (!enabled())
       return;
 
-   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(traceProgress), IARG_END);
+   INS_InsertCall(ins, IPOINT_BEFORE,
+                  AFUNPTR(traceProgress),
+                  IARG_THREAD_ID,
+                  IARG_END);
 }

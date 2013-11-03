@@ -5,9 +5,6 @@
 #include "log.h"
 #include "carbon_user.h"
 #include "thread_support_private.h"
-
-// -------------------------------------
-// Begin Memory redirection stuff
 #include "config.h"
 #include "simulator.h"
 #include "core.h"
@@ -17,8 +14,6 @@
 #include "tile.h"
 #include "network.h"
 #include "packet_type.h"
-// End Memory redirection stuff
-// --------------------------------------
 
 #define CARBON_IARG_END IARG_INVALID
 
@@ -227,7 +222,7 @@ void replacementMain (CONTEXT *ctxt)
 
       Simulator::release();
 
-      exit (0);
+      exit(0);
    }
 }
 
@@ -975,7 +970,7 @@ void initialize_replacement_args (CONTEXT *ctxt, ...)
 void retFromReplacedRtn (CONTEXT *ctxt, ADDRINT ret_val)
 {
    ADDRINT esp = PIN_GetContextReg (ctxt, REG_STACK_PTR);
-   ADDRINT next_ip = emuRet (&esp, 0, sizeof (ADDRINT), false);
+   ADDRINT next_ip = emuRet(PIN_ThreadId(), &esp, 0, sizeof (ADDRINT), false);
 
    PIN_SetContextReg (ctxt, REG_GAX, ret_val);
    PIN_SetContextReg (ctxt, REG_STACK_PTR, esp);

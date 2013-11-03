@@ -48,6 +48,7 @@
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
 #include "opcodes.h"
+#include "hash_map.h"
 #include <typeinfo>
 
 // lite directories
@@ -67,10 +68,12 @@ extern int *parent_tidptr;
 extern int *child_tidptr;
 
 extern PIN_LOCK clone_memory_update_lock;
-// ---------------------------------------------------------------
 
 map <ADDRINT, string> rtn_map;
 PIN_LOCK rtn_map_lock;
+
+HashMap core_map;
+// ---------------------------------------------------------------
 
 void printRtn (ADDRINT rtn_addr, bool enter)
 {
@@ -367,10 +370,16 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          PIN_ReleaseLock (&clone_memory_update_lock);
       }
    }
+
+   // Initialize Tile map
+   core_map.insert(threadIndex, Sim()->getTileManager()->getCurrentCore());
 }
 
 VOID threadFiniCallback(THREADID threadIndex, const CONTEXT *ctxt, INT32 flags, VOID *v)
 {
+   // De-initialize Tile map
+   core_map.erase(threadIndex);
+   
    Sim()->getThreadManager()->onThreadExit();
 }
 

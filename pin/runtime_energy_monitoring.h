@@ -6,5 +6,5 @@
 
 #include "pin.H"
 
-void handleRuntimeEnergyMonitoring();
+void handleRuntimeEnergyMonitoring(THREADID thread_id);
 void addRuntimeEnergyMonitoring(INS ins);

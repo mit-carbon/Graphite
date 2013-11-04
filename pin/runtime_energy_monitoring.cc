@@ -8,19 +8,23 @@
 #include "tile.h"
 #include "core.h"
 #include "tile_energy_monitor.h"
+#include "hash_map.h"
+
+extern HashMap core_map;
 
 static bool enabled()
 {
    return Sim()->getCfg()->getBool("general/enable_power_modeling");
 }
 
-void handleRuntimeEnergyMonitoring()
+void handleRuntimeEnergyMonitoring(THREADID thread_id)
 {
    if (!Sim()->isEnabled())
       return;
 
-   Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   assert(tile);
+   Core* core = core_map.get<Core>(thread_id);
+   assert(core);
+   Tile* tile = core->getTile();
    if (tile->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
       // Thread Spawner Tile / MCP
@@ -38,5 +42,8 @@ void addRuntimeEnergyMonitoring(INS ins)
    if (!enabled())
       return;
 
-   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleRuntimeEnergyMonitoring), IARG_END);
+   INS_InsertCall(ins, IPOINT_BEFORE,
+                  AFUNPTR(handleRuntimeEnergyMonitoring),
+                  IARG_THREAD_ID,
+                  IARG_END);
 }

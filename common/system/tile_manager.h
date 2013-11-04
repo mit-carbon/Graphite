@@ -11,7 +11,6 @@
 #include "lock.h"
 
 class Tile;
-class Lock;
 class Core;
 
 class TileManager
@@ -21,7 +20,7 @@ public:
    ~TileManager();
 
    void initializeCommId(SInt32 comm_id);
-   void initializeThread(core_id_t core_id, thread_id_t thread_index = 0, thread_id_t thread_id = 0);
+   void initializeThread(core_id_t core_id, SInt32 thread_index = 0, thread_id_t thread_id = 0);
    void terminateThread();
    tile_id_t registerSimThread();
 
@@ -39,7 +38,7 @@ public:
    thread_id_t getCurrentThreadIndex();
    thread_id_t getCurrentThreadID();
 
-   void updateTLS(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id);
+   void updateTLS(UInt32 tile_index, SInt32 thread_index, thread_id_t thread_id);
 
    void outputSummary(std::ostream &os);
 
@@ -50,9 +49,8 @@ public:
 
 private:
 
-   void doInitializeThread(UInt32 tile_index, UInt32 thread_index, SInt32 thread_id);
+   void doInitializeThread(UInt32 tile_index, SInt32 thread_index, thread_id_t thread_id);
 
-   UInt32 *tid_map;
    TLS *m_tile_tls;
    TLS *m_tile_index_tls;
    TLS *m_thread_id_tls;

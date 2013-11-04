@@ -5,29 +5,26 @@
 #include "tile.h"
 #include "core.h"
 #include "core_model.h"
+#include "hash_map.h"
 
-void handleInstruction(Instruction* instruction)
+extern HashMap core_map;
+
+void handleInstruction(THREADID thread_id, Instruction* instruction)
 {
    if (!Sim()->isEnabled())
       return;
 
-   CoreModel *core_model = Sim()->getTileManager()->getCurrentCore()->getModel();
-   assert(core_model);
-   
+   CoreModel *core_model = core_map.get<Core>(thread_id)->getModel();
    core_model->queueInstruction(instruction);
-
-   //FIXME: put this in a thread
    core_model->iterate();
 }
 
-void handleBranch(BOOL taken, ADDRINT target)
+void handleBranch(THREADID thread_id, BOOL taken, ADDRINT target)
 {
    if (!Sim()->isEnabled())
       return;
 
-   CoreModel *core_model = Sim()->getTileManager()->getCurrentCore()->getModel();
-   assert(core_model);
-
+   CoreModel *core_model = core_map.get<Core>(thread_id)->getModel();
    DynamicInstructionInfo info = DynamicInstructionInfo::createBranchInfo(taken, target);
    core_model->pushDynamicInstructionInfo(info);
 }
@@ -170,12 +167,14 @@ VOID addInstructionModeling(INS ins)
 
       INS_InsertCall(
          ins, IPOINT_TAKEN_BRANCH, (AFUNPTR)handleBranch,
+         IARG_THREAD_ID,
          IARG_BOOL, TRUE,
          IARG_BRANCH_TARGET_ADDR,
          IARG_END);
 
       INS_InsertCall(
          ins, IPOINT_AFTER, (AFUNPTR)handleBranch,
+         IARG_THREAD_ID,
          IARG_BOOL, FALSE,
          IARG_BRANCH_TARGET_ADDR,
          IARG_END);
@@ -353,5 +352,9 @@ VOID addInstructionModeling(INS ins)
    instruction->setAddress(INS_Address(ins));
    instruction->setSize(INS_Size(ins));
 
-   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleInstruction), IARG_PTR, instruction, IARG_END);
+   INS_InsertCall(ins, IPOINT_BEFORE,
+                  AFUNPTR(handleInstruction),
+                  IARG_THREAD_ID,
+                  IARG_PTR, instruction,
+                  IARG_END);
 }

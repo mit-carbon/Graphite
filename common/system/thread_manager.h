@@ -48,7 +48,7 @@ public:
    ThreadSpawnRequest* getThreadSpawnReq();
    void dequeueThreadSpawnReq (ThreadSpawnRequest *req);
 
-   void terminateThreadSpawners ();
+   void terminateThreadSpawners();
 
    // events
    void onThreadStart(ThreadSpawnRequest *req);

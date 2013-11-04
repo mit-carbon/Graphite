@@ -83,7 +83,7 @@ public:
          if (entry->key == tid)
          {
             entry->value = vp;
-            return ;
+            return;
          }
          entry = entry->next;
       }

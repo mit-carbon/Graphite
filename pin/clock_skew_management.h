@@ -3,7 +3,7 @@
 
 #include "pin.H"
 
-void handlePeriodicSync();
+void handlePeriodicSync(THREADID thread_id);
 void addPeriodicSync(INS ins);
 
 #endif /* __CLOCK_SKEW_MANAGEMENT_H__ */

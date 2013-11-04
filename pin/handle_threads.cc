@@ -3,6 +3,9 @@
 #include "tile_manager.h"
 #include "tile.h"
 #include "thread_scheduler.h"
+#include "hash_map.h"
+
+extern HashMap core_map;
 
 static bool enabled()
 {
@@ -11,11 +14,11 @@ static bool enabled()
    return (scheme != "none");
 }
 
-void handleYield()
+void handleYield(THREADID thread_id)
 {
-   Tile* tile = Sim()->getTileManager()->getCurrentTile();
-   assert(tile);
-   if (tile->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())
+   Core* core = core_map.get<Core>(thread_id);
+   assert(core);
+   if (core->getTile()->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
       // Thread Spawner Tile / MCP
       return;
@@ -33,8 +36,10 @@ void addYield(INS ins)
 
    // Do not yield on branch or memory instructions because we deal with them asynchronously.
    if (INS_IsMemoryRead (ins) || INS_IsMemoryWrite (ins) || INS_IsBranch(ins))
-   {
       return ;
-   }
-   INS_InsertCall(ins, IPOINT_BEFORE, AFUNPTR(handleYield), IARG_END);
+   
+   INS_InsertCall(ins, IPOINT_BEFORE,
+                  AFUNPTR(handleYield),
+                  IARG_THREAD_ID,
+                  IARG_END);
 }

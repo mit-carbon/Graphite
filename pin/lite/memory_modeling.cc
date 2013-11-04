@@ -3,6 +3,9 @@
 #include "tile_manager.h"
 #include "tile.h"
 #include "core.h"
+#include "hash_map.h"
+
+extern HashMap core_map;
 
 namespace lite
 {
@@ -15,6 +18,7 @@ void addMemoryModeling(INS ins)
       {
          INS_InsertCall(ins, IPOINT_BEFORE,
                AFUNPTR(handleMemoryRead),
+               IARG_THREAD_ID,
                IARG_BOOL, INS_IsAtomicUpdate(ins),
                IARG_MEMORYREAD_EA,
                IARG_MEMORYREAD_SIZE,
@@ -26,6 +30,7 @@ void addMemoryModeling(INS ins)
 
          INS_InsertCall(ins, IPOINT_BEFORE,
                AFUNPTR(handleMemoryRead),
+               IARG_THREAD_ID,
                IARG_BOOL, false,
                IARG_MEMORYREAD2_EA,
                IARG_MEMORYREAD_SIZE,
@@ -42,6 +47,7 @@ void addMemoryModeling(INS ins)
          IPOINT ipoint = INS_HasFallThrough(ins) ? IPOINT_AFTER : IPOINT_TAKEN_BRANCH;
          INS_InsertCall(ins, ipoint,
                AFUNPTR(handleMemoryWrite),
+               IARG_THREAD_ID,
                IARG_BOOL, INS_IsAtomicUpdate(ins),
                IARG_REG_VALUE, REG_INST_G0, /* value of IARG_MEMORYWRITE_EA at IPOINT_BEFORE */
                IARG_MEMORYWRITE_SIZE,
@@ -50,14 +56,14 @@ void addMemoryModeling(INS ins)
    }
 }
 
-void handleMemoryRead(bool is_atomic_update, IntPtr read_address, UInt32 read_data_size)
+void handleMemoryRead(THREADID thread_id, bool is_atomic_update, IntPtr read_address, UInt32 read_data_size)
 {
    if (!Sim()->isEnabled())
       return;
 
    Byte read_data_buf[read_data_size];
 
-   Core* core = Sim()->getTileManager()->getCurrentCore();
+   Core* core = core_map.get<Core>(thread_id);
    core->initiateMemoryAccess(MemComponent::L1_DCACHE,
          (is_atomic_update) ? Core::LOCK : Core::NONE,
          (is_atomic_update) ? Core::READ_EX : Core::READ,
@@ -67,12 +73,12 @@ void handleMemoryRead(bool is_atomic_update, IntPtr read_address, UInt32 read_da
          true);
 }
 
-void handleMemoryWrite(bool is_atomic_update, IntPtr write_address, UInt32 write_data_size)
+void handleMemoryWrite(THREADID thread_id, bool is_atomic_update, IntPtr write_address, UInt32 write_data_size)
 {
    if (!Sim()->isEnabled())
       return;
 
-   Core* core = Sim()->getTileManager()->getCurrentCore();
+   Core* core = core_map.get<Core>(thread_id);
    core->initiateMemoryAccess(MemComponent::L1_DCACHE,
          (is_atomic_update) ? Core::UNLOCK : Core::NONE,
          Core::WRITE,

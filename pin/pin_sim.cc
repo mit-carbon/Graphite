@@ -45,9 +45,9 @@
 #include "clock_skew_management.h"
 #include "handle_threads.h"
 #include "runtime_energy_monitoring.h"
-
 #include "redirect_memory.h"
 #include "handle_syscalls.h"
+#include "hash_map.h"
 #include <typeinfo>
 
 // lite directories
@@ -67,10 +67,12 @@ extern int *parent_tidptr;
 extern int *child_tidptr;
 
 extern PIN_LOCK clone_memory_update_lock;
-// ---------------------------------------------------------------
 
 map <ADDRINT, string> rtn_map;
 PIN_LOCK rtn_map_lock;
+
+HashMap core_map;
+// ---------------------------------------------------------------
 
 void printRtn (ADDRINT rtn_addr, bool enter)
 {
@@ -278,15 +280,10 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             PIN_LockClient();
             IMG img = IMG_FindByAddress(reg_eip);
             PIN_UnlockClient();
-
-            LOG_PRINT("Process: 0, Start Copying Static Data");
             copyStaticData(img);
-            LOG_PRINT("Process: 0, Finished Copying Static Data");
 
             // 2) Copying over initial stack data
-            LOG_PRINT("Process: 0, Start Copying Initial Stack Data");
             copyInitialStackData(reg_esp, Tile::getMainCoreId(0));
-            LOG_PRINT("Process: 0, Finished Copying Initial Stack Data");
          }
          else
          {
@@ -298,9 +295,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             // main thread clock is not affected by start-up time of other processes
             core->getTile()->getNetwork()->netRecv(Tile::getMainCoreId(0), core->getId(), SYSTEM_INITIALIZATION_NOTIFY);
 
-            LOG_PRINT("Process: %i, Start Copying Initial Stack Data");
             copyInitialStackData(reg_esp, Tile::getMainCoreId(tile_id));
-            LOG_PRINT("Process: %i, Finished Copying Initial Stack Data");
          }
          // Set the current ESP accordingly
          PIN_SetContextReg(ctxt, REG_STACK_PTR, reg_esp);
@@ -349,7 +344,9 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
             LOG_ASSERT_ERROR (req != NULL, "ThreadSpawnRequest is NULL !!");
 
             // This is an application thread
-            LOG_ASSERT_ERROR(tile_id == req->destination.tile_id, "Got 2 different tile_ids: req->destination = {%i, %i}, tile_id = %i", req->destination.tile_id, req->destination.core_type, tile_id);
+            LOG_ASSERT_ERROR(tile_id == req->destination.tile_id,
+                             "Got 2 different tile_ids: req->destination = {%i, %i}, tile_id = %i",
+                             req->destination.tile_id, req->destination.core_type, tile_id);
 
             Sim()->getThreadManager()->onThreadStart(req);
          }
@@ -362,7 +359,7 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          LOG_ASSERT_ERROR(tile, "tile(NULL)");
 
          // Copy over thread stack data
-         //copySpawnedThreadStackData(reg_esp);
+         // copySpawnedThreadStackData(reg_esp);
 
          // Wait to make sure that the spawner has written stuff back to memory
          // FIXME: What is this for(?) This seems arbitrary
@@ -370,10 +367,16 @@ VOID threadStartCallback(THREADID threadIndex, CONTEXT *ctxt, INT32 flags, VOID 
          PIN_ReleaseLock (&clone_memory_update_lock);
       }
    }
+
+   // Initialize Tile map
+   core_map.insert(threadIndex, Sim()->getTileManager()->getCurrentCore());
 }
 
 VOID threadFiniCallback(THREADID threadIndex, const CONTEXT *ctxt, INT32 flags, VOID *v)
 {
+   // De-initialize Tile map
+   core_map.erase(threadIndex);
+   
    Sim()->getThreadManager()->onThreadExit();
 }
 

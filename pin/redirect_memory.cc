@@ -4,20 +4,20 @@
 #include "core.h"
 #include "pin_memory_manager.h"
 #include "core_model.h"
+#include "hash_map.h"
 
-// FIXME: Only need this function because some memory accesses are made before cores have
-// been initialized. Should not evnentually need this
+extern HashMap core_map;
 
-void memOp (Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size)
+void memOp(THREADID thread_id, Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type, IntPtr d_addr, char *data_buffer, UInt32 data_size, BOOL push_info)
 {   
    assert (lock_signal == Core::NONE);
-
-   Core *core = Sim()->getTileManager()->getCurrentCore();
-   LOG_ASSERT_ERROR(core, "Could not find Core object for current thread");
-   core->accessMemory (lock_signal, mem_op_type, d_addr, data_buffer, data_size, true);
+   assert(thread_id != INVALID_THREADID);
+   Core *core = core_map.get<Core>(thread_id);
+   assert(core);
+   core->accessMemory(lock_signal, mem_op_type, d_addr, data_buffer, data_size, push_info);
 }
 
-bool rewriteStackOp (INS ins)
+bool rewriteStackOp(INS ins)
 {
    if (INS_Opcode (ins) == XED_ICLASS_PUSH)
    {
@@ -26,6 +26,7 @@ bool rewriteStackOp (INS ins)
          ADDRINT value = INS_OperandImmediate (ins, 0);
          INS_InsertCall (ins, IPOINT_BEFORE,
                AFUNPTR (emuPushValue),
+               IARG_THREAD_ID,
                IARG_REG_VALUE, REG_STACK_PTR,
                IARG_ADDRINT, value,
                IARG_MEMORYWRITE_SIZE,
@@ -41,6 +42,7 @@ bool rewriteStackOp (INS ins)
          REG reg = INS_OperandReg (ins, 0);
          INS_InsertCall (ins, IPOINT_BEFORE, 
                AFUNPTR (emuPushValue),
+               IARG_THREAD_ID,
                IARG_REG_VALUE, REG_STACK_PTR,
                IARG_REG_VALUE, reg,
                IARG_MEMORYWRITE_SIZE,
@@ -55,6 +57,7 @@ bool rewriteStackOp (INS ins)
       {
          INS_InsertCall (ins, IPOINT_BEFORE,
                AFUNPTR (emuPushMem),
+               IARG_THREAD_ID,
                IARG_REG_VALUE, REG_STACK_PTR,
                IARG_MEMORYREAD_EA,
                IARG_MEMORYWRITE_SIZE,
@@ -73,6 +76,7 @@ bool rewriteStackOp (INS ins)
          REG reg = INS_OperandReg (ins, 0);
          INS_InsertCall (ins, IPOINT_BEFORE,
                AFUNPTR (emuPopReg),
+               IARG_THREAD_ID,
                IARG_REG_VALUE, REG_STACK_PTR,
                IARG_REG_REFERENCE, reg,
                IARG_MEMORYREAD_SIZE,
@@ -87,6 +91,7 @@ bool rewriteStackOp (INS ins)
       {
          INS_InsertCall (ins, IPOINT_BEFORE,
                AFUNPTR (emuPopMem),
+               IARG_THREAD_ID,
                IARG_MEMORYWRITE_EA,
                IARG_MEMORYREAD_SIZE,
                IARG_RETURN_REGS, REG_STACK_PTR,
@@ -105,6 +110,7 @@ bool rewriteStackOp (INS ins)
       {
          INS_InsertCall (ins, IPOINT_BEFORE,
                AFUNPTR (emuCallMem),
+               IARG_THREAD_ID,
                IARG_REG_REFERENCE, REG_STACK_PTR,
                IARG_REG_REFERENCE, REG_GAX,
                IARG_ADDRINT, next_ip,
@@ -119,6 +125,7 @@ bool rewriteStackOp (INS ins)
       {
          INS_InsertCall (ins, IPOINT_BEFORE,
                AFUNPTR (emuCallRegOrImm),
+               IARG_THREAD_ID,
                IARG_REG_REFERENCE, REG_STACK_PTR,
                IARG_REG_REFERENCE, REG_GAX,
                IARG_ADDRINT, next_ip,
@@ -144,10 +151,11 @@ bool rewriteStackOp (INS ins)
 
       INS_InsertCall (ins, IPOINT_BEFORE,
             AFUNPTR (emuRet),
+            IARG_THREAD_ID,
             IARG_REG_REFERENCE, REG_STACK_PTR,
             IARG_UINT32, imm,
             IARG_MEMORYREAD_SIZE,
-            IARG_BOOL, (BOOL)true,
+            IARG_BOOL, true,
             IARG_RETURN_REGS, REG_INST_G1,
             IARG_END);
 
@@ -159,7 +167,9 @@ bool rewriteStackOp (INS ins)
 
    else if (INS_Opcode (ins) == XED_ICLASS_LEAVE)
    {
-      INS_InsertCall (ins, IPOINT_BEFORE, AFUNPTR (emuLeave),
+      INS_InsertCall (ins, IPOINT_BEFORE,
+            AFUNPTR (emuLeave),
+            IARG_THREAD_ID,
             IARG_REG_VALUE, REG_STACK_PTR,
             IARG_REG_REFERENCE, REG_GBP,
             IARG_MEMORYREAD_SIZE,
@@ -174,6 +184,7 @@ bool rewriteStackOp (INS ins)
    {
       INS_InsertCall (ins, IPOINT_BEFORE, 
             AFUNPTR (redirectPushf),
+            IARG_THREAD_ID,
             IARG_REG_VALUE, REG_STACK_PTR,
             IARG_MEMORYWRITE_SIZE,
             IARG_RETURN_REGS, REG_STACK_PTR,
@@ -181,6 +192,7 @@ bool rewriteStackOp (INS ins)
 
       INS_InsertCall (ins, IPOINT_AFTER,
             AFUNPTR (completePushf),
+            IARG_THREAD_ID,
             IARG_REG_VALUE, REG_STACK_PTR,
             IARG_MEMORYWRITE_SIZE,
             IARG_RETURN_REGS, REG_STACK_PTR,
@@ -193,6 +205,7 @@ bool rewriteStackOp (INS ins)
    {
       INS_InsertCall (ins, IPOINT_BEFORE,
             AFUNPTR (redirectPopf),
+            IARG_THREAD_ID,
             IARG_REG_VALUE, REG_STACK_PTR,
             IARG_MEMORYREAD_SIZE,
             IARG_RETURN_REGS, REG_STACK_PTR,
@@ -200,6 +213,7 @@ bool rewriteStackOp (INS ins)
 
       INS_InsertCall (ins, IPOINT_AFTER,
             AFUNPTR (completePopf),
+            IARG_THREAD_ID,
             IARG_REG_VALUE, REG_STACK_PTR,
             IARG_MEMORYREAD_SIZE,
             IARG_RETURN_REGS, REG_STACK_PTR,
@@ -211,7 +225,7 @@ bool rewriteStackOp (INS ins)
    return false;
 }
 
-void rewriteMemOp (INS ins)
+void rewriteMemOp(INS ins)
 {
    LOG_ASSERT_ERROR(INS_MemoryOperandCount(ins) <= 3, 
                     "EIP(%#lx): Num Memory Operands(%u) > 3", INS_Address(ins), INS_MemoryOperandCount(ins));
@@ -220,6 +234,7 @@ void rewriteMemOp (INS ins)
    {
       INS_InsertCall (ins, IPOINT_BEFORE, 
             AFUNPTR (redirectMemOp),
+            IARG_THREAD_ID,
             IARG_BOOL, INS_IsAtomicUpdate(ins),
             IARG_MEMORYOP_EA, i,
             IARG_MEMORYREAD_SIZE,
@@ -244,6 +259,7 @@ void rewriteMemOp (INS ins)
 
          INS_InsertCall (ins, ipoint,
                AFUNPTR (completeMemWrite),
+               IARG_THREAD_ID,
                IARG_BOOL, INS_IsAtomicUpdate(ins),
                IARG_REG_VALUE, REG_INST_G3, // Is IARG_MEMORYWRITE_EA,
                IARG_MEMORYWRITE_SIZE,
@@ -253,87 +269,87 @@ void rewriteMemOp (INS ins)
    }
 }
 
-ADDRINT emuPushValue (ADDRINT tgt_esp, ADDRINT value, ADDRINT write_size)
+ADDRINT emuPushValue(THREADID thread_id, ADDRINT tgt_esp, ADDRINT value, ADDRINT write_size)
 {
    assert (write_size != 0);
    assert ( write_size == sizeof ( ADDRINT ) );
 
    tgt_esp -= write_size;
 
-   memOp (Core::NONE, Core::WRITE, (IntPtr) tgt_esp, (char*) &value, (UInt32) write_size);
+   memOp(thread_id, Core::NONE, Core::WRITE, (IntPtr) tgt_esp, (char*) &value, (UInt32) write_size);
    
    return tgt_esp;
 }
 
-ADDRINT emuPushMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
+ADDRINT emuPushMem(THREADID thread_id, ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
 {
    assert (size != 0);
-   assert ( size == sizeof ( ADDRINT ) );
+   assert (size == sizeof ( ADDRINT ));
 
    tgt_esp -= sizeof(ADDRINT);
 
    ADDRINT buf;
 
-   memOp (Core::NONE, Core::READ, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
-   memOp (Core::NONE, Core::WRITE, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
+   memOp(thread_id, Core::NONE, Core::READ, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
+   memOp(thread_id, Core::NONE, Core::WRITE, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
 
    return tgt_esp;
 }
 
-ADDRINT emuPopReg(ADDRINT tgt_esp, ADDRINT *reg, ADDRINT read_size)
+ADDRINT emuPopReg(THREADID thread_id, ADDRINT tgt_esp, ADDRINT *reg, ADDRINT read_size)
 {
    assert (read_size != 0);
-   assert ( read_size == sizeof ( ADDRINT ) );
+   assert (read_size == sizeof ( ADDRINT ));
 
-   memOp (Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) reg, (UInt32) read_size);
+   memOp (thread_id, Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) reg, (UInt32) read_size);
    
    return tgt_esp + read_size;
 }
 
-ADDRINT emuPopMem(ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
+ADDRINT emuPopMem(THREADID thread_id, ADDRINT tgt_esp, ADDRINT operand_ea, ADDRINT size)
 {
    assert ( size == sizeof ( ADDRINT ) );
    
    ADDRINT buf;
 
-   memOp (Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
-   memOp (Core::NONE, Core::WRITE, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
+   memOp (thread_id, Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) &buf, (UInt32) size);
+   memOp (thread_id, Core::NONE, Core::WRITE, (IntPtr) operand_ea, (char*) &buf, (UInt32) size);
 
    return tgt_esp + size;
 }
 
-ADDRINT emuCallMem(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADDRINT operand_ea, ADDRINT read_size, ADDRINT write_size)
+ADDRINT emuCallMem(THREADID thread_id, ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADDRINT operand_ea, ADDRINT read_size, ADDRINT write_size)
 {
    assert (read_size == sizeof(ADDRINT));
    assert (write_size == sizeof(ADDRINT));
    
    ADDRINT called_ip;
-   memOp (Core::NONE, Core::READ, (IntPtr) operand_ea, (char*) &called_ip, (UInt32) read_size);
+   memOp (thread_id, Core::NONE, Core::READ, (IntPtr) operand_ea, (char*) &called_ip, (UInt32) read_size);
 
    *tgt_esp = *tgt_esp - sizeof(ADDRINT);
-   memOp (Core::NONE, Core::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
+   memOp (thread_id, Core::NONE, Core::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
    
    return called_ip;
 }
 
-ADDRINT emuCallRegOrImm(ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADDRINT br_tgt_ip, ADDRINT write_size)
+ADDRINT emuCallRegOrImm(THREADID thread_id, ADDRINT *tgt_esp, ADDRINT *tgt_eax, ADDRINT next_ip, ADDRINT br_tgt_ip, ADDRINT write_size)
 {
    assert (write_size == sizeof(ADDRINT));
    
    *tgt_esp = *tgt_esp - sizeof(ADDRINT);
 
-   memOp (Core::NONE, Core::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
+   memOp (thread_id, Core::NONE, Core::WRITE, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) write_size);
    
    return br_tgt_ip;
 }
 
-ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size, BOOL modeled)
+ADDRINT emuRet(THREADID thread_id, ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size, BOOL push_info)
 {
    assert ( read_size == sizeof ( ADDRINT ) );
 
    ADDRINT next_ip;
 
-   Sim()->getTileManager()->getCurrentCore()->accessMemory(Core::NONE, Core::READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, (bool)modeled);
+   memOp (thread_id, Core::NONE, Core::READ, (IntPtr) *tgt_esp, (char*) &next_ip, (UInt32) read_size, push_info);
 
    *tgt_esp = *tgt_esp + read_size;
    *tgt_esp = *tgt_esp + imm;
@@ -341,104 +357,61 @@ ADDRINT emuRet(ADDRINT *tgt_esp, UINT32 imm, ADDRINT read_size, BOOL modeled)
    return next_ip;
 }
 
-ADDRINT emuLeave(ADDRINT tgt_esp, ADDRINT *tgt_ebp, ADDRINT read_size)
+ADDRINT emuLeave(THREADID thread_id, ADDRINT tgt_esp, ADDRINT *tgt_ebp, ADDRINT read_size)
 {
    assert ( read_size == sizeof ( ADDRINT ) );
 
    tgt_esp = *tgt_ebp;
 
-   memOp (Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) tgt_ebp, (UInt32) read_size);
+   memOp (thread_id, Core::NONE, Core::READ, (IntPtr) tgt_esp, (char*) tgt_ebp, (UInt32) read_size);
    
    tgt_esp += read_size;
    
    return tgt_esp;
 }
 
-ADDRINT redirectPushf ( ADDRINT tgt_esp, ADDRINT size )
+ADDRINT redirectPushf(THREADID thread_id, ADDRINT tgt_esp, ADDRINT size)
 {
    assert (size == sizeof (ADDRINT));
 
-   Core *core = Sim()->getTileManager()->getCurrentCore();
-   
-   if (core)
-   {
-      return core->getPinMemoryManager()->redirectPushf (tgt_esp, size);
-   }
-   else
-   {
-      return tgt_esp;
-   }
+   Core *core = core_map.get<Core>(thread_id);
+   assert(core); 
+   return core->getPinMemoryManager()->redirectPushf(tgt_esp, size);
 }
 
-ADDRINT completePushf ( ADDRINT esp, ADDRINT size )
+ADDRINT completePushf(THREADID thread_id, ADDRINT esp, ADDRINT size)
 {
    assert (size == sizeof(ADDRINT));
    
-   Core *core = Sim()->getTileManager()->getCurrentCore();
-
-   if (core)
-   {
-      return core->getPinMemoryManager()->completePushf (esp, size);
-   }
-   else
-   {
-      return esp;
-   }
+   Core *core = core_map.get<Core>(thread_id);
+   assert(core);
+   return core->getPinMemoryManager()->completePushf(esp, size);
 }
 
-ADDRINT redirectPopf (ADDRINT tgt_esp, ADDRINT size)
+ADDRINT redirectPopf(THREADID thread_id, ADDRINT tgt_esp, ADDRINT size)
 {
    assert (size == sizeof (ADDRINT));
 
-   Core *core = Sim()->getTileManager()->getCurrentCore();
-  
-   if (core)
-   {
-      return core->getPinMemoryManager()->redirectPopf (tgt_esp, size);
-   }
-   else
-   {
-      return tgt_esp;
-   }
+   Core *core = core_map.get<Core>(thread_id);
+   assert(core);
+   return core->getPinMemoryManager()->redirectPopf(tgt_esp, size);
 }
 
-ADDRINT completePopf (ADDRINT esp, ADDRINT size)
+ADDRINT completePopf(THREADID thread_id, ADDRINT esp, ADDRINT size)
 {
    assert (size == sizeof (ADDRINT));
    
-   Core *core = Sim()->getTileManager()->getCurrentCore();
-
-   if (core)
-   {
-      return core->getPinMemoryManager()->completePopf (esp, size);
-   }
-   else
-   {
-      return esp;
-   }
+   Core *core = core_map.get<Core>(thread_id);
+   assert(core);
+   return core->getPinMemoryManager()->completePopf(esp, size);
 }
 
-ADDRINT redirectMemOp (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num, bool is_read)
+ADDRINT redirectMemOp(THREADID thread_id, bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num, bool is_read)
 {
-   Core *core = Sim()->getTileManager()->getCurrentCore();
-  
-   if (core)
-   {
-      PinMemoryManager *mem_manager = core->getPinMemoryManager ();
-      assert (mem_manager != NULL);
-
-      return (ADDRINT) mem_manager->redirectMemOp (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, op_num, is_read);
-
-   }
-   else
-   {
-      // Make sure that no instructions with the 
-      // LOCK prefix execute in a non-core
-      // assert (!has_lock_prefix);
-      // cerr << "ins with LOCK prefix in a non-core" << endl;
-
-      return tgt_ea;
-   }
+   Core *core = core_map.get<Core>(thread_id);
+   assert(core);
+   PinMemoryManager *mem_manager = core->getPinMemoryManager();
+   return (ADDRINT) mem_manager->redirectMemOp(has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, op_num, is_read);
 }
 
 ADDRINT redirectMemOpSaveEa(ADDRINT ea)
@@ -446,21 +419,9 @@ ADDRINT redirectMemOpSaveEa(ADDRINT ea)
    return ea;
 }
 
-VOID completeMemWrite (bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num)
+VOID completeMemWrite(THREADID thread_id, bool has_lock_prefix, ADDRINT tgt_ea, ADDRINT size, UInt32 op_num)
 {
-   Core *core = Sim()->getTileManager()->getCurrentCore();
-
-   if (core)
-   {
-      core->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, op_num);
-   }
-   else
-   {
-      // Make sure that no instructions with the 
-      // LOCK prefix execute in a non-core
-      // assert (!has_lock_prefix);
-      // cerr << "ins with LOCK prefix in a non-core" << endl;
-   }
-
-   return;
+   Core *core = core_map.get<Core>(thread_id);
+   assert(core);
+   core->getPinMemoryManager()->completeMemWrite (has_lock_prefix, (IntPtr) tgt_ea, (IntPtr) size, op_num);
 }

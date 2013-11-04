@@ -16,6 +16,9 @@ static bool enabled()
 
 void handleYield(THREADID thread_id)
 {
+   if (!Sim()->isEnabled())
+      return;
+
    Core* core = core_map.get<Core>(thread_id);
    assert(core);
    if (core->getTile()->getId() >= (tile_id_t) Sim()->getConfig()->getApplicationTiles())

@@ -104,3 +104,8 @@ void print_usage(char * argv0)
 }
 
 }
+
+int main(int argc,char *argv[])
+{
+   return McPAT::main(argc, argv);
+}

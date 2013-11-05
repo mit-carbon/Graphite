@@ -8,7 +8,7 @@ $(DSENT_LIB):
 	$(MAKE) -C $(SIM_ROOT)/contrib/dsent
 
 $(MCPAT_LIB):
-	$(MAKE) -C $(SIM_ROOT)/contrib/mcpat
+	$(MAKE) -C $(SIM_ROOT)/contrib/mcpat USE_GRAPHITE=true
 
 $(DB_UTILS_LIB):
 	$(MAKE) -C $(SIM_ROOT)/contrib/db_utils

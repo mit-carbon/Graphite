@@ -35,8 +35,11 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
+
+#ifdef USE_GRAPHITE
 #include <db.h>
 #include "../../db_utils/api.h"
+#endif
 
 #include "io.h"
 #include "area.h"
@@ -53,6 +56,7 @@ using namespace std;
 namespace McPAT
 {
 
+#ifdef USE_GRAPHITE
 static DB* _database = NULL;
 
 void initializeDatabase(string mcpat_path)
@@ -60,6 +64,7 @@ void initializeDatabase(string mcpat_path)
    string mcpat_libname = mcpat_path + "/libmcpat.a";
    DBUtils::initialize(_database, "mcpat", mcpat_libname);
 }
+#endif
 
 InputParameter::InputParameter()
 {
@@ -76,7 +81,7 @@ InputParameter::InputParameter()
 }
 
 /* Parses "cache.cfg" file */
-  void
+void
 InputParameter::parse_cfg(const string & in_file)
 {
   FILE *fp = fopen(in_file.c_str(), "r");
@@ -3358,7 +3363,7 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
   init_tech_params(g_ip->F_sz_um, false);
   Wire winit; // Do not delete this line. It initializes wires.
 
-
+#ifdef USE_GRAPHITE
   // Get data stored in database
   DBT key, data;
   memset(&key, 0, sizeof(key));
@@ -3392,6 +3397,9 @@ uca_org_t cacti_interface(InputParameter  * const local_interface)
     assert(sizeof(fin_res) == data.size);
     memcpy(&fin_res, data.data, sizeof(fin_res));
   }
+#else
+    solve(&fin_res);
+#endif
 
   if (!g_ip->dvs_voltage.empty())
   {

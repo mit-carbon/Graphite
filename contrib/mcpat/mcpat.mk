@@ -1,22 +1,30 @@
-TARGET = libmcpat.a
+ifneq ($(USE_GRAPHITE),)
+	TARGET = libmcpat.a
+else
+	TARGET = mcpat
+endif
+
 SHELL = /bin/bash
 .PHONY: all clean
 .SUFFIXES: .cc .o
 
-ifndef NTHREADS
-  NTHREADS = 4
-endif
+LIBS = -lm -pthread
+
+NTHREADS ?= 4
 
 ifeq ($(TAG),dbg)
-  DBG = -ggdb
-  OPT = -O0 -DNTHREADS=1 -Icacti
+	DBG = -ggdb
+	OPT = -O0 -DNTHREADS=1 -Icacti
 else
-  OPT = -O3 -msse2 -mfpmath=sse -DNTHREADS=$(NTHREADS) -Icacti
+	OPT = -O3 -msse2 -mfpmath=sse -DNTHREADS=$(NTHREADS) -Icacti
 endif
 
-CXXFLAGS = -Wall -Wno-unknown-pragmas $(DBG) $(OPT)
-CXX = g++ -fPIC
-CC  = gcc -fPIC
+ifneq ($(USE_GRAPHITE),)
+	OPT += -DUSE_GRAPHITE
+endif
+
+CXXFLAGS = -fPIC -Wall -Wno-unknown-pragmas $(DBG) $(OPT)
+CXX = g++
 
 VPATH = cacti
 
@@ -56,17 +64,26 @@ SRCS  = \
   core_wrapper.cc \
   cache_wrapper.cc
 
+ifeq ($(USE_GRAPHITE),)
+	SRCS += main.cc
+endif
+
 OBJS = $(patsubst %.cc,obj_$(TAG)/%.o,$(SRCS))
 
 all: obj_$(TAG)/$(TARGET)
 	@echo $(OBJS)
 	cp -f obj_$(TAG)/$(TARGET) $(TARGET)
 
+ifneq ($(USE_GRAPHITE),)
 obj_$(TAG)/$(TARGET): $(OBJS)
 	ar rcs $@ $^
+else
+obj_$(TAG)/$(TARGET): $(OBJS)
+	$(CXX) $^ -o $@ $(LIBS)
+endif
 
 obj_$(TAG)/%.o: %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	$(RM) $(OBJS) obj_$(TAG)/$(TARGET) $(TARGET)
+	rm -rf obj_$(TAG) libmcpat.a mcpat

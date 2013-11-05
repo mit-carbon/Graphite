@@ -470,7 +470,8 @@ NetworkModel::processCornerCases(const NetPacket& pkt, queue<Hop>& next_hops)
 void NetworkModel::initializeDVFS()
 {
    // Initialize frequency, voltage
-   switch(_network_id){
+   switch (_network_id)
+   {
       case STATIC_NETWORK_USER:
          _module = NETWORK_USER;
          break;
@@ -479,6 +480,7 @@ void NetworkModel::initializeDVFS()
          break;
       default:
          _module = INVALID_MODULE;
+         break;
    }
 
    int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
@@ -490,11 +492,13 @@ void NetworkModel::initializeDVFS()
    // Asynchronous communication
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
    _asynchronous_map[L2_CACHE] = Time(0);
-   if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+   if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI)
+   {
       _asynchronous_map[L1_ICACHE] = Time(0);
       _asynchronous_map[L1_DCACHE] = Time(0);
    }
-   else{
+   else
+   {
       _asynchronous_map[DIRECTORY] = Time(0);
    }
 }

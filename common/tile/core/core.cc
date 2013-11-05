@@ -34,7 +34,7 @@ Core::Core(Tile *tile, core_type_t core_type)
    _sync_client = new SyncClient(this);
    _syscall_model = new SyscallMdl(this);
    _clock_skew_management_client =
-      ClockSkewManagementClient::create(Sim()->getCfg()->getString("clock_skew_management/scheme","none"), this);
+      ClockSkewManagementClient::create(Sim()->getCfg()->getString("clock_skew_management/scheme"), this);
  
    if (Config::getSingleton()->isSimulatingSharedMemory())
       _pin_memory_manager = new PinMemoryManager(this);

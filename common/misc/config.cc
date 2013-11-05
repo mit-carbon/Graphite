@@ -363,14 +363,12 @@ void Config::parseTileParameters()
 {
    // Default values are as follows:
    // 1) Number of tiles -> Number of application tiles
-   // 2) Frequency -> 1 GHz
-   // 3) Core Type -> simple
-   // 4) L1-I Cache Type -> T1
-   // 5) L1-D Cache Type -> T1
-   // 6) L2 Cache Type -> T1
+   // 2) Core Type -> simple
+   // 3) L1-I Cache Type -> T1
+   // 4) L1-D Cache Type -> T1
+   // 5) L2 Cache Type -> T1
 
    const UInt32 DEFAULT_NUM_TILES = getApplicationTiles();
-   const double DEFAULT_FREQUENCY = 1.0;
    const string DEFAULT_CORE_TYPE = "simple";
    const string DEFAULT_CACHE_TYPE = "T1";
 
@@ -395,7 +393,6 @@ void Config::parseTileParameters()
    {
       // Initializing using default values
       UInt32 num_tiles = DEFAULT_NUM_TILES;
-      double frequency = DEFAULT_FREQUENCY;
       string core_type = DEFAULT_CORE_TYPE;
       string l1_icache_type = DEFAULT_CACHE_TYPE;
       string l1_dcache_type = DEFAULT_CACHE_TYPE;
@@ -417,27 +414,18 @@ void Config::parseTileParameters()
                break;
 
             case 1:
-               frequency = convertFromString<double>(*param_it);
-               if (frequency <= 0)
-               {
-                  fprintf(stderr, "Error: Invalid frequency(%g GHz), must be greater than zero\n", frequency);
-                  exit(EXIT_FAILURE);
-               }
-               break;
-
-            case 2:
                core_type = trimSpaces(*param_it);
                break;
 
-            case 3:
+            case 2:
                l1_icache_type = trimSpaces(*param_it);
                break;
 
-            case 4:
+            case 3:
                l1_dcache_type = trimSpaces(*param_it);
                break;
 
-            case 5:
+            case 4:
                l2_cache_type = trimSpaces(*param_it);
                break;
 
@@ -453,8 +441,7 @@ void Config::parseTileParameters()
       // Append these values to an internal list
       for (UInt32 i = num_initialized_tiles; i < num_initialized_tiles + num_tiles; i++)
       {
-         m_tile_parameters_vec.push_back(TileParameters(core_type, frequency,
-                  l1_icache_type, l1_dcache_type, l2_cache_type));
+         m_tile_parameters_vec.push_back(TileParameters(core_type, l1_icache_type, l1_dcache_type, l2_cache_type));
       }
       num_initialized_tiles += num_tiles;
 
@@ -476,7 +463,7 @@ void Config::parseTileParameters()
    // MCP and Thread Spawner cores
    for (UInt32 i = getApplicationTiles(); i < getTotalTiles(); i++)
    {
-      m_tile_parameters_vec.push_back(TileParameters(DEFAULT_CORE_TYPE, DEFAULT_FREQUENCY,
+      m_tile_parameters_vec.push_back(TileParameters(DEFAULT_CORE_TYPE,
                DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE, DEFAULT_CACHE_TYPE));
    }
 }
@@ -484,7 +471,6 @@ void Config::parseTileParameters()
 void Config::parseNetworkParameters()
 {
    const string DEFAULT_NETWORK_TYPE = "magic";
-   const double DEFAULT_FREQUENCY = 1;           // In GHz
 
    string network_parameters_list[NUM_STATIC_NETWORKS];
    try
@@ -503,7 +489,7 @@ void Config::parseNetworkParameters()
 
    for (SInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
    {
-      m_network_parameters_vec.push_back(NetworkParameters(network_parameters_list[i], DEFAULT_FREQUENCY));
+      m_network_parameters_vec.push_back(NetworkParameters(network_parameters_list[i]));
    }
 }
 
@@ -549,18 +535,6 @@ string Config::getL2CacheType(tile_id_t tile_id)
          m_tile_parameters_vec.size(), getTotalTiles());
 
    return m_tile_parameters_vec[tile_id].getL2CacheType();
-}
-
-double Config::getTileFrequency(tile_id_t tile_id)
-{
-   LOG_ASSERT_ERROR(tile_id < ((SInt32) getTotalTiles()),
-         "tile_id(%i), total tiles(%u)", tile_id, getTotalTiles());
-
-   LOG_ASSERT_ERROR(m_tile_parameters_vec.size() == getTotalTiles(),
-         "m_tile_parameters_vec.size(%u), total tiles(%u)",
-         m_tile_parameters_vec.size(), getTotalTiles());
-
-   return m_tile_parameters_vec[tile_id].getFrequency();
 }
 
 string Config::getNetworkType(SInt32 network_id)

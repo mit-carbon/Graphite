@@ -7,9 +7,6 @@ namespace PrL1PrL2DramDirectoryMOSI
    class MemoryManager;
 }
 
-#include <map>
-using std::map;
-
 #include "cache.h"
 #include "cache_line_info.h"
 #include "address_home_lookup.h"

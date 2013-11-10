@@ -2,8 +2,7 @@ using namespace std;
 
 #include "core.h"
 #include "iocoom_core_model.h"
-
-#include "log.h"
+#include "tile.h"
 #include "dynamic_instruction_info.h"
 #include "config.hpp"
 #include "simulator.h"
@@ -20,30 +19,32 @@ IOCOOMCoreModel::IOCOOMCoreModel(Core *core)
 {
    config::Config *cfg = Sim()->getCfg();
 
+   UInt32 num_load_buffer_entries = 0;
+   UInt32 num_store_buffer_entries = 0;
    try
    {
-      m_store_buffer = new StoreBuffer(cfg->getInt("core/iocoom/num_store_buffer_entries",1));
-      m_load_buffer = new LoadBuffer(cfg->getInt("core/iocoom/num_outstanding_loads",3));
+      num_load_buffer_entries = cfg->getInt("core/iocoom/num_outstanding_loads");
+      num_store_buffer_entries = cfg->getInt("core/iocoom/num_store_buffer_entries");
    }
    catch (...)
    {
       LOG_PRINT_ERROR("Config info not available.");
    }
 
+   m_load_buffer = new LoadBuffer(num_load_buffer_entries);
+   m_store_buffer = new StoreBuffer(num_store_buffer_entries);
+   
    initializeRegisterScoreboard();
    initializeRegisterWaitUnitList();
-   
-   // For Power and AreaModeling
-   m_mcpat_core_interface = new McPATCoreInterface(
-                            cfg->getInt("core/iocoom/num_outstanding_loads", 3),
-                            cfg->getInt("core/iocoom/num_store_buffer_entries", 1));
 
    initializePipelineStallCounters();
+
+   // Initialize McPAT
+   initializeMcPATInterface(num_load_buffer_entries, num_store_buffer_entries);
 }
 
 IOCOOMCoreModel::~IOCOOMCoreModel()
 {
-   delete m_mcpat_core_interface;
    delete m_load_buffer;
    delete m_store_buffer;
 }
@@ -60,9 +61,9 @@ void IOCOOMCoreModel::initializePipelineStallCounters()
    m_total_inter_ins_execution_unit_stall_time = Time(0);
 }
 
-void IOCOOMCoreModel::outputSummary(std::ostream &os)
+void IOCOOMCoreModel::outputSummary(std::ostream &os, const Time& target_completion_time)
 {
-   CoreModel::outputSummary(os);
+   CoreModel::outputSummary(os, target_completion_time);
 
 //   os << "    Total Load Buffer Stall Time (in nanoseconds): " << m_total_load_buffer_stall_time.toNanosec() << endl;
 //   os << "    Total Store Buffer Stall Time (in nanoseconds): " << m_total_store_buffer_stall_time.toNanosec() << endl;
@@ -81,7 +82,7 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // abort further processing (via AbortInstructionException)
    Time cost = instruction->getCost(this);
 
-   Time one_cycle = Latency(1, m_core->getTile()->getFrequency());
+   Time one_cycle = Latency(1, m_core->getFrequency());
 
    // Model Instruction Fetch Stage
    Time instruction_ready = m_curr_time;
@@ -311,8 +312,8 @@ void IOCOOMCoreModel::handleInstruction(Instruction *instruction)
    // Update Common Pipeline Stall Counters
    updatePipelineStallCounters(instruction, memory_stall_time, execution_unit_stall_time);
 
-   // Update Event Counters
-   // m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getTile()->getFrequency()));
+   // Update McPAT counters
+   updateMcPATCounters(instruction);
 }
 
 pair<Time,Time>

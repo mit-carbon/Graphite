@@ -12,17 +12,25 @@ using namespace std;
 #include "simulator.h"
 #include "config.h"
 #include "log.h"
+#include "dvfs_manager.h"
 
-NetworkModel::NetworkModel(Network *network, SInt32 network_id):
-   _network(network),
-   _network_id(network_id),
-   _enabled(false)
+NetworkModel::NetworkModel(Network *network, SInt32 network_id)
+   : _frequency(0)
+   , _voltage(0)
+   , _module(INVALID_MODULE)
+   , _network(network)
+   , _network_id(network_id)
+   , _enabled(false)
 {
    assert(network_id >= 0 && network_id < NUM_STATIC_NETWORKS);
    _network_name = g_static_network_name_list[network_id];
 
+   // Initialize DVFS
+   initializeDVFS();
+
    // Get the Tile ID
-   _tile_id = getNetwork()->getTile()->getId();
+   _tile_id = _network->getTile()->getId();
+   
    // Get the Tile Width
    try
    {
@@ -264,7 +272,7 @@ NetworkModel::updateReceiveCounters(const NetPacket& packet)
 }
 
 void
-NetworkModel::outputSummary(ostream& out)
+NetworkModel::outputSummary(ostream& out, const Time& target_completion_time)
 {
    out << "    Total Packets Sent: " << _total_packets_sent << endl;
    out << "    Total Flits Sent: " << _total_flits_sent << endl;
@@ -301,6 +309,10 @@ NetworkModel::outputSummary(ostream& out)
       out << "    Average Contention Delay (in clock cycles): 0" << endl;
       out << "    Average Contention Delay (in nanoseconds): 0" << endl;
    }
+   
+   // Asynchronous communication
+   if (_module != INVALID_MODULE)
+      DVFSManager::printAsynchronousMap(out, _module, _asynchronous_map);
 }
 
 UInt32 
@@ -455,6 +467,64 @@ NetworkModel::processCornerCases(const NetPacket& pkt, queue<Hop>& next_hops)
    return true;
 }
 
+void NetworkModel::initializeDVFS()
+{
+   // Initialize frequency, voltage
+   switch (_network_id)
+   {
+      case STATIC_NETWORK_USER:
+         _module = NETWORK_USER;
+         break;
+      case STATIC_NETWORK_MEMORY:
+         _module = NETWORK_MEMORY;
+         break;
+      default:
+         _module = INVALID_MODULE;
+         break;
+   }
+
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+
+   // Asynchronous communication
+   _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+
+   // Asynchronous communication
+   _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   _asynchronous_map[L2_CACHE] = Time(0);
+   if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI)
+   {
+      _asynchronous_map[L1_ICACHE] = Time(0);
+      _asynchronous_map[L1_DCACHE] = Time(0);
+   }
+   else
+   {
+      _asynchronous_map[DIRECTORY] = Time(0);
+   }
+}
+
+int
+NetworkModel::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}
+
+int
+NetworkModel::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time)
+{
+   // Get voltage at new frequency
+   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
+   if (rc==0)
+   {
+      _frequency = frequency;
+      setDVFS(_frequency, _voltage, curr_time);
+      _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   }
+   return rc;
+}
+
 void
 NetworkModel::initializeCurrentUtilizationStatistics()
 {
@@ -473,6 +543,16 @@ NetworkModel::popCurrentUtilizationStatistics(UInt64& flits_sent, UInt64& flits_
    initializeCurrentUtilizationStatistics();
 }
 
+Time
+NetworkModel::getSynchronizationDelay(module_t module)
+{
+   if (!DVFSManager::hasSameDVFSDomain(_module, module) && _enabled){
+      _asynchronous_map[module] += _synchronization_delay;
+      return _synchronization_delay;
+   }
+   return Time(0);
+}
+
 NetworkModel::Hop::Hop(const NetPacket& pkt, tile_id_t next_tile_id, SInt32 next_node_type,
                        Time zero_load_delay, Time contention_delay)
    : _next_tile_id(next_tile_id)
@@ -484,3 +564,4 @@ NetworkModel::Hop::Hop(const NetPacket& pkt, tile_id_t next_tile_id, SInt32 next
 
 NetworkModel::Hop::~Hop()
 {}
+

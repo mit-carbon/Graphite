@@ -104,7 +104,8 @@ all: $(TARGET)
 
 # Compiler flags
 LD_FLAGS += -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join
-LD_LIBS += -pthread
+# Math, pthread libraries
+LD_LIBS += -lm -pthread
 
 OBJECTS ?= $(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(patsubst %.cc,%.o,$(SOURCES) ) ) )
 

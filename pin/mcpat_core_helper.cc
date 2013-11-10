@@ -1,12 +1,29 @@
 #include "mcpat_core_interface.h"
 #include "pin.H"
+#include "instruction.h"
 
-McPATCoreInterface::InstructionType
-getInstructionType(UInt64 opcode)
+McPATCoreInterface::McPATInstructionType
+getMcPATInstructionType(InstructionType type)
 {
-   // Note: Sabrina, please implement this function
    // can be {INTEGER_INST, FLOATING_POINT_INST, BRANCH_INST}
-   return (McPATCoreInterface::INTEGER_INST);
+     
+   if ((type == INST_IALU) || (type == INST_IMUL) || (type == INST_IDIV))
+   {
+      return (McPATCoreInterface::INTEGER_INST);
+   }
+   else if ((type == INST_FALU) || (type == INST_FMUL) || (type == INST_FDIV) ||
+            (type == INST_XMM_SS) || (type == INST_XMM_SD) || (type == INST_XMM_PS))
+   {
+      return (McPATCoreInterface::FLOATING_POINT_INST);
+   }
+   else if (type == INST_BRANCH)
+   {
+      return (McPATCoreInterface::BRANCH_INST);
+   }
+   else
+   {
+      return (McPATCoreInterface::GENERIC_INST);
+   }
 }
 
 bool
@@ -33,15 +50,33 @@ isXMMReg(UInt32 reg_id)
    return REG_is_xmm((REG) reg_id);
 }
 
-McPATCoreInterface::ExecutionUnitList
-getExecutionUnitAccessList(UInt64 opcode)
+void
+getExecutionUnitAccessList(InstructionType type, McPATCoreInterface::ExecutionUnitList& unit_list)
 {
-   // Note: Sabrina, please implement this function
    // can be a vector of {ALU, MUL, FPU}
    // 
    // For SSE instructions, make it two FPU accesses for now
    // This is not entirely correct (but good for a 1st pass)
-   McPATCoreInterface::ExecutionUnitList access_list;
-   access_list.push_back(McPATCoreInterface::ALU);
-   return access_list;
+
+   if (type == INST_IALU)
+   {   
+      unit_list.push_back(McPATCoreInterface::ALU);
+   }
+   else if ((type == INST_IMUL) || (type == INST_IDIV))
+   {
+      unit_list.push_back(McPATCoreInterface::MUL);
+   }
+   else if ((type == INST_FALU) || (type == INST_FMUL) || (type == INST_FDIV))
+   {
+      unit_list.push_back(McPATCoreInterface::FPU);
+   }
+   else if ((type == INST_XMM_SS) || (type == INST_XMM_SD))
+   {
+      unit_list.push_back(McPATCoreInterface::FPU);
+   }
+   else if (type == INST_XMM_PS)
+   {
+      unit_list.push_back(McPATCoreInterface::FPU);
+      unit_list.push_back(McPATCoreInterface::FPU);
+   }
 }

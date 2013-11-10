@@ -9,10 +9,8 @@ ShmemPerfModel::ShmemPerfModel()
    , _enabled(false)
 {}
 
-
 ShmemPerfModel::~ShmemPerfModel()
 {}
-
 
 void 
 ShmemPerfModel::setCurrTime(const Time& time)
@@ -38,11 +36,10 @@ ShmemPerfModel::updateCurrTime(const Time& time)
 void
 ShmemPerfModel::incrCurrTime(const Time& time)
 {
+   LOG_PRINT("incrCurrTime: time(%llu ps)", time.getTime());
    if (_enabled)
    {
       LOG_PRINT("incrCurrTime: time(%llu ns)", time.toNanosec());
       _curr_time += time;
    }
 }
-
-

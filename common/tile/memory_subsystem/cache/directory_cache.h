@@ -9,11 +9,13 @@ using std::ostream;
 #include "tile.h"
 #include "directory.h"
 #include "shmem_perf_model.h"
-#include "cache_power_model.h"
-#include "cache_area_model.h"
 #include "directory_entry.h"
 #include "directory_type.h"
 #include "caching_protocol_type.h"
+#include "dvfs.h"
+#include "dvfs_manager.h"
+
+class McPATCacheInterface;
 
 class DirectoryCache
 {
@@ -27,7 +29,8 @@ public:
                   UInt32 max_hw_sharers,
                   UInt32 max_num_sharers,
                   UInt32 num_directory_slices,
-                  string directory_access_time_str);
+                  string directory_access_time_str,
+                  ShmemPerfModel* shmem_perf_model);
    ~DirectoryCache();
 
    Directory* getDirectory() { return _directory; }
@@ -42,7 +45,9 @@ public:
    void enable() { _enabled = true; }
    void disable() { _enabled = false; }
 
-   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+   int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
+   Time getSynchronizationDelay(module_t module);
 
 private:
    Tile* _tile;
@@ -73,13 +78,13 @@ private:
    UInt32 _log_num_application_tiles;
    UInt32 _log_num_directory_slices;
 
-   string _directory_access_time_str;
-   UInt64 _directory_access_latency;
-   Time _directory_access_time;
+   string _directory_access_cycles_str;
+   UInt64 _directory_access_cycles;
+   Time _directory_access_latency;
+   Time _synchronization_delay;
 
-   // Dram Directory Cache Power and Area Models
-   CachePowerModel* _power_model;
-   CacheAreaModel* _area_model;
+   // Dram Directory Cache Power and Area Models (through McPAT)
+   McPATCacheInterface* _mcpat_cache_interface;
 
    // Counters
    UInt64 _total_directory_accesses;
@@ -93,7 +98,7 @@ private:
    // Get the max L2 cache size (in KB)
    UInt32 getMaxL2CacheSize();
    // Auto(-matically) determine directory access time
-   UInt64 computeDirectoryAccessTime();
+   UInt64 computeDirectoryAccessCycles();
 
    void initializeEventCounters();
    void splitAddress(IntPtr address, IntPtr& tag, UInt32& set_index);
@@ -102,8 +107,14 @@ private:
    IntPtr computeSetIndex(IntPtr address);
   
    // Output auto-generated directory size and access time
-   void printAutogenDirectorySizeAndAccessTime(ostream& out);
-   static void dummyPrintAutogenDirectorySizeAndAccessTime(ostream& out);
+   void printAutogenDirectorySizeAndAccessCycles(ostream& out);
+   static void dummyPrintAutogenDirectorySizeAndAccessCycles(ostream& out);
 
    ShmemPerfModel* getShmemPerfModel();
+
+   double _frequency;
+   double _voltage;
+   module_t _module;
+   DVFSManager::AsynchronousMap _asynchronous_map;
+   ShmemPerfModel* _shmem_perf_model;
 };

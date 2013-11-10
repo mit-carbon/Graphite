@@ -14,11 +14,12 @@
 #include "thread_scheduler.h"
 #include "performance_counter_manager.h"
 #include "sim_thread_manager.h"
+#include "dvfs_manager.h"
 #include "clock_skew_management_object.h"
 #include "statistics_manager.h"
 #include "statistics_thread.h"
 #include "contrib/dsent/dsent_contrib.h"
-#include "mcpat_cache.h"
+#include "contrib/mcpat/cacti/io.h"
 
 Simulator *Simulator::m_singleton;
 config::Config *Simulator::m_config_file;
@@ -89,22 +90,24 @@ void Simulator::start()
    char* graphite_home_str = getenv("GRAPHITE_HOME");
    m_graphite_home = (graphite_home_str) ? ((string)graphite_home_str) : ".";
   
-   // DSENT for network power modeling - create config object
    if (Config::getSingleton()->getEnablePowerModeling())
-   { 
+   {
+      // Initialize DSENT for network power modeling - create config object
       string dsent_path = m_graphite_home + "/contrib/dsent";
       dsent_contrib::DSENTInterface::allocate(dsent_path, getCfg()->getInt("general/technology_node"));
       dsent_contrib::DSENTInterface::getSingleton()->add_global_tech_overwrite("Temperature",
          getCfg()->getFloat("general/temperature"));
+
+      // Initialize McPAT for core + cache power modeling
+      string mcpat_path = m_graphite_home + "/contrib/mcpat";
+      McPAT::initializeDatabase(mcpat_path);
    }
   
-   // McPAT for cache power and area modeling
-   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
-   {
-      McPATCache::allocate();
-   }
- 
    m_transport = Transport::create();
+
+   // Initialize the DVFS
+   DVFSManager::initializeDVFS();
+
    m_tile_manager = new TileManager();
    m_thread_manager = new ThreadManager(m_tile_manager);
    m_thread_scheduler = ThreadScheduler::create(m_thread_manager, m_tile_manager);
@@ -144,11 +147,9 @@ Simulator::~Simulator()
    if (m_statistics_thread)
       m_statistics_thread->finish();
 
-   m_sim_thread_manager->quitSimThreads();
+   m_lcp->finish();
 
    m_transport->barrier();
-
-   m_lcp->finish();
 
    if (Config::getSingleton()->getCurrentProcessNum() == 0)
    {
@@ -169,6 +170,10 @@ Simulator::~Simulator()
       m_tile_manager->outputSummary(temp);
       assert(temp.str().length() == 0);
    }
+
+   m_sim_thread_manager->quitSimThreads();
+
+   m_transport->barrier();
 
    delete m_lcp_thread;
    delete m_mcp_thread;
@@ -194,9 +199,6 @@ Simulator::~Simulator()
    m_tile_manager = NULL;
    delete m_transport;
 
-   // Release McPAT cache object
-   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
-      McPATCache::release();
    // Release DSENT interface object
    if (Config::getSingleton()->getEnablePowerModeling())
       dsent_contrib::DSENTInterface::release();

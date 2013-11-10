@@ -9,8 +9,7 @@ extern "C" {
 #define CAPI_ENDPOINT_ANY ((SInt32) 0x20000000)
 
 typedef enum {
-   CARBON_NET_USER = 0,
-   CARBON_FREQ_CONTROL
+   CARBON_NET_USER = 0
 } carbon_network_t;
 
 typedef int CAPI_return_t;

@@ -9,7 +9,7 @@ public:
    SimpleCoreModel(Core *core);
    ~SimpleCoreModel();
 
-   void outputSummary(std::ostream &os);
+   void outputSummary(std::ostream &os, const Time& target_completion_time);
 
 private:
    void handleInstruction(Instruction *instruction);

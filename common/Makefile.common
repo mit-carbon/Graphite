@@ -24,7 +24,9 @@ DIRECTORIES = $(SIM_ROOT)/common/tile/        									\
 			 $(SIM_ROOT)/																	\
 			 $(CURDIR)/
 
-INCLUDE_DIRECTORIES = $(DIRECTORIES)
+INCLUDE_DIRECTORIES = $(DIRECTORIES)												\
+							 $(SIM_ROOT)/contrib/mcpat									\
+							 $(SIM_ROOT)/contrib/mcpat/cacti
 
 CLEAN=$(findstring clean,$(MAKECMDGOALS))
 
@@ -44,8 +46,9 @@ KERNEL = SQUEEZE
 LD_FLAGS += -L$(SIM_ROOT)/lib
 LD_LIBS += -lcarbon_sim
 
+# Boost library
 BOOST_SUFFIX = mt
-LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX) -pthread
+LD_LIBS += -lboost_filesystem-$(BOOST_SUFFIX) -lboost_system-$(BOOST_SUFFIX)
 
 # Include paths
 CXXFLAGS += $(foreach dir,$(INCLUDE_DIRECTORIES),-I$(dir)) \

@@ -42,12 +42,11 @@ SInt32 NetworkModelAtac::_unicast_distance_threshold;
 // Is contention model enabled?
 bool NetworkModelAtac::_contention_model_enabled;
 
-NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id):
-   NetworkModel(net, network_id)
+NetworkModelAtac::NetworkModelAtac(Network *net, SInt32 network_id)
+   : NetworkModel(net, network_id)
 {
    try
    {
-      _frequency = Sim()->getCfg()->getFloat("network/atac/frequency");
       _flit_width = Sim()->getCfg()->getInt("network/atac/flit_width");
    }
    catch (...)
@@ -185,7 +184,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    //// Electrical Mesh Router & Link
   
    // Injection Port
-   _injection_router = new RouterModel(this, _frequency, 1, 1,
+   _injection_router = new RouterModel(this, _frequency, _voltage,
+                                       1, 1,
                                        4, 0, _flit_width,
                                        _contention_model_enabled, contention_model_type);
 
@@ -196,7 +196,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    if (isAccessPoint(_tile_id))
       num_enet_router_output_ports += 1;
 
-   _enet_router = new RouterModel(this, _frequency, _num_enet_router_ports, num_enet_router_output_ports,
+   _enet_router = new RouterModel(this, _frequency, _voltage,
+                                  _num_enet_router_ports, num_enet_router_output_ports,
                                   num_flits_per_output_buffer_enet_router, enet_router_delay, _flit_width,
                                   _contention_model_enabled, contention_model_type);
   
@@ -207,7 +208,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    for (SInt32 i = 0; i < num_enet_router_output_ports; i++)
    {
       _enet_link_list[i] = new ElectricalLinkModel(this, electrical_link_type,
-                                                   _frequency, enet_link_length, _flit_width);
+                                                   _frequency, _voltage,
+                                                   enet_link_length, _flit_width);
       assert(_enet_link_list[i]->getDelay() == 1);
    }
 
@@ -216,18 +218,21 @@ NetworkModelAtac::createANetRouterAndLinkModels()
    {
       // Send Hub Router
       // Performance Model
-      _send_hub_router = new RouterModel(this, _frequency, _num_access_points_per_cluster, 1 /* num_output_ports */,
+      _send_hub_router = new RouterModel(this, _frequency, _voltage,
+                                         _num_access_points_per_cluster, 1 /* num_output_ports */,
                                          num_flits_per_output_buffer_send_hub_router, send_hub_router_delay, _flit_width,
                                          _contention_model_enabled, contention_model_type);
 
       // Optical Network Link Models
       double waveguide_length = computeOpticalLinkLength();   // In mm
-      _optical_link = new OpticalLinkModel(this, _num_clusters, _frequency, waveguide_length, _flit_width);
+      _optical_link = new OpticalLinkModel(this, _num_clusters, _frequency, _voltage, waveguide_length, _flit_width);
       LOG_ASSERT_ERROR(_optical_link->getDelay() == 3, "Optical link delay should be 3. Now %llu", _optical_link->getDelay());
 
       // Receive Hub Router Models
-      _receive_hub_router = new RouterModel(this, _frequency, _num_clusters, _num_receive_networks_per_cluster,
-                                            num_flits_per_output_buffer_receive_hub_router, receive_hub_router_delay, _flit_width,
+      _receive_hub_router = new RouterModel(this, _frequency, _voltage,
+                                            _num_clusters, _num_receive_networks_per_cluster,
+                                            num_flits_per_output_buffer_receive_hub_router, receive_hub_router_delay,
+                                            _flit_width,
                                             _contention_model_enabled, contention_model_type);
 
          // Receive Net
@@ -240,7 +245,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
             _btree_link_list[i] = new ElectricalLinkModel(this, electrical_link_type,
-                                                          _frequency, btree_link_length, _flit_width);
+                                                          _frequency, _voltage,
+                                                          btree_link_length, _flit_width);
             assert(_btree_link_list[i]->getDelay() == 1);
          }
       }
@@ -252,8 +258,10 @@ NetworkModelAtac::createANetRouterAndLinkModels()
          for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
          {
             // Star Net Router
-            _star_net_router_list[i] = new RouterModel(this, _frequency, 1 /* num_input_ports */, _cluster_size,
-                                                       num_flits_per_output_buffer_star_net_router, star_net_router_delay, _flit_width,
+            _star_net_router_list[i] = new RouterModel(this, _frequency, _voltage,
+                                                       1 /* num_input_ports */, _cluster_size,
+                                                       num_flits_per_output_buffer_star_net_router, star_net_router_delay,
+                                                       _flit_width,
                                                        _contention_model_enabled, contention_model_type);
 
             // Star Net Link
@@ -268,7 +276,8 @@ NetworkModelAtac::createANetRouterAndLinkModels()
                if (star_net_link_length == 0)
                   star_net_link_length = 0.1;   // A small quantity
                _star_net_link_list[i][j] = new ElectricalLinkModel(this, electrical_link_type,
-                                                                   _frequency, star_net_link_length, _flit_width);
+                                                                   _frequency, _voltage,
+                                                                   star_net_link_length, _flit_width);
                assert(_star_net_link_list[i][j]->getDelay() == 1);
             }
          }
@@ -536,10 +545,10 @@ NetworkModelAtac::routePacketOnONet(const NetPacket& pkt, tile_id_t pkt_sender, 
 }
 
 void
-NetworkModelAtac::outputSummary(ostream &out)
+NetworkModelAtac::outputSummary(ostream &out, const Time& target_completion_time)
 {
-   NetworkModel::outputSummary(out);
-   outputPowerSummary(out);
+   NetworkModel::outputSummary(out, target_completion_time);
+   outputPowerSummary(out, target_completion_time);
    outputEventCountSummary(out);
    if (_contention_model_enabled)
       outputContentionModelsSummary(out);
@@ -874,11 +883,11 @@ NetworkModelAtac::computeProcessToTileMapping()
 
    SInt32 process_count = (SInt32) Config::getSingleton()->getProcessCount();
    vector<Config::TileList> process_to_tile_mapping(process_count);
-  
-   LOG_ASSERT_WARNING(_num_clusters >= process_count,
-        "Number of Clusters(%u) < Total Processes in Simulation(%u)",
-        _num_clusters, process_count);
-        
+ 
+   LOG_ASSERT_ERROR(_num_clusters >= process_count,
+                    "Number of Clusters(%u) < Total Processes in Simulation(%u)",
+                    _num_clusters, process_count);
+ 
    UInt32 process_num = 0;
    for (SInt32 i = 0; i < _num_clusters; i++)
    {
@@ -1166,63 +1175,66 @@ NetworkModelAtac::outputContentionModelsSummary(ostream& out)
 }
 
 void
-NetworkModelAtac::outputPowerSummary(ostream& out)
+NetworkModelAtac::outputPowerSummary(ostream& out, const Time& target_completion_time)
 {
    if (!Config::getSingleton()->getEnablePowerModeling())
       return;
 
+   // Compute the final leakage/dynamic energy
+   computeEnergy(target_completion_time);
+
    out << "    Energy Counters:" << endl;
 
-   double enet_router_static_power = 0.0;
+   double enet_router_static_energy = 0.0;
    double enet_router_dynamic_energy = 0.0;
-   double enet_link_static_power = 0.0;
+   double enet_link_static_energy = 0.0;
    double enet_link_dynamic_energy = 0.0;
-   double optical_link_static_power = 0.0;
+   double optical_link_static_energy = 0.0;
    double optical_link_dynamic_energy = 0.0;
-   double receive_hub_router_static_power = 0.0;
+   double receive_hub_router_static_energy = 0.0;
    double receive_hub_router_dynamic_energy = 0.0;
-   double receive_net_static_power = 0.0;
+   double receive_net_static_energy = 0.0;
    double receive_net_dynamic_energy = 0.0;
  
 
    if (isApplicationTile(_tile_id))
    {
       // ENet Router
-      enet_router_static_power += _enet_router->getPowerModel()->getStaticPower();
+      enet_router_static_energy += _enet_router->getPowerModel()->getStaticEnergy();
       enet_router_dynamic_energy += _enet_router->getPowerModel()->getDynamicEnergy();
       
       // ENet Link
       for (SInt32 i = 0; i < _num_enet_router_ports; i++)
       {
-         enet_link_static_power += _enet_link_list[i]->getPowerModel()->getStaticPower();
+         enet_link_static_energy += _enet_link_list[i]->getPowerModel()->getStaticEnergy();
          enet_link_dynamic_energy += _enet_link_list[i]->getPowerModel()->getDynamicEnergy();
       }
       
       // Access Point
       if (isAccessPoint(_tile_id))
       {
-         enet_link_static_power += _enet_link_list[_num_enet_router_ports]->getPowerModel()->getStaticPower();
+         enet_link_static_energy += _enet_link_list[_num_enet_router_ports]->getPowerModel()->getStaticEnergy();
          enet_link_dynamic_energy += _enet_link_list[_num_enet_router_ports]->getPowerModel()->getDynamicEnergy();
       }
 
       // Send Hub Router
       if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
       {
-         enet_router_static_power += _send_hub_router->getPowerModel()->getStaticPower();
+         enet_router_static_energy += _send_hub_router->getPowerModel()->getStaticEnergy();
          enet_router_dynamic_energy += _send_hub_router->getPowerModel()->getDynamicEnergy();
       }
 
       // Optical Link
       if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
       {
-         optical_link_static_power += _optical_link->getPowerModel()->getStaticPower();
+         optical_link_static_energy += _optical_link->getPowerModel()->getStaticEnergy();
          optical_link_dynamic_energy += _optical_link->getPowerModel()->getDynamicEnergy();
       }
 
       // Receive Hub Router
       if (_tile_id == getTileIDWithOpticalHub(getClusterID(_tile_id)))
       {
-         receive_hub_router_static_power += _receive_hub_router->getPowerModel()->getStaticPower();
+         receive_hub_router_static_energy += _receive_hub_router->getPowerModel()->getStaticEnergy();
          receive_hub_router_dynamic_energy += _receive_hub_router->getPowerModel()->getDynamicEnergy();
       }
      
@@ -1233,7 +1245,7 @@ NetworkModelAtac::outputPowerSummary(ostream& out)
          {
             for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
             {
-               receive_net_static_power += _btree_link_list[i]->getPowerModel()->getStaticPower();
+               receive_net_static_energy += _btree_link_list[i]->getPowerModel()->getStaticEnergy();
                receive_net_dynamic_energy += _btree_link_list[i]->getPowerModel()->getDynamicEnergy();
             }
          }
@@ -1244,43 +1256,43 @@ NetworkModelAtac::outputPowerSummary(ostream& out)
          {
             for (SInt32 i = 0; i < _num_receive_networks_per_cluster; i++)
             {
-               receive_net_static_power += _star_net_router_list[i]->getPowerModel()->getStaticPower();
+               receive_net_static_energy += _star_net_router_list[i]->getPowerModel()->getStaticEnergy();
                receive_net_dynamic_energy += _star_net_router_list[i]->getPowerModel()->getDynamicEnergy();
                for (SInt32 j = 0; j < _cluster_size; j++)
                {
-                  receive_net_static_power += _star_net_link_list[i][j]->getPowerModel()->getStaticPower();
-                  receive_net_dynamic_energy += _star_net_link_list[i][j]->getPowerModel()->getStaticPower();
+                  receive_net_static_energy += _star_net_link_list[i][j]->getPowerModel()->getStaticEnergy();
+                  receive_net_dynamic_energy += _star_net_link_list[i][j]->getPowerModel()->getStaticEnergy();
                }
             }
          }
       }
    }
    
-   double total_static_power = enet_router_static_power + enet_link_static_power + 
-                               optical_link_static_power + 
-                               receive_hub_router_static_power + receive_net_static_power;
+   double total_static_energy = enet_router_static_energy + enet_link_static_energy + 
+                                optical_link_static_energy + 
+                                receive_hub_router_static_energy + receive_net_static_energy;
    double total_dynamic_energy = enet_router_dynamic_energy + enet_link_dynamic_energy +
                                  optical_link_dynamic_energy +
                                  receive_hub_router_dynamic_energy + receive_net_dynamic_energy;
 
-   out << "      Total Static Power (in W): " << total_static_power << endl; 
+   out << "      Total Static Energy (in J): " << total_static_energy << endl; 
    out << "      Total Dynamic Energy (in J): " << total_dynamic_energy << endl;
-   out << "      ENet Router Static Power (in W): " << enet_router_static_power << endl; 
-   out << "      ENet Router Dynamic Energy (in J): " << enet_router_dynamic_energy << endl; 
-   out << "      ENet Link Static Power (in W): " << enet_link_static_power << endl; 
-   out << "      ENet Link Dynamic Energy (in J): " << enet_link_dynamic_energy << endl; 
-   out << "      Optical Link Static Power (in W): " << optical_link_static_power << endl; 
-   out << "      Optical Link Dynamic Energy (in J): " << optical_link_dynamic_energy << endl; 
-   out << "      Receive Hub Static Power (in W): " << receive_hub_router_static_power << endl; 
-   out << "      Receive Hub Dynamic Energy (in J): " << receive_hub_router_dynamic_energy << endl;
+   out << "        ENet Router Static Energy (in J): " << enet_router_static_energy << endl; 
+   out << "        ENet Router Dynamic Energy (in J): " << enet_router_dynamic_energy << endl; 
+   out << "        ENet Link Static Energy (in J): " << enet_link_static_energy << endl; 
+   out << "        ENet Link Dynamic Energy (in J): " << enet_link_dynamic_energy << endl; 
+   out << "        Optical Link Static Energy (in J): " << optical_link_static_energy << endl; 
+   out << "        Optical Link Dynamic Energy (in J): " << optical_link_dynamic_energy << endl; 
+   out << "        Receive Hub Static Energy (in J): " << receive_hub_router_static_energy << endl; 
+   out << "        Receive Hub Dynamic Energy (in J): " << receive_hub_router_dynamic_energy << endl;
    if (_receive_net_type == BTREE)
    {
-      out << "      BTree Static Power (in W): " << receive_net_static_power << endl; 
-      out << "      BTree Dynamic Energy (in J): " << receive_net_dynamic_energy << endl;
+      out << "        BTree Static Energy (in J): " << receive_net_static_energy << endl; 
+      out << "        BTree Dynamic Energy (in J): " << receive_net_dynamic_energy << endl;
    }
    else // (_receive_net_type == STAR)
    {
-      out << "      StarNet Static Power (in W): " << receive_net_static_power << endl; 
-      out << "      StarNet Dynamic Energy (in J): " << receive_net_dynamic_energy << endl;
+      out << "        StarNet Static Energy (in J): " << receive_net_static_energy << endl; 
+      out << "        StarNet Dynamic Energy (in J): " << receive_net_dynamic_energy << endl;
    }
 }

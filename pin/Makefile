@@ -21,6 +21,9 @@ include $(CONFIG_ROOT)/makefile.default.rules
 CXXFLAGS += $(TOOL_CXXFLAGS)
 CFLAGS += $(CXXFLAGS)
 
+# Math, pthread libraries
+LD_LIBS += -lm -pthread
+
 SOURCES = $(shell ls $(SIM_ROOT)/pin/*.cc $(SIM_ROOT)/pin/lite/*.cc)
 
 OBJECTS = $(SOURCES:%.cc=%.o)

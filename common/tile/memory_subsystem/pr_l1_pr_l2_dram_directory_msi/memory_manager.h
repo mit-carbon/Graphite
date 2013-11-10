@@ -12,6 +12,8 @@
 #include "semaphore.h"
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
+#include "dvfs.h"
+
 
 namespace PrL1PrL2DramDirectoryMSI
 {
@@ -31,11 +33,6 @@ namespace PrL1PrL2DramDirectoryMSI
       bool isDramCntlrPresent() { return _dram_cntlr_present; }
       AddressHomeLookup* getDramDirectoryHomeLookup() { return _dram_directory_home_lookup; }
 
-      // Update internal variables when frequency is changed
-      // Variables that need to be updated include all variables that are expressed in terms of cycles
-      //  e.g., total memory access latency, packet arrival time, etc.
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-      
       // Send/Broadcast msg
       void sendMsg(tile_id_t receiver, ShmemMsg& msg);
       void broadcastMsg(ShmemMsg& msg);
@@ -50,9 +47,17 @@ namespace PrL1PrL2DramDirectoryMSI
       bool isModeled(const void* pkt_data)
       { return ((ShmemMsg*) pkt_data)->isModeled(); }
 
-      void outputSummary(std::ostream &os);
+      void outputSummary(std::ostream &os, const Time& target_completion_time);
 
-      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
+      // Energy monitoring
+      void computeEnergy(const Time& curr_time);
+
+      double getDynamicEnergy();
+      double getLeakageEnergy();
+
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::AccessType access_type);
+      int getDVFS(module_t module, double &frequency, double &voltage);
+      int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag, const Time& curr_time);
    
    private:
       L1CacheCntlr* _L1_cache_cntlr;
@@ -67,11 +72,6 @@ namespace PrL1PrL2DramDirectoryMSI
 
       UInt32 _cache_line_size;
 
-      // Performance Models
-      CachePerfModel* _L1_icache_perf_model;
-      CachePerfModel* _L1_dcache_perf_model;
-      CachePerfModel* _L2_cache_perf_model;
-      
       bool coreInitiateMemoryAccess(MemComponent::Type mem_component,
                                     Core::lock_signal_t lock_signal, Core::mem_op_t mem_op_type,
                                     IntPtr address, UInt32 offset, Byte* data_buf, UInt32 data_length,

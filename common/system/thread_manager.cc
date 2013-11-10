@@ -159,7 +159,7 @@ void ThreadManager::onThreadExit()
 
    // Recompute Average Frequency
    CoreModel* core_model = core->getModel();
-   core_model->recomputeAverageFrequency(core->getTile()->getFrequency());
+   core_model->recomputeAverageFrequency(core->getFrequency());
 
    // send message to master process to update thread state
    SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, core->getId().tile_id, core->getId().core_type, thread_idx};

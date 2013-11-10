@@ -128,7 +128,7 @@ MemoryManager::disableModels()
 }
 
 void
-MemoryManager::outputSummary(ostream& out)
+MemoryManager::outputSummary(ostream& out, const Time& target_completion_time)
 {
 }
 

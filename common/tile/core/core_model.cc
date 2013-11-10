@@ -9,6 +9,8 @@
 #include "config.h"
 #include "utils.h"
 #include "time_types.h"
+#include "mcpat_core_interface.h"
+#include "remote_query_helper.h"
 
 CoreModel* CoreModel::create(Core* core)
 {
@@ -46,17 +48,19 @@ CoreModel::CoreModel(Core *core)
    initializePipelineStallCounters();
 
    // Initialize instruction costs
-   initializeCoreStaticInstructionModel(core->getTile()->getFrequency());
+   initializeCoreStaticInstructionModel(core->getFrequency());
+   
    LOG_PRINT("Initialized CoreModel.");
 }
 
 CoreModel::~CoreModel()
 {
+   delete m_mcpat_core_interface;
    delete m_bp; m_bp = 0;
 }
 
 
-void CoreModel::initializeCoreStaticInstructionModel(float frequency)
+void CoreModel::initializeCoreStaticInstructionModel(double frequency)
 {
    m_core_instruction_costs.resize(MAX_INSTRUCTION_COUNT);
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
@@ -68,7 +72,7 @@ void CoreModel::initializeCoreStaticInstructionModel(float frequency)
    }
 }
 
-void CoreModel::updateCoreStaticInstructionModel(float frequency)
+void CoreModel::updateCoreStaticInstructionModel(double frequency)
 {
    Instruction::StaticInstructionCosts instruction_costs = Instruction::getStaticInstructionCosts();
    for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
@@ -82,7 +86,7 @@ Time CoreModel::getCost(InstructionType type)
    return m_core_instruction_costs[type];
 }
 
-void CoreModel::outputSummary(ostream& os)
+void CoreModel::outputSummary(ostream& os, const Time& target_completion_time)
 {
    os << "Core Summary:" << endl;
    os << "    Total Instructions: " << m_instruction_count << endl;
@@ -99,6 +103,42 @@ void CoreModel::outputSummary(ostream& os)
    // Branch Predictor Summary
    if (m_bp)
       m_bp->outputSummary(os);
+
+   m_mcpat_core_interface->outputSummary(os, target_completion_time); 
+}
+
+void CoreModel::initializeMcPATInterface(UInt32 num_load_buffer_entries, UInt32 num_store_buffer_entries)
+{
+   // For Power/Area Modeling
+   double frequency = m_core->getFrequency();
+   double voltage = m_core->getVoltage();
+   m_mcpat_core_interface = new McPATCoreInterface(frequency, voltage, num_load_buffer_entries, num_store_buffer_entries);
+}
+
+void CoreModel::updateMcPATCounters(Instruction* instruction)
+{
+   // Get Branch Misprediction Count
+   UInt64 total_branch_misprediction_count = m_bp->getNumIncorrectPredictions();
+
+   // Update Event Counters
+   m_mcpat_core_interface->updateEventCounters(instruction, m_curr_time.toCycles(m_core->getFrequency()), total_branch_misprediction_count);
+}
+
+void CoreModel::computeEnergy(const Time& curr_time)
+{
+   UInt64 curr_cycles = m_curr_time.toCycles(m_core->getFrequency());
+   m_mcpat_core_interface->updateCycleCounters(curr_cycles);
+   m_mcpat_core_interface->computeEnergy(m_curr_time);
+}
+
+double CoreModel::getDynamicEnergy()
+{
+   return m_mcpat_core_interface->getDynamicEnergy();
+}
+
+double CoreModel::getLeakageEnergy()
+{
+   return m_mcpat_core_interface->getLeakageEnergy();
 }
 
 void CoreModel::enable()
@@ -117,10 +157,11 @@ void CoreModel::disable()
 
 // This function is called:
 // 1) Whenever frequency is changed
-void CoreModel::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
+void CoreModel::setDVFS(double old_frequency, double new_voltage, double new_frequency, const Time& curr_time)
 {
    recomputeAverageFrequency(old_frequency);
    updateCoreStaticInstructionModel(new_frequency);
+   m_mcpat_core_interface->setDVFS(new_voltage, new_frequency, curr_time);
 }
 
 void CoreModel::setCurrTime(Time time)
@@ -132,7 +173,7 @@ void CoreModel::setCurrTime(Time time)
 // This function is called:
 // 1) On thread exit
 // 2) Whenever frequency is changed
-void CoreModel::recomputeAverageFrequency(float old_frequency)
+void CoreModel::recomputeAverageFrequency(double old_frequency)
 {
    m_total_cycles += (m_curr_time - m_checkpointed_time).toCycles(old_frequency);
    m_total_time += (m_curr_time - m_checkpointed_time);

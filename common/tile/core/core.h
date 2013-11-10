@@ -19,6 +19,7 @@ class PinMemoryManager;
 #include "packet_type.h"
 #include "lock.h"
 #include "time_types.h"
+#include "dvfs_manager.h"
 
 class Core
 {
@@ -75,12 +76,16 @@ public:
    State getState()                          { return _state; }
    void setState(State state)                { _state = state; }
   
-   void outputSummary(ostream& os);
-
-   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
+   void outputSummary(ostream& os, const Time& target_completion_time);
 
    void enableModels();
    void disableModels();
+
+   double getFrequency() const               { return _frequency; }
+   double getVoltage() const                 { return _voltage; }
+
+   int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
 private:
    core_id_t _id;
@@ -107,6 +112,14 @@ private:
    void initializeMemoryAccessLatencyCounters();
    void incrTotalMemoryAccessLatency(MemComponent::Type mem_component, Time memory_access_latency);
    PacketType getPacketTypeFromUserNetType(carbon_network_t net_type);
+
+   double _frequency;
+   double _voltage;
+   module_t _module;
+   Time _synchronization_delay;
+   DVFSManager::AsynchronousMap _asynchronous_map;
+
+   Time getSynchronizationDelay(module_t module);
 };
 
 #endif

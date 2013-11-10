@@ -18,8 +18,6 @@ NetworkModelEMeshHopByHop::NetworkModelEMeshHopByHop(Network* net, SInt32 networ
 {
    try
    {
-      // Network Frequency is specified in GHz
-      _frequency = Sim()->getCfg()->getFloat("network/emesh_hop_by_hop/frequency");
       // Flit Width is specified in bits
       _flit_width = Sim()->getCfg()->getInt("network/emesh_hop_by_hop/flit_width");
 
@@ -108,11 +106,13 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    }
 
    // Create the injection port contention model first
-   _injection_router = new RouterModel(this, _frequency, 1, 1,
+   _injection_router = new RouterModel(this, _frequency, _voltage,
+                                       1, 1,
                                        4, 0, _flit_width,
                                        _contention_model_enabled, contention_model_type);
    // Mesh Router
-   _mesh_router = new RouterModel(this, _frequency, _num_mesh_router_ports, _num_mesh_router_ports,
+   _mesh_router = new RouterModel(this, _frequency, _voltage,
+                                  _num_mesh_router_ports, _num_mesh_router_ports,
                                   num_flits_per_output_buffer, router_delay, _flit_width,
                                   _contention_model_enabled, contention_model_type);
    // Mesh Link List
@@ -121,7 +121,8 @@ NetworkModelEMeshHopByHop::createRouterAndLinkModels()
    for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
    {
       _mesh_link_list[i] = new ElectricalLinkModel(this, link_type,
-                                                   _frequency, link_length, _flit_width);
+                                                   _frequency, _voltage,
+                                                   link_length, _flit_width);
       assert(_mesh_link_list[i]->getDelay() == link_delay);
    }
 }
@@ -295,10 +296,10 @@ NetworkModelEMeshHopByHop::computeDistance(tile_id_t sender, tile_id_t receiver)
 }
 
 void
-NetworkModelEMeshHopByHop::outputSummary(ostream &out)
+NetworkModelEMeshHopByHop::outputSummary(ostream &out, const Time& target_completion_time)
 {
-   NetworkModel::outputSummary(out);
-   outputPowerSummary(out);
+   NetworkModel::outputSummary(out, target_completion_time);
+   outputPowerSummary(out, target_completion_time);
    outputEventCountSummary(out);
    if (_contention_model_enabled)
       outputContentionModelsSummary(out);
@@ -492,31 +493,82 @@ NetworkModelEMeshHopByHop::outputContentionModelsSummary(ostream& out)
 }
 
 void
-NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out)
+NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out, const Time& target_completion_time)
 {
    if (!Config::getSingleton()->getEnablePowerModeling())
       return;
 
+   // Output to sim.out
    out << "    Energy Counters:" << endl;
    if (isApplicationTile(_tile_id))
    {
-      double static_power = _mesh_router->getPowerModel()->getStaticPower();
+      // Convert time into seconds
+      double target_completion_sec = target_completion_time.toSec();
+      
+      // Compute the final leakage/dynamic energy
+      computeEnergy(target_completion_time);
+      
+      double static_energy = _mesh_router->getPowerModel()->getStaticEnergy();
       double dynamic_energy = _mesh_router->getPowerModel()->getDynamicEnergy();
       for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
       {
-         static_power += _mesh_link_list[i]->getPowerModel()->getStaticPower();
+         static_energy += _mesh_link_list[i]->getPowerModel()->getStaticEnergy();
          dynamic_energy += _mesh_link_list[i]->getPowerModel()->getDynamicEnergy();
       }
-      out << "      Static Power (in W): " << static_power << endl;
-      out << "      Dynamic Energy (in J): " << dynamic_energy << endl;
+      out << "      Average Static Power (in W): " << static_energy / target_completion_sec << endl;
+      out << "      Average Dynamic Power (in W): " << dynamic_energy / target_completion_sec << endl;
+      out << "      Total Static Energy (in J): " << static_energy << endl;
+      out << "      Total Dynamic Energy (in J): " << dynamic_energy << endl;
    }
    else if (isSystemTile(_tile_id))
    {
-      out << "      Static Power (in W): " << endl;
-      out << "      Dynamic Energy (in J): " << endl;
+      out << "      Average Static Power (in W): " << endl;
+      out << "      Average Dynamic Power (in W): " << endl;
+      out << "      Total Static Energy (in J): " << endl;
+      out << "      Total Dynamic Energy (in J): " << endl;
    }
    else
    {
       LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
    }
+}
+
+void
+NetworkModelEMeshHopByHop::setDVFS(double frequency, double voltage, const Time& curr_time)
+{
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
+   _mesh_router->getPowerModel()->setDVFS(frequency, voltage, curr_time);
+   for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
+      _mesh_link_list[i]->getPowerModel()->setDVFS(frequency, voltage, curr_time);
+}
+
+void
+NetworkModelEMeshHopByHop::computeEnergy(const Time& curr_time)
+{
+   assert(Config::getSingleton()->getEnablePowerModeling());
+   _mesh_router->getPowerModel()->computeEnergy(curr_time);
+   for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
+      _mesh_link_list[i]->getPowerModel()->computeEnergy(curr_time);
+}
+
+double
+NetworkModelEMeshHopByHop::getDynamicEnergy()
+{
+   assert(Config::getSingleton()->getEnablePowerModeling());
+   double dynamic_energy = _mesh_router->getPowerModel()->getDynamicEnergy();
+   for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
+      dynamic_energy += _mesh_link_list[i]->getPowerModel()->getDynamicEnergy();
+   return dynamic_energy;
+}
+
+double
+NetworkModelEMeshHopByHop::getStaticEnergy()
+{
+   assert(Config::getSingleton()->getEnablePowerModeling());
+   double static_energy = _mesh_router->getPowerModel()->getStaticEnergy();
+   for (SInt32 i = 0; i < _num_mesh_router_ports; i++)
+      static_energy += _mesh_link_list[i]->getPowerModel()->getStaticEnergy();
+   return static_energy;
 }

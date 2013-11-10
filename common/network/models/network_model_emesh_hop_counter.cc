@@ -24,7 +24,6 @@ NetworkModelEMeshHopCounter::NetworkModelEMeshHopCounter(Network *net, SInt32 ne
    
    try
    {
-      _frequency = Sim()->getCfg()->getFloat("network/emesh_hop_counter/frequency");
       _flit_width = Sim()->getCfg()->getInt("network/emesh_hop_counter/flit_width");
    }
    catch (...)
@@ -87,9 +86,9 @@ NetworkModelEMeshHopCounter::createRouterAndLinkModels()
    UInt32 num_router_ports = 5;
    if (Config::getSingleton()->getEnablePowerModeling())
    {
-      _router_power_model = new RouterPowerModel(_frequency, num_router_ports, num_router_ports,
+      _router_power_model = new RouterPowerModel(_frequency, _voltage, num_router_ports, num_router_ports,
                                                  num_flits_per_output_buffer, _flit_width);
-      _electrical_link_power_model = new ElectricalLinkPowerModel(link_type, _frequency, link_length, _flit_width);
+      _electrical_link_power_model = new ElectricalLinkPowerModel(link_type, _frequency, _voltage, link_length, _flit_width);
    }
 
 }
@@ -158,10 +157,10 @@ NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt, queue<Hop> &next_
 }
 
 void
-NetworkModelEMeshHopCounter::outputSummary(std::ostream &out)
+NetworkModelEMeshHopCounter::outputSummary(std::ostream &out, const Time& target_completion_time)
 {
-   NetworkModel::outputSummary(out);
-   outputPowerSummary(out);
+   NetworkModel::outputSummary(out, target_completion_time);
+   outputPowerSummary(out, target_completion_time);
    outputEventCountSummary(out);
 }
 
@@ -186,7 +185,7 @@ NetworkModelEMeshHopCounter::updateDynamicEnergy(const NetPacket& packet, UInt32
 }
 
 void
-NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out)
+NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out, const Time& target_completion_time)
 {
    if (!Config::getSingleton()->getEnablePowerModeling())
       return;
@@ -194,17 +193,27 @@ NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out)
    out << "    Energy Counters: " << endl;
    if (isApplicationTile(_tile_id))
    {
+      // Convert time into seconds
+      double target_completion_sec = target_completion_time.toSec();
+      
+      // Compute the final leakage/dynamic energy
+      computeEnergy(target_completion_time);
+      
       // We need to get the power of the router + all the outgoing links (a total of 4 outputs)
-      double static_power = _router_power_model->getStaticPower() +
-                                     (_electrical_link_power_model->getStaticPower() * _NUM_OUTPUT_DIRECTIONS);
+      double static_energy = _router_power_model->getStaticEnergy() +
+                            (_electrical_link_power_model->getStaticEnergy() * _NUM_OUTPUT_DIRECTIONS);
       double dynamic_energy = _router_power_model->getDynamicEnergy() +
-                                       _electrical_link_power_model->getDynamicEnergy();
-      out << "      Static Power (in W): " << static_power << endl;
-      out << "      Dynamic Energy (in J): " << dynamic_energy << endl;
+                              _electrical_link_power_model->getDynamicEnergy();
+      out << "      Average Static Power (in W): " << static_energy / target_completion_sec << endl;
+      out << "      Average Dynamic Power (in W): " << dynamic_energy / target_completion_sec << endl;
+      out << "      Total Static Energy (in J): " << static_energy << endl;
+      out << "      Total Dynamic Energy (in J): " << dynamic_energy << endl;
    }
    else if (isSystemTile(_tile_id))
    {
-      out << "      Static Power (in W): " << endl;
+      out << "      Average Static Power (in W): " << endl;
+      out << "      Average Dynamic Power (in W): " << endl;
+      out << "      Static Energy (in J): " << endl;
       out << "      Dynamic Energy (in J): " << endl;
    }
    else
@@ -237,4 +246,42 @@ NetworkModelEMeshHopCounter::outputEventCountSummary(ostream& out)
    {
       LOG_PRINT_ERROR("Unrecognized Tile ID(%i)", _tile_id);
    }
+}
+
+void
+NetworkModelEMeshHopCounter::setDVFS(double frequency, double voltage, const Time& curr_time)
+{
+   if (!Config::getSingleton()->getEnablePowerModeling())
+      return;
+
+   LOG_PRINT("setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] begin", frequency, voltage, curr_time.toNanosec());
+   _router_power_model->setDVFS(frequency, voltage, curr_time);
+   _electrical_link_power_model->setDVFS(frequency, voltage, curr_time);
+   LOG_PRINT("setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] end", frequency, voltage, curr_time.toNanosec());
+}
+
+void
+NetworkModelEMeshHopCounter::computeEnergy(const Time& curr_time)
+{
+   assert (Config::getSingleton()->getEnablePowerModeling());
+   _router_power_model->computeEnergy(curr_time);
+   _electrical_link_power_model->computeEnergy(curr_time);
+}
+
+double
+NetworkModelEMeshHopCounter::getDynamicEnergy()
+{
+   assert (Config::getSingleton()->getEnablePowerModeling());
+   double dynamic_energy = _router_power_model->getDynamicEnergy() +
+                           _electrical_link_power_model->getDynamicEnergy();
+   return dynamic_energy;
+}
+
+double
+NetworkModelEMeshHopCounter::getStaticEnergy()
+{
+   assert (Config::getSingleton()->getEnablePowerModeling());
+   double static_energy = _router_power_model->getStaticEnergy() +
+                          (_electrical_link_power_model->getStaticEnergy() * _NUM_OUTPUT_DIRECTIONS);
+   return static_energy;
 }

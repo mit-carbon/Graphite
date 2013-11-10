@@ -24,24 +24,22 @@ public:
    class TileParameters
    {
    public:
-      TileParameters(std::string core_type, float frequency, std::string l1_icache_type, std::string l1_dcache_type, std::string l2_cache_type):
-         m_core_type(core_type),
-         m_frequency(frequency),
-         m_l1_icache_type(l1_icache_type),
-         m_l1_dcache_type(l1_dcache_type),
-         m_l2_cache_type(l2_cache_type)
+      TileParameters(std::string core_type,
+                     std::string l1_icache_type, std::string l1_dcache_type, std::string l2_cache_type)
+         : m_core_type(core_type)
+         , m_l1_icache_type(l1_icache_type)
+         , m_l1_dcache_type(l1_dcache_type)
+         , m_l2_cache_type(l2_cache_type)
       {}
       ~TileParameters() {}
 
-      std::string getCoreType() { return m_core_type; }
-      float getFrequency() { return m_frequency; }
+      std::string getCoreType()     { return m_core_type; }
       std::string getL1ICacheType() { return m_l1_icache_type; }
       std::string getL1DCacheType() { return m_l1_dcache_type; }
-      std::string getL2CacheType() { return m_l2_cache_type; }
+      std::string getL2CacheType()  { return m_l2_cache_type; }
    
    private:
       std::string m_core_type;
-      float m_frequency;
       std::string m_l1_icache_type;
       std::string m_l1_dcache_type;
       std::string m_l2_cache_type;
@@ -50,17 +48,15 @@ public:
    class NetworkParameters
    {
    public:
-      NetworkParameters(std::string type, float frequency):
-         m_type(type), m_frequency(frequency)
+      NetworkParameters(std::string type)
+         : m_type(type)
       {}
       ~NetworkParameters() {}
 
       std::string getType() { return m_type; }
-      float getFrequency() { return m_frequency; }
    
    private:
       std::string m_type;
-      float m_frequency;
    };
 
    enum SimulationMode
@@ -151,7 +147,6 @@ public:
 
    // Tile & Network Parameters
    std::string getCoreType(tile_id_t tile_id);
-   float getTileFrequency(tile_id_t tile_id);
    std::string getL1ICacheType(tile_id_t tile_id);
    std::string getL1DCacheType(tile_id_t tile_id);
    std::string getL2CacheType(tile_id_t tile_id);

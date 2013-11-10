@@ -5,10 +5,12 @@ using namespace std;
 #include "tile.h"
 #include "core.h"
 #include "cache.h"
+#include "directory_cache.h"
 #include "network.h"
 #include "mem_component.h"
 #include "caching_protocol_type.h"
 #include "shmem_perf_model.h"
+#include "dvfs.h"
 
 void MemoryManagerNetworkCallback(void* obj, NetPacket packet);
 
@@ -25,12 +27,7 @@ public:
 
    void __handleMsgFromNetwork(NetPacket& packet);
 
-   virtual void outputSummary(std::ostream& os);
-
-   // Update internal variables when frequency is changed
-   // Variables that need to be updated include all variables that are expressed in terms of cycles
-   //  e.g., total memory access latency, packet arrival time, etc.
-   virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency) = 0;
+   virtual void outputSummary(std::ostream& os, const Time& target_completion_time);
 
    Tile* getTile()                        { return _tile; }
    ShmemPerfModel* getShmemPerfModel()    { return _shmem_perf_model; }
@@ -54,10 +51,20 @@ public:
    static CachingProtocolType parseProtocolType(std::string& protocol_type);
    static MemoryManager* createMMU(std::string protocol_type, Tile* tile);
    
+   virtual void computeEnergy(const Time& curr_time) = 0;
+
+   virtual double getDynamicEnergy() = 0;
+   virtual double getLeakageEnergy() = 0;
+
    // Cache line replication trace
    static void openCacheLineReplicationTraceFiles();
    static void closeCacheLineReplicationTraceFiles();
    static void outputCacheLineReplicationSummary();
+
+   virtual int getDVFS(module_t module, double &frequency, double &voltage) = 0;
+   virtual int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag, const Time& curr_time) = 0;
+
+   static CachingProtocolType getCachingProtocolType(){return _caching_protocol_type;}
 
 protected:
    Network* getNetwork() { return _network; }

@@ -9,12 +9,12 @@
 // Forward Decls
 class Core;
 class BranchPredictor;
+class McPATCoreInterface;
 
 #include "instruction.h"
 #include "basic_block.h"
 #include "fixed_types.h"
 #include "dynamic_instruction_info.h"
-#include "time_types.h"
 
 class CoreModel
 {
@@ -26,10 +26,10 @@ public:
    void queueInstruction(Instruction* instruction);
    void iterate();
 
-   virtual void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-   void recomputeAverageFrequency(float frequency); 
+   void setDVFS(double old_frequency, double new_voltage, double new_frequency, const Time& curr_time);
+   void recomputeAverageFrequency(double frequency); 
 
-   Time getCurrTime(){return m_curr_time; };
+   Time getCurrTime() { return m_curr_time; }
    void setCurrTime(Time time);
 
    void pushDynamicInstructionInfo(DynamicInstructionInfo &i);
@@ -42,15 +42,19 @@ public:
 
    void enable();
    void disable();
-   bool isEnabled() { return m_enabled; }
+   bool isEnabled()  { return m_enabled; }
 
-   virtual void outputSummary(std::ostream &os) = 0;
+   virtual void outputSummary(std::ostream &os, const Time& target_completion_time) = 0;
+
+   void computeEnergy(const Time& curr_time);
+   double getDynamicEnergy();
+   double getLeakageEnergy();
 
    class AbortInstructionException { };
 
    Time getCost(InstructionType type);
 
-   Core* getCore(){return m_core;};
+   Core* getCore()   { return m_core; }
 
 protected:
    enum RegType
@@ -79,7 +83,9 @@ protected:
    
    void updatePipelineStallCounters(Instruction* i, Time memory_stall_time, Time execution_unit_stall_time);
 
-   void updateCoreStaticInstructionModel(float frequency);
+   // Power/Area modeling
+   void initializeMcPATInterface(UInt32 num_load_buffer_entries, UInt32 num_store_buffer_entries);
+   void updateMcPATCounters(Instruction* instruction);
 
 private:
 
@@ -90,7 +96,7 @@ private:
    // Pipeline Stall Counters
    void initializePipelineStallCounters();
 
-   float m_average_frequency;
+   double m_average_frequency;
    Time m_total_time;
    Time m_checkpointed_time;
    UInt64 m_total_cycles;
@@ -105,7 +111,8 @@ private:
    // Instruction costs
    typedef std::vector<Time> CoreStaticInstructionCosts;
    CoreStaticInstructionCosts m_core_instruction_costs;
-   void initializeCoreStaticInstructionModel(float frequency);
+   void initializeCoreStaticInstructionModel(double frequency);
+   void updateCoreStaticInstructionModel(double frequency);
 
    // Pipeline Stall Counters
    UInt64 m_total_recv_instructions;
@@ -114,6 +121,9 @@ private:
    Time m_total_sync_instruction_stall_time;
    Time m_total_memory_stall_time;
    Time m_total_execution_unit_stall_time;
+
+   // Power/Area modeling
+   McPATCoreInterface* m_mcpat_core_interface;
 };
 
 #endif

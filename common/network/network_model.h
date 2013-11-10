@@ -18,6 +18,8 @@ using std::pair;
 #include "fixed_types.h"
 #include "time_types.h"
 #include "constants.h"
+#include "dvfs.h"
+#include "mcpat_cache_interface.h"
 
 #define CORE_ID(x)         ((core_id_t) {x, MAIN_CORE_TYPE})
 #define TILE_ID(x)         (x.tile_id)
@@ -38,7 +40,7 @@ class NetworkModel
 {
 public:
    NetworkModel(Network *network, SInt32 network_id);
-   virtual ~NetworkModel() { }
+   virtual ~NetworkModel() {}
 
    class Hop
    {
@@ -62,17 +64,28 @@ public:
 
    string getNetworkName() { return _network_name; }
    
-   float getFrequency() { return _frequency; }
    bool hasBroadcastCapability() { return _has_broadcast_capability; }
 
    bool isPacketReadyToBeReceived(const NetPacket& pkt);
    void __routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
    void __processReceivedPacket(NetPacket &pkt);
 
-   virtual void outputSummary(std::ostream &out) = 0;
+   virtual void outputSummary(std::ostream &out, const Time& target_completion_time);
 
-   void enable() { _enabled = true; }
-   void disable() { _enabled = false; }
+   // Energy
+   virtual void computeEnergy(const Time& curr_time) { }
+   virtual double getDynamicEnergy()   { return 0; }
+   virtual double getStaticEnergy()    { return 0; }
+
+   // DVFS
+   double getFrequency() const   { return _frequency; }
+   double getVoltage() const     { return _voltage;   }
+   int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
+
+   // Enable/disable
+   void enable()                 { _enabled = true;   }
+   void disable()                { _enabled = false;  }
 
    static NetworkModel *createModel(Network* network, SInt32 network_id, UInt32 model_type);
    static UInt32 parseNetworkType(string str);
@@ -95,6 +108,9 @@ public:
    // Tracing Network Injection/Ejection Rate
    void popCurrentUtilizationStatistics(UInt64& total_flits_sent, UInt64& total_flits_broadcasted, UInt64& total_flits_received);
 
+   // Synchronization delay
+   Time getSynchronizationDelay(module_t module);
+
 protected:
    class NextDest
    {
@@ -111,7 +127,9 @@ protected:
    };
 
    // Frequency
-   float _frequency;
+   double _frequency;
+   // Voltage
+   double _voltage;
    // Flit Width
    SInt32 _flit_width;
    // Has Broadcast Capability
@@ -120,6 +138,12 @@ protected:
    tile_id_t _tile_id;
    // Tile Width
    double _tile_width;
+   // Synchronization delay
+   Time _synchronization_delay;
+   // Asynchronous_map
+   DVFSManager::AsynchronousMap _asynchronous_map;
+   // DVFS module
+   module_t _module;
 
    Network *getNetwork()   { return _network; }
    SInt32 getNetworkID()   { return _network_id; }
@@ -134,7 +158,6 @@ private:
    
    SInt32 _network_id;
    string _network_name;
-   bool _enabled;
 
    // Lock
    Lock _lock;
@@ -155,6 +178,8 @@ private:
    Time _total_packet_latency;
    Time _total_contention_delay;
 
+   bool _enabled;
+   
    // For getting a trace of network injection/ejection rate
    UInt64 _total_flits_sent_in_current_interval;
    UInt64 _total_flits_broadcasted_in_current_interval;
@@ -162,7 +187,11 @@ private:
 
    virtual void routePacket(const NetPacket &pkt, queue<Hop> &next_hops) = 0;
    virtual void processReceivedPacket(NetPacket &pkt);
-  
+ 
+   // DVFS 
+   void initializeDVFS();
+   virtual void setDVFS(double frequency, double voltage, const Time& curr_time) {}
+
    // Process Corner Cases
    bool processCornerCases(const NetPacket &pkt, queue<Hop> &next_hops);
 
@@ -174,6 +203,7 @@ private:
    void initializeEventCounters();
    // Trace of Injection/Ejection Rate
    void initializeCurrentUtilizationStatistics();
+
 };
 
 #endif // NETWORK_MODEL_H

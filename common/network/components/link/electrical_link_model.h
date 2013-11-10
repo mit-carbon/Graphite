@@ -14,7 +14,7 @@ class ElectricalLinkModel : public LinkModel
 {
 public:
    ElectricalLinkModel(NetworkModel* model, string link_type,
-                       float link_frequency, double link_length, UInt32 link_width);
+                       double frequency, double voltage, double link_length, UInt32 link_width);
    ~ElectricalLinkModel();
 
    // processPacket() called at every link

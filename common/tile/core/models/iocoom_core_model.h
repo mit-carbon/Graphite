@@ -6,7 +6,6 @@
 using std::string;
 
 #include "core_model.h"
-#include "mcpat_core_interface.h"
 /*
   In-order core, out-of-order memory model.
   We use a simple scoreboard to keep track of registers.
@@ -18,7 +17,7 @@ public:
    IOCOOMCoreModel(Core* core);
    ~IOCOOMCoreModel();
 
-   void outputSummary(std::ostream &os);
+   void outputSummary(std::ostream &os, const Time& target_completion_time);
 
 private:
 
@@ -109,8 +108,6 @@ private:
    Time m_total_intra_ins_execution_unit_stall_time;
    Time m_total_inter_ins_execution_unit_stall_time;
    void initializePipelineStallCounters();
-
-   McPATCoreInterface* m_mcpat_core_interface;
 };
 
 #endif // IOCOOM_CORE_MODEL_H

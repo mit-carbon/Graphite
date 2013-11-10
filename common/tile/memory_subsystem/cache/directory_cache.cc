@@ -4,6 +4,7 @@
 #include "simulator.h"
 #include "config.h"
 #include "log.h"
+#include "mcpat_cache_interface.h"
 #include "utils.h"
 
 DirectoryCache::DirectoryCache(Tile* tile,
@@ -15,7 +16,8 @@ DirectoryCache::DirectoryCache(Tile* tile,
                                UInt32 max_hw_sharers,
                                UInt32 max_num_sharers,
                                UInt32 num_directory_slices,
-                               string directory_access_time_str)
+                               string directory_access_cycles_str,
+                               ShmemPerfModel* shmem_perf_model)
    : _tile(tile)
    , _caching_protocol_type(caching_protocol_type)
    , _max_hw_sharers(max_hw_sharers)
@@ -24,10 +26,11 @@ DirectoryCache::DirectoryCache(Tile* tile,
    , _associativity(associativity)
    , _cache_line_size(cache_line_size)
    , _num_directory_slices(num_directory_slices)
-   , _directory_access_time_str(directory_access_time_str)
-   , _power_model(NULL)
-   , _area_model(NULL)
+   , _directory_access_cycles_str(directory_access_cycles_str)
+   , _mcpat_cache_interface(NULL)
    , _enabled(false)
+   , _module(DIRECTORY)
+   , _shmem_perf_model(shmem_perf_model)
 {
    LOG_PRINT("Directory Cache ctor enter");
  
@@ -41,29 +44,31 @@ DirectoryCache::DirectoryCache(Tile* tile,
    // Instantiate the directory
    _directory = new Directory(caching_protocol_type, _directory_type, _total_entries, max_hw_sharers, max_num_sharers);
 
-   // Get frequency
-   float frequency = _tile->getFrequency();
-
    // Size of each directory entry (in bytes)
    UInt32 max_application_sharers = Config::getSingleton()->getApplicationTiles();
    UInt32 directory_entry_size = ceil(1.0 * DirectoryEntry::getSize(_directory_type, max_hw_sharers, max_application_sharers)  / 8);
    _directory_size = _total_entries * directory_entry_size;
 
-   // Calculate access time based on size of directory entry and total number of entries (or) user specified
-   _directory_access_latency = computeDirectoryAccessTime();
-   _directory_access_time = Time(Latency(_directory_access_latency, _tile->getFrequency()));
-  
-   LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)", _total_entries, directory_entry_size, _directory_access_time.toNanosec());
+   //initialize frequency and voltage
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(DIRECTORY, _frequency, _voltage);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
 
-   if (Config::getSingleton()->getEnablePowerModeling())
+
+   // Calculate access time based on size of directory entry and total number of entries (or) user specified
+   _directory_access_cycles = computeDirectoryAccessCycles();
+   _directory_access_latency = Time(Latency(_directory_access_cycles, _frequency));
+
+   // asynchronous communication
+   _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   _asynchronous_map[L2_CACHE] = Time(0);
+   _asynchronous_map[NETWORK_MEMORY] = Time(0);
+  
+   LOG_PRINT("Total Entries(%u), Entry Size(%u), Access Time(%llu)",
+         _total_entries, directory_entry_size, _directory_access_latency.toNanosec());
+
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      _power_model = new CachePowerModel("directory", _total_entries * directory_entry_size,
-            directory_entry_size, _associativity, _directory_access_latency, frequency);
-   }
-   if (Config::getSingleton()->getEnableAreaModeling())
-   {
-      _area_model = new CacheAreaModel("directory", _total_entries * directory_entry_size,
-            directory_entry_size, _associativity, _directory_access_latency, frequency);
+      // _mcpat_cache_interface = new McPATCacheInterface(this, Sim()->getCfg()->getInt("general/technology_node"));
    }
 
    _log_num_sets = floorLog2(_num_sets);
@@ -92,15 +97,6 @@ void
 DirectoryCache::updateCounters()
 {
    _total_directory_accesses ++;
-   
-   // Update dynamic energy counters
-   if (Config::getSingleton()->getEnablePowerModeling())
-   {
-      _power_model->updateDynamicEnergy(Cache::TAG_ARRAY_READ);
-      _power_model->updateDynamicEnergy(Cache::TAG_ARRAY_WRITE);
-      _power_model->updateDynamicEnergy(Cache::DATA_ARRAY_READ);
-      _power_model->updateDynamicEnergy(Cache::DATA_ARRAY_WRITE);
-   }   
 }
 
 DirectoryEntry*
@@ -109,7 +105,7 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
    if (_enabled)
    {
       // Update Performance Model
-      getShmemPerfModel()->incrCurrTime(_directory_access_time);
+      getShmemPerfModel()->incrCurrTime(_directory_access_latency);
       // Update event & dynamic energy counters
       updateCounters();
    }
@@ -128,7 +124,7 @@ DirectoryCache::getDirectoryEntry(IntPtr address)
       if (directory_entry->getAddress() == address)
       {
          if (getShmemPerfModel())
-            getShmemPerfModel()->incrCurrTime(Latency(directory_entry->getLatency(),_tile->getFrequency()));
+            getShmemPerfModel()->incrCurrTime(Latency(directory_entry->getLatency(),_frequency));
          // Simple check for now. Make sophisticated later
          return directory_entry;
       }
@@ -202,7 +198,7 @@ DirectoryCache::replaceDirectoryEntry(IntPtr replaced_address, IntPtr address)
    if (_enabled)
    {
       // Update Performance Model
-      getShmemPerfModel()->incrCurrTime(_directory_access_time);
+      getShmemPerfModel()->incrCurrTime(_directory_access_latency);
       // Update event & dynamic energy counters
       updateCounters();
       // Increment number of evictions
@@ -294,14 +290,14 @@ DirectoryCache::getMaxL2CacheSize()  // In KB
 }
 
 UInt64
-DirectoryCache::computeDirectoryAccessTime()
+DirectoryCache::computeDirectoryAccessCycles()
 {
    // directory_entry_size is specified in bytes
    // access_time should be computed in cycles
    // access_time is dependent on technology node and frequency
    //   (but these two factors will hopefully cancel each other out to a certain extent)
    
-   if (_directory_access_time_str == "auto")
+   if (_directory_access_cycles_str == "auto")
    {
       UInt32 directory_size_in_KB = (UInt32) ceil(1.0 * _directory_size / 1024);
       
@@ -324,11 +320,12 @@ DirectoryCache::computeDirectoryAccessTime()
       else // (directory_size_in_KB > 2048)
          return 20;
    }
-   else // (_directory_access_time_str != "auto")
+   else // (_directory_access_cycles_str != "auto")
    {
-      UInt64 directory_access_time = convertFromString<UInt64>(_directory_access_time_str);
-      LOG_ASSERT_ERROR(directory_access_time != 0, "Could not parse [dram_directory/access_time] = %s", _directory_access_time_str.c_str());
-      return directory_access_time;
+      UInt64 directory_access_cycles = convertFromString<UInt64>(_directory_access_cycles_str);
+      LOG_ASSERT_ERROR(directory_access_cycles != 0, "Could not parse [dram_directory/access_time] = %s",
+            _directory_access_cycles_str.c_str());
+      return directory_access_cycles;
    }
 }
 
@@ -353,41 +350,42 @@ DirectoryCache::computeSetIndex(IntPtr address)
 void
 DirectoryCache::outputSummary(ostream& out)
 {
-   printAutogenDirectorySizeAndAccessTime(out);
+   printAutogenDirectorySizeAndAccessCycles(out);
    out << "    Total Accesses: " << _total_directory_accesses << endl;
    out << "    Total Evictions: " << _total_evictions << endl;
    out << "    Total Back-Invalidations: " << _total_back_invalidations << endl;
 
-   // The power and area model summary
-   if (Config::getSingleton()->getEnablePowerModeling())
-      _power_model->outputSummary(out);
-   if (Config::getSingleton()->getEnableAreaModeling())
-      _area_model->outputSummary(out);
+   // Output Power and Area Summaries
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
+   {
+      // FIXME: Get total cycles from core model
+      // _mcpat_cache_interface->computeEnergy(this, 10000);
+      // _mcpat_cache_interface->outputSummary(out);
+   }
+
+   // Asynchronous communication
+   DVFSManager::printAsynchronousMap(out, _module, _asynchronous_map);
 }
 
 void
 DirectoryCache::dummyOutputSummary(ostream& out, tile_id_t tile_id)
 {
-   dummyPrintAutogenDirectorySizeAndAccessTime(out);
+   dummyPrintAutogenDirectorySizeAndAccessCycles(out);
    out << "    Total Accesses: " << endl;
    out << "    Total Evictions: " << endl;
    out << "    Total Back-Invalidations: " << endl;
 
-   // The power and area model summary
-   if (Config::getSingleton()->getEnablePowerModeling())
-      CachePowerModel::dummyOutputSummary(out);
-   if (Config::getSingleton()->getEnableAreaModeling())
-      CacheAreaModel::dummyOutputSummary(out);
+   // Output Power and Area Summaries
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
+   {
+      // FIXME: Get total cycles from core model
+      // _mcpat_cache_interface->computeEnergy(this, 10000);
+      // _mcpat_cache_interface->outputSummary(out);
+   }
 }
 
 void
-DirectoryCache::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   _directory_access_time = Time(Latency(_directory_access_latency, new_frequency));
-}
-
-void
-DirectoryCache::printAutogenDirectorySizeAndAccessTime(ostream& out)
+DirectoryCache::printAutogenDirectorySizeAndAccessCycles(ostream& out)
 {
    if (_total_entries_str == "auto")
    {
@@ -395,14 +393,14 @@ DirectoryCache::printAutogenDirectorySizeAndAccessTime(ostream& out)
       UInt32 directory_size_in_KB = (UInt32) ceil(1.0 * _directory_size / 1024);
       out << "    Size (in KB) [auto-generated]: " << directory_size_in_KB << endl;
    }
-   if (_directory_access_time_str == "auto")
+   if (_directory_access_cycles_str == "auto")
    {
-      out << "    Access Time (in clock cycles) [auto-generated]: " << _directory_access_latency << endl;
+      out << "    Access Time (in clock cycles) [auto-generated]: " << _directory_access_cycles << endl;
    }
 }
 
 void
-DirectoryCache::dummyPrintAutogenDirectorySizeAndAccessTime(ostream& out)
+DirectoryCache::dummyPrintAutogenDirectorySizeAndAccessCycles(ostream& out)
 {
    if (Sim()->getCfg()->getString("dram_directory/total_entries") == "auto")
    {
@@ -413,10 +411,43 @@ DirectoryCache::dummyPrintAutogenDirectorySizeAndAccessTime(ostream& out)
    {
       out << "    Access Time (in clock cycles) [auto-generated]: " << endl;
    }
+
 }
 
 ShmemPerfModel*
 DirectoryCache::getShmemPerfModel()
 {
    return _tile->getMemoryManager()->getShmemPerfModel();
+}
+
+int
+DirectoryCache::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}
+
+int
+DirectoryCache::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time)
+{
+   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
+   if (rc==0)
+   {
+      _frequency = frequency;
+      _directory_access_latency = Time(Latency(_directory_access_cycles, _frequency));
+      _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   }
+
+   return rc;
+}
+
+Time
+DirectoryCache::getSynchronizationDelay(module_t module)
+{
+   if (!DVFSManager::hasSameDVFSDomain(DIRECTORY, module) && _enabled){
+      _asynchronous_map[module] += _synchronization_delay;
+      return _synchronization_delay;
+   }
+   return Time(0);
 }

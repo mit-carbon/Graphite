@@ -10,6 +10,9 @@ SimpleCoreModel::SimpleCoreModel(Core *core)
     : CoreModel(core)
 {
    initializePipelineStallCounters();
+
+   // Power/Area modeling
+   initializeMcPATInterface(1,1);
 }
 
 SimpleCoreModel::~SimpleCoreModel()
@@ -22,9 +25,9 @@ void SimpleCoreModel::initializePipelineStallCounters()
    m_total_l1dcache_write_stall_time = Time(0);
 }
 
-void SimpleCoreModel::outputSummary(std::ostream &os)
+void SimpleCoreModel::outputSummary(std::ostream &os, const Time& target_completion_time)
 {
-   CoreModel::outputSummary(os);
+   CoreModel::outputSummary(os, target_completion_time);
   
 //   os << "    Total L1-I Cache Stall Time (in nanoseconds): " << m_total_l1icache_stall_time.toNanosec()<< endl;
 //   os << "    Total L1-D Cache Read Stall Time (in nanoseconds): " << m_total_l1dcache_read_stall_time.toNanosec()<< endl;
@@ -99,8 +102,8 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
    // Update Common Counters
    updatePipelineStallCounters(instruction, memory_stall_time, execution_unit_stall_time);
 
-   // LOG_PRINT("Finished processing instruction: Address(%#lx), Type(%u), Cost(%llu), Curr Time(%llu)",
-   //       instruction->getAddress(), instruction->getType(), instruction->getCost(this).toNanosec(), m_curr_time.toNanosec());
+   // Power/Area modeling
+   updateMcPATCounters(instruction);
 }
 
 Time SimpleCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)

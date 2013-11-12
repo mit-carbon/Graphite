@@ -10,7 +10,6 @@ struct DynamicInstructionInfo
    {
       MEMORY_READ,
       MEMORY_WRITE,
-      STRING,
       BRANCH,
    } type;
 
@@ -23,12 +22,6 @@ struct DynamicInstructionInfo
          IntPtr addr;
          UInt32 num_misses;
       } memory_info;
-
-      // STRING
-      struct
-      {
-         UInt32 num_ops;
-      } string_info;
 
       // BRANCH
       struct
@@ -57,14 +50,6 @@ struct DynamicInstructionInfo
       i.memory_info.latency = time.getTime(); // time stored in picoseconds
       i.memory_info.addr = a;
       i.memory_info.num_misses = num_misses;
-      return i;
-   }
-
-   static DynamicInstructionInfo createStringInfo(UInt32 count)
-   {
-      DynamicInstructionInfo i;
-      i.type = STRING;
-      i.string_info.num_ops = count;
       return i;
    }
 

@@ -15,7 +15,7 @@ endif
 
 %_bench_test_dist:
 	date
-	$(MAKE) -C $(TEST_BENCH_DIR)/$(patsubst %_bench_test_dist,%,$@) PROCS=4; if [ $$? -ne 0 ] ; then echo "TEST: $@ FAILED" ; else echo "TEST: $@ PASSED" ; true ; fi
+	$(MAKE) -C $(TEST_BENCH_DIR)/$(patsubst %_bench_test_dist,%,$@) PROCS=2; if [ $$? -ne 0 ] ; then echo "TEST: $@ FAILED" ; else echo "TEST: $@ PASSED" ; true ; fi
 %_bench_test:
 	date
 	$(MAKE) -C $(TEST_BENCH_DIR)/$(patsubst %_bench_test,%,$@); if [ $$? -ne 0 ] ; then echo "TEST: $@ FAILED" ; else echo "TEST: $@ PASSED" ; true ; fi

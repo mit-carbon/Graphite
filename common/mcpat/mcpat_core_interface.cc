@@ -9,12 +9,10 @@
 //---------------------------------------------------------------------------
 // McPAT Core Interface Constructor
 //---------------------------------------------------------------------------
-McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 load_buffer_size, UInt32 store_buffer_size)
+McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 load_queue_size, UInt32 store_queue_size)
    : _last_energy_compute_time(Time(0))
-   , _execution_unit_list(2) // An instruction can access a max of 2 units
 {
-
-   LOG_ASSERT_ERROR(frequency!=0 && voltage != 0, "Frequency and voltage must be greater than zero.");
+   LOG_ASSERT_ERROR(frequency != 0 && voltage != 0, "Frequency and voltage must be greater than zero.");
 
    UInt32 technology_node = 0;
    UInt32 temperature = 0;
@@ -29,7 +27,7 @@ McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 
    }
 
    // Initialize Architectural Parameters
-   initializeArchitecturalParameters(load_buffer_size, store_buffer_size);
+   initializeArchitecturalParameters(load_queue_size, store_queue_size);
    
    // Initialize Event Counters
    initializeEventCounters();
@@ -112,7 +110,7 @@ void McPATCoreInterface::setDVFS(double voltage, double frequency, const Time& c
 //---------------------------------------------------------------------------
 // Initialize Architectural Parameters
 //---------------------------------------------------------------------------
-void McPATCoreInterface::initializeArchitecturalParameters(UInt32 load_buffer_size, UInt32 store_buffer_size)
+void McPATCoreInterface::initializeArchitecturalParameters(UInt32 load_queue_size, UInt32 store_queue_size)
 {
    // System Parameters
    // Architectural Parameters
@@ -142,8 +140,8 @@ void McPATCoreInterface::initializeArchitecturalParameters(UInt32 load_buffer_si
    _phy_regs_FRF_size = 24;
    // |---- Load-Store Unit
    _LSU_order = "inorder";
-   _load_buffer_size = load_buffer_size;
-   _store_buffer_size = store_buffer_size;
+   _load_buffer_size = load_queue_size;
+   _store_buffer_size = store_queue_size;
    _num_memory_ports = 1;
    _RAS_size = 16;
    // |---- OoO Core
@@ -363,144 +361,113 @@ void McPATCoreInterface::initializeOutputDataStructure()
 //---------------------------------------------------------------------------
 // Update Event Counters
 //---------------------------------------------------------------------------
-void McPATCoreInterface::updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 total_branch_misprediction_count)
+void McPATCoreInterface::updateEventCounters(const McPATInstruction* instruction, UInt64 cycle_count,
+                                             UInt64 total_branch_misprediction_count)
 {
-   // Get Instruction Type
-   McPATInstructionType instruction_type = getMcPATInstructionType(instruction->getType());
-   if (instruction->getType() != INST_STALL)
-      updateInstructionCounters(instruction_type, total_branch_misprediction_count);
-
+   // Update instruction counters
+   updateInstructionCounters(instruction);
+   // Update register file access counters
+   updateRegFileAccessCounters(instruction);
    // Execution Unit Accesses
    // A single instruction can access multiple execution units
    // Count access to multiple execution units as additional micro-ops
-   // FIXME: Find out whether we need the whole instruction for this purpose
-   assert(_execution_unit_list.empty());
-   getExecutionUnitAccessList(instruction->getType(), _execution_unit_list);
-   while (!_execution_unit_list.empty())
-   {
-      updateExecutionUnitAccessCounters(_execution_unit_list.front());
-      updateInstructionCounters(instruction_type, total_branch_misprediction_count);
-      _execution_unit_list.pop_front();
-   }
-   assert(_execution_unit_list.empty());
-
+   updateExecutionUnitCounters(instruction);
    // Update Cycle Counters
    updateCycleCounters(cycle_count);
-
-   const OperandList& ops = instruction->getOperands();
-   for (unsigned int i = 0; i < ops.size(); i++)
-   {
-      const Operand &o = ops[i];
-
-      // Loads/Stores
-      if ((o.m_type == Operand::MEMORY) && (o.m_direction == Operand::READ))
-         updateInstructionCounters(LOAD_INST, total_branch_misprediction_count);
-      if ((o.m_type == Operand::MEMORY) && (o.m_direction == Operand::WRITE))
-         updateInstructionCounters(STORE_INST, total_branch_misprediction_count);
-
-      // Reg File Accesses
-      if (o.m_type == Operand::REG)
-         updateRegFileAccessCounters(o.m_direction, o.m_value);
-   }
+   // Total branch mispredictions   
+   _branch_mispredictions = total_branch_misprediction_count;
 }
 
 //---------------------------------------------------------------------------
 // Update Instruction Counters
 //---------------------------------------------------------------------------
-void McPATCoreInterface::updateInstructionCounters(McPATInstructionType instruction_type, UInt64 total_branch_misprediction_count)
+void McPATCoreInterface::updateInstructionCounters(const McPATInstruction* instruction)
 {
-   _total_instructions ++;
-   _committed_instructions ++;
-   
-   switch (instruction_type)
+   const McPATInstruction::MicroOpList& micro_op_list = instruction->getMicroOpList();
+   for (unsigned int i = 0; i < micro_op_list.size(); i++)
    {
-   case GENERIC_INST:
-      _generic_instructions ++;
-      break;
+      McPATInstruction::MicroOpType micro_op_type = micro_op_list[i];
 
-   case INTEGER_INST:
-      _int_instructions ++;
-      _committed_int_instructions ++;
-      break;
+      _total_instructions ++;
+      _committed_instructions ++;
+      
+      switch (micro_op_type)
+      {
+      case McPATInstruction::GENERIC_INST:
+         _generic_instructions ++;
+         break;
 
-   case FLOATING_POINT_INST:
-      _fp_instructions ++;
-      _committed_fp_instructions ++;
-      break;
+      case McPATInstruction::INTEGER_INST:
+         _int_instructions ++;
+         _committed_int_instructions ++;
+         break;
 
-   case LOAD_INST:
-      _load_instructions ++;
-      break;
+      case McPATInstruction::FLOATING_POINT_INST:
+         _fp_instructions ++;
+         _committed_fp_instructions ++;
+         break;
 
-   case STORE_INST:
-      _store_instructions ++;
-      break;
+      case McPATInstruction::LOAD_INST:
+         _load_instructions ++;
+         break;
 
-   case BRANCH_INST:
-      _branch_instructions ++;
-      _branch_mispredictions = total_branch_misprediction_count;
-      break;
+      case McPATInstruction::STORE_INST:
+         _store_instructions ++;
+         break;
 
-   default:
-      LOG_PRINT_ERROR("Unrecognized Instruction Type(%u)", instruction_type);
-      break;
+      case McPATInstruction::BRANCH_INST:
+         _branch_instructions ++;
+         break;
+
+      default:
+         LOG_PRINT_ERROR("Unrecognized Instruction Type(%u)", micro_op_type);
+         break;
+      }
    }
 }
 
 //---------------------------------------------------------------------------
 // Update Reg File Access Counters
 //---------------------------------------------------------------------------
-void McPATCoreInterface::updateRegFileAccessCounters(Operand::Direction operand_direction, UInt32 reg_id)
+void McPATCoreInterface::updateRegFileAccessCounters(const McPATInstruction* instruction)
 {
-   if (operand_direction == Operand::READ)
-   {
-      if (isIntegerReg(reg_id))
-         _int_regfile_reads ++;
-      else if (isFloatingPointReg(reg_id))
-         _fp_regfile_reads ++;
-      else if (isXMMReg(reg_id))
-         _fp_regfile_reads += 2;
-   }
-   else if (operand_direction == Operand::WRITE)
-   {
-      if (isIntegerReg(reg_id))
-         _int_regfile_writes ++;
-      else if (isFloatingPointReg(reg_id))
-         _fp_regfile_writes ++;
-      else if (isXMMReg(reg_id))
-         _fp_regfile_writes += 2;
-   }
-   else
-   {
-      LOG_PRINT_ERROR("Unrecognized Operand Direction(%u)", operand_direction);
-   }
+   const McPATInstruction::RegisterFile& register_file = instruction->getRegisterFile();
+   _int_regfile_reads += register_file._num_integer_reads;;
+   _int_regfile_writes += register_file._num_integer_writes;
+   _fp_regfile_reads += register_file._num_floating_point_reads;
+   _fp_regfile_writes += register_file._num_floating_point_writes;
 }
 
 //---------------------------------------------------------------------------
 // Update Execution Unit Access Counters
 //---------------------------------------------------------------------------
-void McPATCoreInterface::updateExecutionUnitAccessCounters(ExecutionUnitType unit_type)
+void McPATCoreInterface::updateExecutionUnitCounters(const McPATInstruction* instruction)
 {
-   switch (unit_type)
+   const McPATInstruction::ExecutionUnitList& execution_unit_list = instruction->getExecutionUnitList();
+   for (unsigned int i = 0; i < execution_unit_list.size(); i++)
    {
-   case ALU:
-      _ialu_accesses ++;
-      _cdb_alu_accesses ++;
-      break;
+      McPATInstruction::ExecutionUnitType unit_type = execution_unit_list[i];
+      switch (unit_type)
+      {
+      case McPATInstruction::ALU:
+         _ialu_accesses ++;
+         _cdb_alu_accesses ++;
+         break;
 
-   case MUL:
-      _mul_accesses ++;
-      _cdb_mul_accesses ++;
-      break;
+      case McPATInstruction::MUL:
+         _mul_accesses ++;
+         _cdb_mul_accesses ++;
+         break;
 
-   case FPU:
-      _fpu_accesses ++;
-      _cdb_fpu_accesses ++;
-      break;
+      case McPATInstruction::FPU:
+         _fpu_accesses ++;
+         _cdb_fpu_accesses ++;
+         break;
 
-   default:
-      LOG_PRINT_ERROR("Unrecognized Execution Unit(%u)", unit_type);
-      break;
+      default:
+         LOG_PRINT_ERROR("Unrecognized Execution Unit(%u)", unit_type);
+         break;
+      }
    }
 }
 
@@ -510,7 +477,7 @@ void McPATCoreInterface::updateExecutionUnitAccessCounters(ExecutionUnitType uni
 void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count)
 {
    _total_cycles = cycle_count;
-   _busy_cycles  = cycle_count;
+   _busy_cycles = cycle_count;
    // TODO: Update for idle cycles later
 }
 
@@ -1264,37 +1231,4 @@ void McPATCoreInterface::fillCoreStatsIntoXML()
    // |---- Function Calls and Context Switches
    _prev_function_calls                      = _function_calls;
    _prev_context_switches                    = _context_switches;
-}
-
-//---------------------------------------------------------------------------
-// Dummy Implementations
-//---------------------------------------------------------------------------
-__attribute__((weak)) McPATCoreInterface::McPATInstructionType
-getMcPATInstructionType(InstructionType type)
-{
-   return (McPATCoreInterface::INTEGER_INST);
-}
-
-__attribute__((weak)) bool
-isIntegerReg(UInt32 reg_id)
-{
-   return false;
-}
-
-__attribute__((weak)) bool
-isFloatingPointReg(UInt32 reg_id)
-{
-   return false;
-}
-
-__attribute__((weak)) bool
-isXMMReg(UInt32 reg_id)
-{
-   return false;
-}
-
-__attribute__((weak)) void
-getExecutionUnitAccessList(InstructionType type, McPATCoreInterface::ExecutionUnitList& unit_list)
-{
-   unit_list.push_back(McPATCoreInterface::ALU);
 }

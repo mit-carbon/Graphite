@@ -4,14 +4,12 @@
 
 #pragma once
 
-#include <boost/circular_buffer.hpp>
 #include <map>
 using std::map;
 #include "fixed_types.h"
 #include "instruction.h"
+#include "mcpat_instruction.h"
 #include "contrib/mcpat/mcpat.h"
-
-using namespace std;
 
 //---------------------------------------------------------------------------
 // McPAT Core Interface Data Structures for Area and Power
@@ -80,23 +78,6 @@ typedef struct
 class McPATCoreInterface
 {
 public:
-   enum McPATInstructionType
-   {
-      GENERIC_INST = 0,
-      INTEGER_INST,
-      FLOATING_POINT_INST,
-      LOAD_INST,
-      STORE_INST,
-      BRANCH_INST,
-      BRANCH_NOT_TAKEN_INST
-   };
-   enum ExecutionUnitType
-   {
-      ALU = 0,
-      MUL,
-      FPU
-   };
-   typedef boost::circular_buffer<ExecutionUnitType> ExecutionUnitList;
    
    // McPAT Core Interface Constructor
    McPATCoreInterface(double frequency, double voltage, UInt32 load_buffer_size, UInt32 store_buffer_size);
@@ -110,7 +91,8 @@ public:
    void setDVFS(double voltage, double frequency, const Time& curr_time);
 
    // Update Event Counters
-   void updateEventCounters(Instruction* instruction, UInt64 cycle_count, UInt64 total_branch_misprediction_count);
+   void updateEventCounters(const McPATInstruction* instruction, UInt64 cycle_count,
+                            UInt64 total_branch_misprediction_count);
    void updateCycleCounters(UInt64 cycle_count);
    
    // Compute Energy from McPat
@@ -130,9 +112,6 @@ private:
    mcpat_core_output _mcpat_core_out;
    // Last Energy Compute Time
    Time _last_energy_compute_time;
-
-   // Execution Unit Access List
-   ExecutionUnitList _execution_unit_list;
 
    // Architectural Parameters
    // |---- General Parameters
@@ -265,13 +244,13 @@ private:
    // |---- Function Calls and Context Switches
    UInt64 _prev_function_calls;
    UInt64 _prev_context_switches;
-   
+  
    bool _enable_area_or_power_modeling;
 
    // Update Event Counters
-   void updateInstructionCounters(McPATInstructionType instruction_type, UInt64 total_branch_misprediction_count);
-   void updateRegFileAccessCounters(Operand::Direction operand_direction, UInt32 reg_id);
-   void updateExecutionUnitAccessCounters(ExecutionUnitType unit_type);
+   void updateInstructionCounters(const McPATInstruction* instruction);
+   void updateRegFileAccessCounters(const McPATInstruction* instruction);
+   void updateExecutionUnitCounters(const McPATInstruction* instruction);
 
    // Create core wrapper
    McPAT::CoreWrapper* createCoreWrapper(double voltage, double max_frequency_at_voltage);
@@ -280,7 +259,7 @@ private:
    void fillCoreStatsIntoXML();
    
    // Initialize Architectural Parameters
-   void initializeArchitecturalParameters(UInt32 load_buffer_size, UInt32 store_buffer_size);
+   void initializeArchitecturalParameters(UInt32 load_queue_size, UInt32 store_queue_size);
    // Initialize Event Counters
    void initializeEventCounters();
    // Initialize/update Output Data Structure
@@ -294,9 +273,3 @@ private:
    // Display Event Counters
    void displayStats(ostream& os);
 };
-
-McPATCoreInterface::McPATInstructionType getMcPATInstructionType(InstructionType type);
-void getExecutionUnitAccessList(InstructionType type, McPATCoreInterface::ExecutionUnitList& unit_list);
-bool isIntegerReg(UInt32 reg_id);
-bool isFloatingPointReg(UInt32 reg_id);
-bool isXMMReg(UInt32 reg_id);

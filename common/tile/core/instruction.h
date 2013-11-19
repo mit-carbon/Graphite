@@ -1,16 +1,26 @@
 #ifndef INSTRUCTION_H
 #define INSTRUCTION_H
 
+#include <iostream>
 #include <sstream>
 #include <vector>
+#include <string>
+using std::vector;
+using std::string;
+using std::ostringstream;
+using std::stringstream;
+
 #include "fixed_types.h"
 #include "time_types.h"
+#include "mcpat_instruction.h"
 
 // forward declaration
 class CoreModel;
 
 enum InstructionType
 {
+   INST_GENERIC,
+   INST_MOV,
    INST_IALU,
    INST_IMUL,
    INST_IDIV,
@@ -20,9 +30,10 @@ enum InstructionType
    INST_XMM_SS,
    INST_XMM_SD,
    INST_XMM_PS,
-   INST_GENERIC,
-   INST_JMP,
    INST_BRANCH,
+   INST_LFENCE,
+   INST_SFENCE,
+   INST_MFENCE,
    INST_DYNAMIC_MISC,
    INST_RECV,
    INST_SYNC,
@@ -32,127 +43,104 @@ enum InstructionType
 };
 
 __attribute__((unused)) static const char * INSTRUCTION_NAMES [] = 
-{"ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","generic","jmp","branch","dynamic_misc","recv","sync","spawn","stall"};
+{"generic","mov","ialu","imul","idiv","falu","fmul","fdiv","xmm_ss","xmm_sd","xmm_ps","branch","lfence","sfence","mfence","dynamic_misc","recv","sync","spawn","stall"};
 
-class Operand
+typedef UInt32 RegisterOperand;
+typedef vector<RegisterOperand> RegisterOperandList;
+typedef vector<UInt64> ImmediateOperandList;
+
+class OperandList
 {
 public:
-   enum Type
-   {
-      REG,
-      MEMORY,
-      IMMEDIATE
-   };
+   OperandList()
+      : _num_read_memory_operands(0)
+      , _num_write_memory_operands(0)
+   {}
+   OperandList(const RegisterOperandList& read_register_operands, const RegisterOperandList& write_register_operands,
+               UInt32 num_read_memory_operands, UInt32 num_write_memory_operands,
+               const ImmediateOperandList& immediate_operands)
+      : _read_register_operands(read_register_operands)
+      , _write_register_operands(write_register_operands)
+      , _num_read_memory_operands(num_read_memory_operands)
+      , _num_write_memory_operands(num_write_memory_operands)
+      , _immediate_operands(immediate_operands)
+   {}
+   ~OperandList()
+   {}
 
-   enum Direction
-   {
-      READ,
-      WRITE
-   };
+   const RegisterOperandList& getReadRegister() const    { return _read_register_operands; }
+   const RegisterOperandList& getWriteRegister() const   { return _write_register_operands; }
+   const UInt32& getNumReadMemory() const                { return _num_read_memory_operands; }
+   const UInt32& getNumWriteMemory() const               { return _num_write_memory_operands; }
+   const ImmediateOperandList& getImmediate() const      { return _immediate_operands; }
 
-   typedef UInt64 Value;
-
-   Operand(const Operand &src)
-      : m_type(src.m_type), m_value(src.m_value), m_direction(src.m_direction) {}
-
-   Operand(Type type, Value value = 0, Direction direction = READ)
-      : m_type(type), m_value(value), m_direction(direction) {}
-
-   Type m_type;
-   Value m_value;
-   Direction m_direction;
-
-   void print(std::ostringstream& out) const;
+private:
+   const RegisterOperandList _read_register_operands;
+   const RegisterOperandList _write_register_operands;
+   const UInt32 _num_read_memory_operands;
+   const UInt32 _num_write_memory_operands;
+   const ImmediateOperandList _immediate_operands;
 };
-
-typedef std::vector<Operand> OperandList;
 
 class Instruction
 {
 public:
-   Instruction(InstructionType type,
-               UInt64 opcode,
-               OperandList &operands);
-
-   Instruction(InstructionType type,
-               bool dynamic);
-
+   Instruction(InstructionType type, UInt64 opcode, IntPtr address, UInt32 size, bool atomic,
+               const OperandList& operands, const McPATInstruction* mcpat_instruction);
+   Instruction(InstructionType type, bool dynamic);
    virtual ~Instruction() {}
+   
    virtual Time getCost(CoreModel* perf);
 
-   static void initializeStaticInstructionModel();
-
-   InstructionType getType()
-   { return m_type; }
-   UInt64 getOpcode() const
-   { return m_opcode; }
+   InstructionType getType() const
+   { return _type; }
    bool isDynamic() const
-   { return m_dynamic; }
+   { return _dynamic; }
+   UInt64 getOpcode() const
+   { return _opcode; }
    IntPtr getAddress() const
-   { return m_address; }
+   { return _address; }
    UInt32 getSize() const
-   { return m_size; }
-   const OperandList& getOperands() const
-   { return m_operands; }
+   { return _size; }
+   bool isAtomic() const
+   { return _atomic; }
 
-   void setAddress(IntPtr address)
-   { m_address = address; }
-   void setSize(UInt32 size)
-   { m_size = size; }
+   const RegisterOperandList& getReadRegisterOperands() const
+   { return _operands.getReadRegister(); }
+   const RegisterOperandList& getWriteRegisterOperands() const
+   { return _operands.getWriteRegister(); }
+   const UInt32& getNumReadMemoryOperands() const
+   { return _operands.getNumReadMemory(); }
+   const UInt32& getNumWriteMemoryOperands() const
+   { return _operands.getNumWriteMemory(); }
+   const ImmediateOperandList& getImmediateOperands() const
+   { return _operands.getImmediate(); }
 
-   bool isSimpleMemoryLoad() const;
-
-   void print() const;
-
-   typedef std::vector<unsigned int> StaticInstructionCosts;
-
-   static StaticInstructionCosts getStaticInstructionCosts()
-   { return m_instruction_costs; }
+   const McPATInstruction* getMcPATInstruction() const
+   { return _mcpat_instruction; }
+   
+   bool isSimpleMovMemoryLoad() const
+   { return _simple_mov_memory_load; }
 
 private:
-   static StaticInstructionCosts m_instruction_costs;
+   InstructionType _type;
+   bool _dynamic;
+   UInt64 _opcode;
+   IntPtr _address;
+   UInt32 _size;
+   bool _atomic;
 
-   InstructionType m_type;
-   UInt64 m_opcode;
-   bool m_dynamic;
-
-   IntPtr m_address;
-   UInt32 m_size;
-
-protected:
-   OperandList m_operands;
-};
-
-class GenericInstruction : public Instruction
-{
-public:
-   GenericInstruction(UInt64 opcode, OperandList &operands)
-      : Instruction(INST_GENERIC, opcode, operands)
-   {}
-};
-
-class ArithInstruction : public Instruction
-{
-public:
-   ArithInstruction(InstructionType type, UInt64 opcode, OperandList &operands)
-      : Instruction(type, opcode, operands)
-   {}
-};
-
-class JmpInstruction : public Instruction
-{
-public:
-   JmpInstruction(UInt64 opcode, OperandList &dest)
-      : Instruction(INST_JMP, opcode, dest)
-   {}
+   const OperandList _operands;
+   const McPATInstruction* _mcpat_instruction;
+   bool _simple_mov_memory_load;
 };
 
 // conditional branches
 class BranchInstruction : public Instruction
 {
 public:
-   BranchInstruction(UInt64 opcode, OperandList &l);
-
+   BranchInstruction(UInt64 opcode, IntPtr address, UInt32 size, bool atomic,
+                     const OperandList& operands, const McPATInstruction* mcpat_instruction);
    Time getCost(CoreModel* perf);
 };
 
@@ -161,17 +149,17 @@ public:
 class DynamicInstruction : public Instruction
 {
 public:
-   DynamicInstruction(Time cost, InstructionType type = INST_DYNAMIC_MISC)
+   DynamicInstruction(Time cost, InstructionType type)
       : Instruction(type, true)
-      , m_cost(cost)
+      , _cost(cost)
    {}
    ~DynamicInstruction() {}
 
    Time getCost(CoreModel* perf)
-   { return m_cost; }
+   { return _cost; }
 
 protected:
-   Time m_cost;
+   Time _cost;
 };
 
 // RecvInstruction - called for netRecv
@@ -206,7 +194,6 @@ class SpawnInstruction : public DynamicInstruction
 {
 public:
    SpawnInstruction(Time time);
-   
    Time getCost(CoreModel* perf);
 };
 

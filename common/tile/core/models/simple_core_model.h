@@ -14,12 +14,13 @@ public:
 private:
    void handleInstruction(Instruction *instruction);
    
-   Time modelICache(IntPtr ins_address, UInt32 ins_size);
    void initializePipelineStallCounters();
 
-   Time m_total_l1icache_stall_time;
-   Time m_total_l1dcache_read_stall_time;
-   Time m_total_l1dcache_write_stall_time;
+   Time _total_l1icache_stall_time;
+   Time _total_l1dcache_read_stall_time;
+   Time _total_l1dcache_write_stall_time;
+
+   Time _ONE_CYCLE;
 };
 
 #endif

@@ -130,8 +130,6 @@ void Simulator::start()
    m_lcp = new LCP();
    m_lcp_thread = Thread::create(m_lcp);
    m_lcp_thread->run();
-
-   Instruction::initializeStaticInstructionModel();
 }
 
 Simulator::~Simulator()

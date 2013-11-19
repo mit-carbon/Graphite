@@ -8,100 +8,64 @@
 
 // Instruction
 
-Instruction::StaticInstructionCosts Instruction::m_instruction_costs;
-
-Instruction::Instruction(InstructionType type, UInt64 opcode, OperandList &operands)
-   : m_type(type)
-   , m_opcode(opcode)
-   , m_dynamic(false)
-   , m_address(0)
-   , m_size(0)
-   , m_operands(operands)
+Instruction::Instruction(InstructionType type, UInt64 opcode, IntPtr address, UInt32 size, bool atomic,
+                         const OperandList& operands, const McPATInstruction* mcpat_instruction)
+   : _type(type)
+   , _dynamic(false)
+   , _opcode(opcode)
+   , _address(address)
+   , _size(size)
+   , _atomic(atomic)
+   , _operands(operands)
+   , _mcpat_instruction(mcpat_instruction)
 {
+   bool simple_memory_load = ((_operands.getNumReadMemory() == 1) && (_operands.getNumWriteMemory() == 0));
+   _simple_mov_memory_load = simple_memory_load && (_type == INST_MOV);
 }
 
 Instruction::Instruction(InstructionType type, bool dynamic)
-   : m_type(type)
-   , m_opcode(0)
-   , m_dynamic(dynamic)
-   , m_address(0)
-   , m_size(0)
+   : _type(type)
+   , _dynamic(true)
+   , _mcpat_instruction(NULL)
 {
 }
 
-Time Instruction::getCost(CoreModel* perf)
+Time
+Instruction::getCost(CoreModel* perf)
 {
-   LOG_ASSERT_ERROR(m_type < MAX_INSTRUCTION_COUNT, "Unknown instruction type: %d", m_type);
-   return perf->getCost(m_type); 
-}
-
-bool Instruction::isSimpleMemoryLoad() const
-{
-   if (m_operands.size() > 2)
-      return false;
-
-   bool memory_read = false;
-   bool reg_write = false;
-   for (unsigned int i = 0; i < m_operands.size(); i++)
-   {
-      const Operand& o = m_operands[i];
-      if ((o.m_type == Operand::MEMORY) && (o.m_direction == Operand::READ))
-         memory_read = true;
-      if ((o.m_type == Operand::REG) && (o.m_direction == Operand::WRITE))
-         reg_write = true;
-   }
-
-   switch (m_operands.size())
-   {
-   case 1:
-      return (memory_read);
-   case 2:
-      return (memory_read && reg_write);
-   default:
-      return false;
-   }
-}
-
-void Instruction::initializeStaticInstructionModel()
-{
-   m_instruction_costs.resize(MAX_INSTRUCTION_COUNT);
-   for(unsigned int i = 0; i < MAX_INSTRUCTION_COUNT; i++)
-   {
-       char key_name [1024];
-       snprintf(key_name, 1024, "core/static_instruction_costs/%s", INSTRUCTION_NAMES[i]);
-       UInt32 instruction_cost = Sim()->getCfg()->getInt(key_name, 0);
-       m_instruction_costs[i] = instruction_cost;
-   }
+   LOG_ASSERT_ERROR(_type < MAX_INSTRUCTION_COUNT, "Unknown instruction type: %d", _type);
+   return perf->getCost(_type); 
 }
 
 // BranchInstruction
 
-BranchInstruction::BranchInstruction(UInt64 opcode, OperandList &l)
-   : Instruction(INST_BRANCH, opcode, l)
-{ }
+BranchInstruction::BranchInstruction(UInt64 opcode, IntPtr address, UInt32 size, bool atomic,
+                                     const OperandList& operands, const McPATInstruction* mcpat_instruction)
+   : Instruction(INST_BRANCH, opcode, address, size, atomic, operands, mcpat_instruction)
+{}
 
-Time BranchInstruction::getCost(CoreModel* perf)
+Time
+BranchInstruction::getCost(CoreModel* perf)
 {
    double frequency = perf->getCore()->getFrequency();
    BranchPredictor *bp = perf->getBranchPredictor();
 
-   DynamicInstructionInfo &i = perf->getDynamicInstructionInfo();
-   LOG_ASSERT_ERROR(i.type == DynamicInstructionInfo::BRANCH, "type(%u)", i.type);
+   const DynamicBranchInfo& info = perf->getDynamicBranchInfo();
 
    // branch prediction not modeled
    if (bp == NULL)
    {
-      perf->popDynamicInstructionInfo();
+      perf->popDynamicBranchInfo();
       return Time(Latency(1,frequency));
    }
 
-   bool prediction = bp->predict(getAddress(), i.branch_info.target);
-   bool correct = (prediction == i.branch_info.taken);
+   bool prediction = bp->predict(getAddress(), info._target);
+   bool correct = (prediction == info._taken);
 
-   bp->update(prediction, i.branch_info.taken, getAddress(), i.branch_info.target);
+   bp->update(prediction, info._taken, getAddress(), info._target);
    Latency cost = correct ? Latency(1,frequency) : Latency(bp->getMispredictPenalty(),frequency);
       
-   perf->popDynamicInstructionInfo();
+   perf->popDynamicBranchInfo();
    return Time(cost);
 }
 
@@ -111,59 +75,9 @@ SpawnInstruction::SpawnInstruction(Time cost)
    : DynamicInstruction(cost, INST_SPAWN)
 {}
 
-Time SpawnInstruction::getCost(CoreModel* perf)
+Time
+SpawnInstruction::getCost(CoreModel* perf)
 {
-   perf->setCurrTime(m_cost);
+   perf->setCurrTime(_cost);
    throw CoreModel::AbortInstructionException(); // exit out of handleInstruction
-}
-
-// Instruction
-
-void Instruction::print() const
-{
-   ostringstream out;
-   out << "Address(0x" << hex << m_address << dec << ") Size(" << m_size << ") : ";
-   for (unsigned int i = 0; i < m_operands.size(); i++)
-   {
-      const Operand& o = m_operands[i];
-      o.print(out);
-   }
-   LOG_PRINT("%s", out.str().c_str());
-}
-
-// Operand
-
-void Operand::print(ostringstream& out) const
-{
-   // Type
-   if (m_type == REG)
-   {
-      out << "REG-";
-      // Value
-      out << m_value << "-";
-      // Direction
-      if (m_direction == READ)
-         out << "READ, ";
-      else
-         out << "WRITE, ";
-   }
-   else if (m_type == MEMORY)
-   {
-      out << "MEMORY-";
-      // Direction
-      if (m_direction == READ)
-         out << "READ, ";
-      else
-         out << "WRITE, ";
-   }
-   else if (m_type == IMMEDIATE)
-   {
-      out << "IMMEDIATE-";
-      // Value
-      out << m_value << ", ";
-   }
-   else
-   {
-      LOG_PRINT_ERROR("Unrecognized Operand Type(%u)", m_type);
-   }
 }

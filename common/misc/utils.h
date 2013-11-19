@@ -89,6 +89,17 @@ T getMax(T v1, T v2)
    return (v1 > v2) ? v1 : v2;
 }
 
+template <class T>
+T getMax(T v1, T v2, T v3)
+{
+   if ((v1 > v2) && (v1 > v3))
+      return v1;
+   else if (v2 > v3)
+      return v2;
+   else
+      return v3;
+}
+
 // Use this only for basic data types
 // char, int, float, double
 

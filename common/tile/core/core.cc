@@ -147,11 +147,11 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
    {
       if (push_info)
       {
-         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(Time(0), address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, 0);
+         DynamicMemoryInfo info(address, mem_op_type != WRITE, Time(0), 0);
          if (_core_model)
-            _core_model->pushDynamicInstructionInfo(info);
+            _core_model->pushDynamicMemoryInfo(info);
       }
-      return make_pair<UInt32, Time>(0,Time(0));
+      return make_pair(0, Time(0));
    }
 
    // Setting the initial time
@@ -257,9 +257,9 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
 
    if (push_info)
    {
-      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_time, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+      DynamicMemoryInfo info(address, mem_op_type != WRITE, memory_access_time, num_misses);
       if (_core_model)
-         _core_model->pushDynamicInstructionInfo(info);
+         _core_model->pushDynamicMemoryInfo(info);
    }
 
    return make_pair(num_misses, memory_access_time);

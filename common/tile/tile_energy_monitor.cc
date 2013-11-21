@@ -497,13 +497,13 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
       periodicallyCollectEnergy();
 
       out << "Tile Energy Monitor Summary: " << endl;
-      //out << "  First Time (in ns): " << m_first_time << std::endl;
-      //out << "  Last Time (in ns): " << m_last_time << std::endl;
-      //out << "  Delta t (in ns): " << m_delta_t << std::endl;
+      //out << "  First Time (in nanoseconds): " << m_first_time << std::endl;
+      //out << "  Last Time (in nanoseconds): " << m_last_time << std::endl;
+      //out << "  Delta t (in nanoseconds): " << m_delta_t << std::endl;
       //out << "  Counter: " << m_counter << std::endl;
-      //out << "  Current Time (in ns): " << m_current_time << std::endl;
-      //out << "  Previous Time (in ns): " << m_previous_time << std::endl;
-      //out << "  Time Elapsed (in ns): " << m_time_elapsed << std::endl;
+      //out << "  Current Time (in nanoseconds): " << m_current_time << std::endl;
+      //out << "  Previous Time (in nanoseconds): " << m_previous_time << std::endl;
+      //out << "  Time Elapsed (in nanoseconds): " << m_time_elapsed << std::endl;
       out << "  Core: " << endl;
       out << "    Static Energy (in J): " << m_core_current_static_energy << std::endl;
       out << "    Dynamic Energy (in J): " << m_core_current_dynamic_energy << std::endl;

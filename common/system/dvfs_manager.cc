@@ -540,25 +540,25 @@ DVFSManager::printAsynchronousMap(ostream& os, module_t module, AsynchronousMap 
    os << padding + "  Asynchronous communication: " << endl;
    if (asynchronous_map.find(CORE) != asynchronous_map.end() && 
          !hasSameDVFSDomain(module, CORE))
-      os << padding + "    Core (in ns): " << asynchronous_map[CORE].toNanosec() << endl;
+      os << padding + "    Core (in nanoseconds): " << asynchronous_map[CORE].toNanosec() << endl;
    if (asynchronous_map.find(L1_ICACHE) != asynchronous_map.end() &&
          !hasSameDVFSDomain(module, L1_ICACHE))
-      os << padding + "    L1-I Cache (in ns): " << asynchronous_map[L1_ICACHE].toNanosec() << endl;
+      os << padding + "    L1-I Cache (in nanoseconds): " << asynchronous_map[L1_ICACHE].toNanosec() << endl;
    if (asynchronous_map.find(L1_DCACHE) != asynchronous_map.end() &&
          !hasSameDVFSDomain(module, L1_DCACHE))
-      os << padding + "    L1-D Cache (in ns): " << asynchronous_map[L1_DCACHE].toNanosec() << endl;
+      os << padding + "    L1-D Cache (in nanoseconds): " << asynchronous_map[L1_DCACHE].toNanosec() << endl;
    if (asynchronous_map.find(L2_CACHE) != asynchronous_map.end() &&
          !hasSameDVFSDomain(module, L2_CACHE))
-      os << padding + "    L2 Cache (in ns): " << asynchronous_map[L2_CACHE].toNanosec() << endl;
+      os << padding + "    L2 Cache (in nanoseconds): " << asynchronous_map[L2_CACHE].toNanosec() << endl;
    if (asynchronous_map.find(DIRECTORY) != asynchronous_map.end() &&
          !hasSameDVFSDomain(module, DIRECTORY))
-      os << padding + "    Directory (in ns): " << asynchronous_map[DIRECTORY].toNanosec() << endl;
+      os << padding + "    Directory (in nanoseconds): " << asynchronous_map[DIRECTORY].toNanosec() << endl;
    if (asynchronous_map.find(NETWORK_USER) != asynchronous_map.end() &&
          !hasSameDVFSDomain(module, NETWORK_USER))
-      os << padding + "    User Nework (in ns): " << asynchronous_map[NETWORK_USER].toNanosec() << endl;
+      os << padding + "    User Nework (in nanoseconds): " << asynchronous_map[NETWORK_USER].toNanosec() << endl;
    if (asynchronous_map.find(NETWORK_MEMORY) != asynchronous_map.end() &&
          !hasSameDVFSDomain(module, NETWORK_MEMORY))
-      os << padding + "    Memory Nework (in ns): " << asynchronous_map[NETWORK_MEMORY].toNanosec() << endl;
+      os << padding + "    Memory Nework (in nanoseconds): " << asynchronous_map[NETWORK_MEMORY].toNanosec() << endl;
 
 }
 

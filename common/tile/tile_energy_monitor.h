@@ -55,7 +55,7 @@ private:
    FILE *m_power_trace_file;
 
    // Sampling Period
-   double m_delta_t; // (in ns)
+   double m_delta_t; // (in nanoseconds)
 
    // Time
    void initializeTimeCounters();

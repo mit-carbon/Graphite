@@ -414,6 +414,8 @@ MemoryManager::disableModels()
 void
 MemoryManager::outputSummary(std::ostream &os, const Time& target_completion_time)
 {
+   ::MemoryManager::outputSummary(os, target_completion_time);
+   
    os << "Cache Summary:\n";
    _L1_cache_cntlr->getL1ICache()->outputSummary(os, target_completion_time);
    _L1_cache_cntlr->getL1DCache()->outputSummary(os, target_completion_time);
@@ -431,8 +433,6 @@ MemoryManager::outputSummary(std::ostream &os, const Time& target_completion_tim
       os << "Dram Directory Cache Summary:\n";
       DirectoryCache::dummyOutputSummary(os, getTile()->getId());
    }
-   
-   ::MemoryManager::outputSummary(os, target_completion_time);
 }
 
 void

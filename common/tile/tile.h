@@ -8,11 +8,12 @@ using std::ostream;
 class Network;
 class Core;
 class MemoryManager;
+class TileEnergyMonitor;
+class RemoteQueryHelper;
+class DVFSManager;
 
 #include "fixed_types.h"
 #include "network.h"
-
-void TileFreqScalingCallback(void* obj, NetPacket packet);
 
 class Tile
 {
@@ -26,14 +27,14 @@ public:
    Network* getNetwork()               { return _network; }
    Core* getCore()                     { return _core; }
    MemoryManager* getMemoryManager()   { return _memory_manager; }
+   DVFSManager* getDVFSManager()       { return _dvfs_manager; }
+   TileEnergyMonitor* getTileEnergyMonitor()       { return _tile_energy_monitor; }
+   RemoteQueryHelper* getRemoteQueryHelper()       { return _remote_query_helper; }
+
+   Time getCoreTime(tile_id_t tile_id) const;
 
    static core_id_t getMainCoreId(tile_id_t id)    { return (core_id_t) {id, MAIN_CORE_TYPE}; }
    static bool isMainCore(core_id_t core_id)       { return (core_id.core_type == MAIN_CORE_TYPE); }
-
-   float getFrequency() const          { return _frequency; }
-   void setFrequency(float frequency)  { _frequency = frequency; }
-
-   void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
 
    void enableModels();
    void disableModels();
@@ -43,8 +44,9 @@ private:
    Network* _network;
    Core* _core;
    MemoryManager* _memory_manager;
-
-   float _frequency;
+   DVFSManager* _dvfs_manager;
+   TileEnergyMonitor* _tile_energy_monitor;
+   RemoteQueryHelper* _remote_query_helper;
 };
 
 #endif

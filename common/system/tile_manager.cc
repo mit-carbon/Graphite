@@ -114,7 +114,8 @@ void TileManager::initializeThread(core_id_t core_id, SInt32 thread_index, threa
 {
    const Config::TileList &tile_list = Config::getSingleton()->getTileListForProcess(Config::getSingleton()->getCurrentProcessNum());
    LOG_ASSERT_ERROR(tile_list.size() == Config::getSingleton()->getNumLocalTiles(),
-                    "Tile list size different from num local tiles? %d != %d", tile_list.size(), Config::getSingleton()->getNumLocalTiles());
+                    "Tile list size different from num local tiles? %d != %d",
+                    tile_list.size(), Config::getSingleton()->getNumLocalTiles());
 
    for (UInt32 i = 0; i < tile_list.size(); i++)
    {
@@ -126,8 +127,9 @@ void TileManager::initializeThread(core_id_t core_id, SInt32 thread_index, threa
             ScopedLock sl(m_initialized_cores_lock);
             ScopedLock sl_thread(m_initialized_threads_lock);
 
-            if (m_initialized_threads[i][thread_index])
-               LOG_PRINT_ERROR("initializeThread -- thread number %d on main core at %d/%d already mapped", thread_index, i, Config::getSingleton()->getNumLocalTiles());
+            LOG_ASSERT_ERROR(!m_initialized_threads[i][thread_index],
+                             "initializeThread -- thread number %d on main core at %d/%d already mapped",
+                             thread_index, i, Config::getSingleton()->getNumLocalTiles());
 
             doInitializeThread(i, thread_index, thread_id);
             return;
@@ -135,7 +137,8 @@ void TileManager::initializeThread(core_id_t core_id, SInt32 thread_index, threa
       }
    }
 
-   LOG_PRINT_ERROR("initializeThread - Requested tile %d does not live on process %d.", core_id.tile_id, Config::getSingleton()->getCurrentProcessNum());
+   LOG_PRINT_ERROR("initializeThread - Requested tile %d does not live on process %d.",
+                   core_id.tile_id, Config::getSingleton()->getCurrentProcessNum());
 }
 
 void TileManager::doInitializeThread(UInt32 tile_index, SInt32 thread_index, thread_id_t thread_id)

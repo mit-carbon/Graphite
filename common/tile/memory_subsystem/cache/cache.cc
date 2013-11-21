@@ -4,8 +4,10 @@
 #include "cache_line_info.h"
 #include "cache_replacement_policy.h"
 #include "cache_hash_fn.h"
+#include "mcpat_cache_interface.h"
 #include "utils.h"
 #include "log.h"
+#include "memory_manager.h"
 
 // Cache class
 // constructors/destructors
@@ -17,11 +19,14 @@ Cache::Cache(string name,
              UInt32 cache_size,
              UInt32 associativity,
              UInt32 line_size,
+             UInt32 num_banks,
              CacheReplacementPolicy* replacement_policy,
              CacheHashFn* hash_fn,
-             UInt32 access_delay,
-             float frequency,
-             bool track_miss_types)
+             UInt32 data_access_latency,
+             UInt32 tags_access_latency,
+             string perf_model_type,
+             bool track_miss_types,
+             ShmemPerfModel* shmem_perf_model)
    : _enabled(false)
    , _name(name)
    , _cache_category(cache_category)
@@ -29,30 +34,33 @@ Cache::Cache(string name,
    , _cache_size(k_KILO * cache_size)
    , _associativity(associativity)
    , _line_size(line_size)
+   , _num_banks(num_banks)
    , _replacement_policy(replacement_policy)
    , _hash_fn(hash_fn)
-   , _power_model(NULL)
-   , _area_model(NULL)
    , _track_miss_types(track_miss_types)
+   , _mcpat_cache_interface(NULL)
+   , _shmem_perf_model(shmem_perf_model)
 {
    _num_sets = _cache_size / (_associativity * _line_size);
    _log_line_size = floorLog2(_line_size);
-   
+  
+   // Instantiate cache sets 
    _sets = new CacheSet*[_num_sets];
    for (UInt32 i = 0; i < _num_sets; i++)
    {
       _sets[i] = new CacheSet(i, caching_protocol_type, cache_level, _replacement_policy, _associativity, _line_size);
    }
 
-   if (Config::getSingleton()->getEnablePowerModeling())
+   // Initialize DVFS variables
+   initializeDVFS();
+
+   // Instantiate performance model
+   _perf_model = CachePerfModel::create(perf_model_type, data_access_latency, tags_access_latency, _frequency);
+
+   // Instantiate area/power model
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
    {
-      _power_model = new CachePowerModel("data", _cache_size, _line_size,
-            associativity, access_delay, frequency);
-   }
-   if (Config::getSingleton()->getEnableAreaModeling())
-   {
-      _area_model = new CacheAreaModel("data", _cache_size, _line_size,
-            associativity, access_delay, frequency);
+      _mcpat_cache_interface = new McPATCacheInterface(this);
    }
 
    // Initialize Cache Counters
@@ -98,10 +106,6 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
       // Update data array reads/writes
       OperationType operation_type = (access_type == LOAD) ? DATA_ARRAY_READ : DATA_ARRAY_WRITE;
       _event_counters[operation_type] ++;
- 
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy(operation_type);
    }
    LOG_PRINT("accessCacheLine: Address(%#lx), AccessType(%s), Num Bytes(%u) end",
              address, (access_type == 0) ? "LOAD": "STORE", num_bytes);
@@ -157,13 +161,6 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          _event_counters[TAG_ARRAY_READ] ++;
          _event_counters[DATA_ARRAY_READ] ++;
       
-         // Update dynamic energy counters
-         if (_power_model)
-         {
-            _power_model->updateDynamicEnergy(TAG_ARRAY_READ);
-            _power_model->updateDynamicEnergy(DATA_ARRAY_READ);
-         }
-         
          // Increment number of evictions and dirty evictions
          _total_evictions ++;
          // Update number of dirty evictions
@@ -176,22 +173,11 @@ Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_li
          
          // Update tag array reads
          _event_counters[TAG_ARRAY_READ] ++;
-      
-         // Update dynamic energy counters
-         if (_power_model)
-            _power_model->updateDynamicEnergy(TAG_ARRAY_READ);
       }
 
       // Update tag/data array writes
       _event_counters[TAG_ARRAY_WRITE] ++;
       _event_counters[DATA_ARRAY_WRITE] ++;
-
-      // Update dynamic energy counters
-      if (_power_model)
-      {
-         _power_model->updateDynamicEnergy(TAG_ARRAY_WRITE);
-         _power_model->updateDynamicEnergy(DATA_ARRAY_WRITE);
-      }
    }
    
    LOG_PRINT("insertCacheLine: Address(%#lx) end", inserted_address);
@@ -213,9 +199,6 @@ Cache::getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info)
    {
       // Update tag/data array reads/writes
       _event_counters[TAG_ARRAY_READ] ++;
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy(TAG_ARRAY_READ);
    }
 
    LOG_PRINT("getCacheLineInfo: Address(%#lx) end", address);
@@ -253,9 +236,6 @@ Cache::setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info)
    {
       // Update tag/data array reads/writes
       _event_counters[TAG_ARRAY_WRITE] ++;
-      // Update dynamic energy counters
-      if (_power_model)
-         _power_model->updateDynamicEnergy(TAG_ARRAY_WRITE);
    }
    LOG_PRINT("setCacheLineInfo: Address(%#lx) end", address);
 }
@@ -301,6 +281,42 @@ Cache::initializeCacheLineStateCounters()
 {
    _cache_line_state_counters.resize(CacheState::NUM_STATES, 0);
 }
+
+void
+Cache::initializeDVFS()
+{
+   // Initialize asynchronous boundaries
+   if (_name == "L1-I"){
+      _module = L1_ICACHE;
+      _asynchronous_map[CORE] = Time(0);
+      _asynchronous_map[L2_CACHE] = Time(0);
+      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+         _asynchronous_map[NETWORK_MEMORY] = Time(0);
+      }
+   }
+   else if (_name == "L1-D"){
+      _module = L1_DCACHE;
+      _asynchronous_map[CORE] = Time(0);
+      _asynchronous_map[L2_CACHE] = Time(0);
+      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+         _asynchronous_map[NETWORK_MEMORY] = Time(0);
+      }
+   }
+   else if (_name == "L2"){
+      _module = L2_CACHE;
+      _asynchronous_map[L1_ICACHE] = Time(0);
+      _asynchronous_map[L1_DCACHE] = Time(0);
+      _asynchronous_map[NETWORK_MEMORY] = Time(0);
+      if (MemoryManager::getCachingProtocolType() != PR_L1_SH_L2_MSI){
+         _asynchronous_map[DIRECTORY] = Time(0);
+      }
+   }
+
+   // Initialize frequency and voltage
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(_module, _frequency, _voltage);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
+}
+
 
 Cache::MissType
 Cache::updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache_miss)
@@ -401,7 +417,7 @@ Cache::getCacheLineStateCounters(vector<UInt64>& cache_line_state_counters) cons
 }
 
 void
-Cache::outputSummary(ostream& out)
+Cache::outputSummary(ostream& out, const Time& target_completion_time)
 {
    // Cache Miss Summary
    out << "  Cache " << _name << ": "<< endl;
@@ -437,10 +453,11 @@ Cache::outputSummary(ostream& out)
    }
    
    // Output Power and Area Summaries
-   if (_power_model)
-      _power_model->outputSummary(out);
-   if (_area_model)
-      _area_model->outputSummary(out);
+   if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
+   {
+      _mcpat_cache_interface->computeEnergy(target_completion_time);
+      _mcpat_cache_interface->outputSummary(out, target_completion_time);
+   }
 
    // Track miss types
    if (_track_miss_types)
@@ -457,6 +474,24 @@ Cache::outputSummary(ostream& out)
    out << "      Tag Array Writes: " << _event_counters[TAG_ARRAY_WRITE] << endl;
    out << "      Data Array Reads: " << _event_counters[DATA_ARRAY_READ] << endl;
    out << "      Data Array Writes: " << _event_counters[DATA_ARRAY_WRITE] << endl;
+
+   // Asynchronous communication
+   DVFSManager::printAsynchronousMap(out, _module, _asynchronous_map);
+}
+
+void Cache::computeEnergy(const Time& curr_time)
+{
+   _mcpat_cache_interface->computeEnergy(curr_time);
+}
+
+double Cache::getDynamicEnergy()
+{
+   return _mcpat_cache_interface->getDynamicEnergy();
+}
+
+double Cache::getLeakageEnergy()
+{
+   return _mcpat_cache_interface->getLeakageEnergy();
 }
 
 // Utilities
@@ -499,4 +534,38 @@ Cache::parseMissType(string miss_type)
       LOG_PRINT_ERROR("Unrecognized Miss Type(%s)", miss_type.c_str());
       return INVALID_MISS_TYPE;
    }
+}
+
+int
+Cache::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}
+
+int
+Cache::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time)
+{
+   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
+   if (rc==0)
+   {
+      _frequency = frequency;
+      _perf_model->setDVFS(_frequency);
+
+      if (Config::getSingleton()->getEnablePowerModeling())
+         _mcpat_cache_interface->setDVFS(_voltage, _frequency, curr_time);
+   }
+   return rc;
+}
+
+Time
+Cache::getSynchronizationDelay(module_t module)
+{
+   if (!DVFSManager::hasSameDVFSDomain(_module, module) && _enabled){
+      _asynchronous_map[module] += _perf_model->getSynchronizationDelay();
+      return _perf_model->getSynchronizationDelay();
+;
+   }
+   return Time(0);
 }

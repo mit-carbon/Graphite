@@ -1,4 +1,3 @@
-// Jonathan Eastep
 // Build up / consume unstructured packets through a simple interface
 
 #ifndef PACKETIZE_H
@@ -7,14 +6,7 @@
 //#define DEBUG_UNSTRUCTURED_BUFFER
 #include <assert.h>
 #include <string>
-#include <iostream>
 #include <utility>
-#include "fixed_types.h"
-
-#include "log.h"
-
-#include <sstream>
-using std::stringstream;
 
 class UnstructuredBuffer
 {

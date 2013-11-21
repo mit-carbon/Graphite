@@ -1,64 +1,69 @@
+#include <string.h>
 #include "tile.h"
 #include "network.h"
 #include "network_model.h"
 #include "network_types.h"
 #include "memory_manager.h"
+#include "dvfs_manager.h"
+#include "remote_query_helper.h"
 #include "main_core.h"
 #include "simulator.h"
 #include "log.h"
-#include <string.h>
+#include "tile_energy_monitor.h"
 
 Tile::Tile(tile_id_t id)
    : _id(id)
    , _memory_manager(NULL)
+   , _tile_energy_monitor(NULL)
 {
    LOG_PRINT("Tile ctor for (%i)", _id);
 
-   _frequency = Config::getSingleton()->getTileFrequency(_id);
    _network = new Network(this);
    _core = new MainCore(this);
    
    if (Config::getSingleton()->isSimulatingSharedMemory())
       _memory_manager = MemoryManager::createMMU(Sim()->getCfg()->getString("caching_protocol/type"), this);
 
-   // Register callback for clock frequency change
-   getNetwork()->registerCallback(FREQ_CONTROL, TileFreqScalingCallback, this);
+   if (Config::getSingleton()->getEnablePowerModeling())
+      _tile_energy_monitor = new TileEnergyMonitor(this);
+   
+   // Create DVFS manager
+   UInt32 technology_node = Sim()->getCfg()->getInt("general/technology_node");
+   _dvfs_manager = new DVFSManager(technology_node, this);
+
+   // Create Remote Query helper
+   _remote_query_helper = new RemoteQueryHelper(this);   
 }
 
 Tile::~Tile()
 {
-   getNetwork()->unregisterCallback(FREQ_CONTROL);
-
+   delete _remote_query_helper;
+   delete _dvfs_manager;
    if (_memory_manager)
       delete _memory_manager;
    delete _core;
    delete _network;
-}
-
-void TileFreqScalingCallback(void* obj, NetPacket packet)
-{
-   Tile *tile = (Tile*) obj;
-   assert(tile != NULL);
-
-   float new_frequency;
-   memcpy((void*) &new_frequency, packet.data, sizeof(float));
-
-   float old_frequency = tile->getFrequency();
-   tile->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   tile->setFrequency(new_frequency);
+   if (_tile_energy_monitor)
+      delete _tile_energy_monitor;
 }
 
 void Tile::outputSummary(ostream &os)
 {
+   Time target_completion_time = _remote_query_helper->getCoreTime(0);
+
    LOG_PRINT("Core Summary");
-   _core->outputSummary(os);
+   _core->outputSummary(os, target_completion_time);
 
    LOG_PRINT("Memory Subsystem Summary");
    if (_memory_manager)
-      _memory_manager->outputSummary(os);
-   
+      _memory_manager->outputSummary(os, target_completion_time);
+
    LOG_PRINT("Network Summary");
-   _network->outputSummary(os);
+   _network->outputSummary(os, target_completion_time);
+   
+   LOG_PRINT("Tile Energy Monitor Summary");
+   if (_tile_energy_monitor)
+      _tile_energy_monitor->outputSummary(os);
 }
 
 void Tile::enableModels()
@@ -79,11 +84,4 @@ void Tile::disableModels()
    if (_memory_manager)
       _memory_manager->disableModels();
    LOG_PRINT("disableModels(%i) end", _id);
-}
-
-void
-Tile::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   _core->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-   _memory_manager->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }

@@ -1,12 +1,10 @@
 
 # Define the directories that will be compiled
-DIRS_TO_COMPILE := . \
+DIRS_TO_COMPILE := .
 
 DIRS = $(patsubst %,$(CURDIR)/%,$(DIRS_TO_COMPILE))
-
 SRCS = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.cc))
-
-OBJS = $(SRCS:%.cc=%.lo)
+OBJS = $(SRCS:%.cc=%.o)
 
 DEF_FLAGS = 
 
@@ -17,35 +15,28 @@ else
 endif
 DEF_FLAGS += -DLIBUTIL_IS_LOG=$(LIBUTIL_IS_LOG)
 
-INCLUDE_FLAGS = $(foreach dir, $(DIRS), -I$(dir))
-OPT_FLAGS = -O2 -g -fPIC
-WARN_FLAGS = -pedantic -Wall -W -Wextra #-Werror
-CXXFLAGS = $(OPT_FLAGS) $(WARN_FLAGS) $(INCLUDE_FLAGS) $(DEF_FLAGS)
+INC_FLAGS   = $(foreach dir, $(DIRS), -I$(dir))
+DEBUG_FLAGS = -g
+OPT_FLAGS   = -O2 -fPIC -lm
+WARN_FLAGS  = -pedantic -Wall -W -Wextra #-Werror
+CXX_FLAGS   = $(DEBUG_FLAGS) $(OPT_FLAGS) $(WARN_FLAGS) $(INCLUDE_FLAGS) $(DEF_FLAGS)
 
-#TARGET = $(CURDIR)/libutil.a
+TARGET = $(CURDIR)/libutil.a
 
-TARGET_LIB = $(CURDIR)/libutil.la
+.PHONY: all clean
 
 #all: $(TARGET)
 
-#$(TARGET): $(OBJS)
-#	ar rcs $@ $^
-#$(TARGET): $(OBJS)
-#	$(CXX) $(CXXFLAGS) $^ -o $(TARGET)
-
-static_lib: $(OBJS)
-	libtool --mode=link $(CXX) -static $(CXXFLAGS) -o $(TARGET_LIB) $(OBJS)
+$(TARGET): $(OBJS)
+	$(AR) rcs $@ $^
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-%.lo: %.cc
-	libtool --mode=compile $(CXX) -static -no-suppress $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXX_FLAGS) -c $< -o $@
 
 %/created:
 	mkdir -p $(dir $@)
 	touch $@
 
 clean:
-	libtool --mode=clean $(RM) -rf $(OBJS) $(TARGET_LIB)
+	-$(RM) -rf $(OBJS) $(TARGET)
 

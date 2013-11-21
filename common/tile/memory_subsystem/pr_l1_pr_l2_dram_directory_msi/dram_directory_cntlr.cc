@@ -15,7 +15,7 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
       UInt32 dram_directory_max_num_sharers,
       UInt32 dram_directory_max_hw_sharers,
       string dram_directory_type_str,
-      string dram_directory_access_time_str,
+      string dram_directory_access_cycles_str,
       UInt32 num_dram_cntlrs)
    : _memory_manager(memory_manager)
    , _dram_cntlr(dram_cntlr)
@@ -29,7 +29,8 @@ DramDirectoryCntlr::DramDirectoryCntlr(MemoryManager* memory_manager,
                                               dram_directory_max_hw_sharers,
                                               dram_directory_max_num_sharers,
                                               num_dram_cntlrs,
-                                              dram_directory_access_time_str);
+                                              dram_directory_access_cycles_str,
+                                              getShmemPerfModel());
 
    LOG_PRINT("Instantiated Dram Directory Cache");
 }
@@ -42,6 +43,14 @@ DramDirectoryCntlr::~DramDirectoryCntlr()
 void
 DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   // add synchronization cost
+   if (sender == _memory_manager->getTile()->getId()){
+      getShmemPerfModel()->incrCurrTime(_dram_directory_cache->getSynchronizationDelay(L2_CACHE));
+   }
+   else{
+      getShmemPerfModel()->incrCurrTime(_dram_directory_cache->getSynchronizationDelay(NETWORK_MEMORY));
+   }
+
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    Time msg_time = getShmemPerfModel()->getCurrTime();
 
@@ -84,15 +93,6 @@ DramDirectoryCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
          LOG_PRINT_ERROR("Unrecognized Shmem Msg Type: %u", shmem_msg_type);
          break;
    }
-}
-
-// Update internal variables when frequency is changed
-// Variables that need to be updated include all variables that are expressed in terms of cycles
-//  e.g., total memory access latency, packet arrival time, etc.
-void
-DramDirectoryCntlr::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   _dram_directory_cache->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
 }
 
 void

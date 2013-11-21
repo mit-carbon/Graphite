@@ -30,7 +30,7 @@ public:
    };
 
    OpticalLinkModel(NetworkModel* model, UInt32 num_readers_per_wavelength,
-                    float link_frequency, double waveguide_length, UInt32 link_width);
+                    double frequency, double voltage, double waveguide_length, UInt32 link_width);
    ~OpticalLinkModel();
 
    // processPacket() called at every link

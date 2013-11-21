@@ -18,6 +18,7 @@ using std::ofstream;
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "network.h"
+#include "dvfs.h"
 
 namespace PrL1PrL2DramDirectoryMOSI
 {
@@ -37,11 +38,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       bool isDramCntlrPresent() { return _dram_cntlr_present; }
       AddressHomeLookup* getDramDirectoryHomeLookup() { return _dram_directory_home_lookup; }
       
-      // Update internal variables when frequency is changed
-      // Variables that need to be updated include all variables that are expressed in terms of cycles
-      //  e.g., total memory access latency, packet arrival time, etc.
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-      
       void sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg);
       void broadcastMsg(ShmemMsg& shmem_msg);
     
@@ -55,14 +51,23 @@ namespace PrL1PrL2DramDirectoryMOSI
       tile_id_t getShmemRequester(const void* pkt_data)
       { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
-      void outputSummary(std::ostream &os);
-      
+      void outputSummary(std::ostream &os, const Time& target_completion_time);
+
+      // Energy monitoring
+      void computeEnergy(const Time& curr_time);
+
+      double getDynamicEnergy();
+      double getLeakageEnergy();
+
       // Cache line replication trace
       static void openCacheLineReplicationTraceFiles();
       static void closeCacheLineReplicationTraceFiles();
       static void outputCacheLineReplicationSummary();
 
-      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::AccessType access_type);
+
+      int getDVFS(module_t module, double &frequency, double &voltage);
+      int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag, const Time& curr_time);
       
    private:
       L1CacheCntlr* _L1_cache_cntlr;
@@ -76,11 +81,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       bool _dram_cntlr_present;
 
       UInt32 _cache_line_size;
-
-      // Performance Models
-      CachePerfModel* _L1_icache_perf_model;
-      CachePerfModel* _L1_dcache_perf_model;
-      CachePerfModel* _L2_cache_perf_model;
 
       // Cache Line Replication
       static ofstream _cache_line_replication_file;

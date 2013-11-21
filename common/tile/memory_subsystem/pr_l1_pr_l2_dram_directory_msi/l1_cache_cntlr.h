@@ -28,15 +28,20 @@ namespace PrL1PrL2DramDirectoryMSI
                    UInt32 cache_line_size,
                    UInt32 l1_icache_size,
                    UInt32 l1_icache_associativity,
+                   UInt32 l1_icache_num_banks,
                    string l1_icache_replacement_policy,
-                   UInt32 l1_icache_access_delay,
+                   UInt32 l1_icache_data_access_cycles,
+                   UInt32 l1_icache_tags_access_cycles,
+                   string l1_icache_perf_model_type,
                    bool l1_icache_track_miss_types,
                    UInt32 l1_dcache_size,
                    UInt32 l1_dcache_associativity,
+                   UInt32 l1_dcache_num_banks,
                    string l1_dcache_replacement_policy,
-                   UInt32 l1_dcache_access_delay,
-                   bool l1_dcache_track_miss_types,
-                   float frequency);
+                   UInt32 l1_dcache_data_access_cycles,
+                   UInt32 l1_dcache_tags_access_cycles,
+                   string l1_dcache_perf_model_type,
+                   bool l1_dcache_track_miss_types);
       ~L1CacheCntlr();
 
       Cache* getL1ICache() { return _l1_icache; }
@@ -58,6 +63,8 @@ namespace PrL1PrL2DramDirectoryMSI
       CacheState::Type getCacheLineState(MemComponent::Type mem_component, IntPtr address);
       void setCacheLineState(MemComponent::Type mem_component, IntPtr address, CacheState::Type cstate);
       void invalidateCacheLine(MemComponent::Type mem_component, IntPtr address);
+
+      void addSynchronizationCost(MemComponent::Type mem_component, module_t module);
 
    private:
       MemoryManager* _memory_manager;

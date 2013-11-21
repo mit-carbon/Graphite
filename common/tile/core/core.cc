@@ -12,6 +12,7 @@
 #include "clock_skew_management_object.h"
 #include "config.h"
 #include "log.h"
+#include "dvfs_manager.h"
 
 Core::Core(Tile *tile, core_type_t core_type)
    : _tile(tile)
@@ -19,7 +20,12 @@ Core::Core(Tile *tile, core_type_t core_type)
    , _state(IDLE)
    , _pin_memory_manager(NULL)
    , _enabled(false)
+   , _module(CORE)
 {
+
+   //initialize frequency and voltage
+   int rc = DVFSManager::getInitialFrequencyAndVoltage(CORE, _frequency, _voltage);
+   LOG_ASSERT_ERROR(rc == 0, "Error setting initial voltage for frequency(%g)", _frequency);
 
    _id = (core_id_t) {_tile->getId(), core_type};
    if (Config::getSingleton()->getEnableCoreModeling())
@@ -28,13 +34,18 @@ Core::Core(Tile *tile, core_type_t core_type)
    _sync_client = new SyncClient(this);
    _syscall_model = new SyscallMdl(this);
    _clock_skew_management_client =
-      ClockSkewManagementClient::create(Sim()->getCfg()->getString("clock_skew_management/scheme","none"), this);
+      ClockSkewManagementClient::create(Sim()->getCfg()->getString("clock_skew_management/scheme"), this);
  
    if (Config::getSingleton()->isSimulatingSharedMemory())
       _pin_memory_manager = new PinMemoryManager(this);
 
    initializeMemoryAccessLatencyCounters();
    initializeInstructionBuffer();
+
+   // asynchronous communication
+   _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   _asynchronous_map[L1_ICACHE] = Time(0);
+   _asynchronous_map[L1_DCACHE] = Time(0);
 
    LOG_PRINT("Initialized Core.");
 }
@@ -136,11 +147,11 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
    {
       if (push_info)
       {
-         DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(Time(0), address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, 0);
+         DynamicMemoryInfo info(address, mem_op_type != WRITE, Time(0), 0);
          if (_core_model)
-            _core_model->pushDynamicInstructionInfo(info);
+            _core_model->pushDynamicMemoryInfo(info);
       }
-      return make_pair<UInt32, Time>(0,Time(0));
+      return make_pair(0, Time(0));
    }
 
    // Setting the initial time
@@ -198,7 +209,7 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
             // Instruction buffer hit, so NO need to access ICACHE
             _instruction_buffer_hits ++;
             // 1 cycle to access instruction buffer
-            curr_time += Latency(1, _tile->getFrequency());
+            curr_time += Latency(1, _frequency);
             continue;
          }
          else
@@ -228,6 +239,9 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
 
       // Increment the buffer head
       curr_data_buffer_head += curr_size;
+
+      // Add synchronization delay
+      curr_time += getSynchronizationDelay(DVFSManager::convertToModule(mem_component));
    }
 
    // Get the final cycle time
@@ -243,9 +257,9 @@ Core::initiateMemoryAccess(MemComponent::Type mem_component, lock_signal_t lock_
 
    if (push_info)
    {
-      DynamicInstructionInfo info = DynamicInstructionInfo::createMemoryInfo(memory_access_time, address, (mem_op_type == WRITE) ? Operand::WRITE : Operand::READ, num_misses);
+      DynamicMemoryInfo info(address, mem_op_type != WRITE, memory_access_time, num_misses);
       if (_core_model)
-         _core_model->pushDynamicInstructionInfo(info);
+         _core_model->pushDynamicMemoryInfo(info);
    }
 
    return make_pair(num_misses, memory_access_time);
@@ -259,9 +273,6 @@ Core::getPacketTypeFromUserNetType(carbon_network_t net_type)
    case CARBON_NET_USER:
       return USER;
 
-   case CARBON_FREQ_CONTROL:
-      return FREQ_CONTROL;
-
    default:
       LOG_PRINT_ERROR("Unrecognized User Network(%u)", net_type);
       return (PacketType) -1;
@@ -269,10 +280,12 @@ Core::getPacketTypeFromUserNetType(carbon_network_t net_type)
 }
 
 void
-Core::outputSummary(ostream& os)
+Core::outputSummary(ostream& os, const Time& target_completion_time)
 {
    if (_core_model)
-      _core_model->outputSummary(os);
+      _core_model->outputSummary(os, target_completion_time);
+   
+   DVFSManager::printAsynchronousMap(os, _module, _asynchronous_map);
    
    UInt64 total_instruction_memory_access_latency_in_ns = _total_instruction_memory_access_latency.toNanosec();
    UInt64 total_data_memory_access_latency_in_ns = _total_data_memory_access_latency.toNanosec();
@@ -317,13 +330,6 @@ Core::disableModels()
 }
 
 void
-Core::updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency)
-{
-   if (_core_model)
-      _core_model->updateInternalVariablesOnFrequencyChange(old_frequency, new_frequency);
-}
-
-void
 Core::initializeInstructionBuffer()
 {
    _instruction_buffer_address = INVALID_ADDRESS;
@@ -359,4 +365,36 @@ Core::incrTotalMemoryAccessLatency(MemComponent::Type mem_component, Time memory
    {
       LOG_PRINT_ERROR("Unrecognized mem component(%s)", SPELL_MEMCOMP(mem_component));
    }
+}
+
+int
+Core::getDVFS(double &frequency, double &voltage)
+{
+   frequency = _frequency;
+   voltage = _voltage;
+   return 0;
+}
+
+int
+Core::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time)
+{
+   int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
+
+   if (rc==0)
+   {
+      _core_model->setDVFS(_frequency, _voltage, frequency, curr_time);
+      _frequency = frequency;
+      _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
+   }
+   return rc;
+}
+
+Time
+Core::getSynchronizationDelay(module_t module)
+{
+   if (!DVFSManager::hasSameDVFSDomain(_module, module) && _enabled){
+      _asynchronous_map[module] += _synchronization_delay;
+      return _synchronization_delay;
+   }
+   return Time(0);
 }

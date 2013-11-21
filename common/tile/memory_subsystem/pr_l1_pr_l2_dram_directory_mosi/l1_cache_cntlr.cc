@@ -11,15 +11,20 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            UInt32 cache_line_size,
                            UInt32 L1_icache_size,
                            UInt32 L1_icache_associativity,
+                           UInt32 L1_icache_num_banks,
                            string L1_icache_replacement_policy,
-                           UInt32 L1_icache_access_delay,
+                           UInt32 L1_icache_data_access_cycles,
+                           UInt32 L1_icache_tags_access_cycles,
+                           string L1_icache_perf_model_type,
                            bool L1_icache_track_miss_types,
                            UInt32 L1_dcache_size,
                            UInt32 L1_dcache_associativity,
+                           UInt32 L1_dcache_num_banks,
                            string L1_dcache_replacement_policy,
-                           UInt32 L1_dcache_access_delay,
-                           bool L1_dcache_track_miss_types,
-                           float frequency)
+                           UInt32 L1_dcache_data_access_cycles,
+                           UInt32 L1_dcache_tags_access_cycles,
+                           string L1_dcache_perf_model_type,
+                           bool L1_dcache_track_miss_types)
    : _memory_manager(memory_manager)
    , _L2_cache_cntlr(NULL)
 {
@@ -38,24 +43,30 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
          L1_icache_size,
          L1_icache_associativity, 
          cache_line_size,
+         L1_icache_num_banks,
          _L1_icache_replacement_policy_obj,
          _L1_icache_hash_fn_obj,
-         L1_icache_access_delay,
-         frequency,
-         L1_icache_track_miss_types);
+         L1_icache_data_access_cycles,
+         L1_icache_tags_access_cycles,
+         L1_icache_perf_model_type,
+         L1_icache_track_miss_types,
+         getShmemPerfModel());
    _L1_dcache = new Cache("L1-D",
          PR_L1_PR_L2_DRAM_DIRECTORY_MOSI,
          Cache::DATA_CACHE,
          L1,
          Cache::WRITE_THROUGH,
          L1_dcache_size,
-         L1_dcache_associativity, 
+         L1_dcache_associativity,
          cache_line_size,
+         L1_dcache_num_banks,
          _L1_dcache_replacement_policy_obj,
          _L1_dcache_hash_fn_obj,
-         L1_dcache_access_delay,
-         frequency,
-         L1_dcache_track_miss_types);
+         L1_dcache_data_access_cycles,
+         L1_dcache_tags_access_cycles,
+         L1_dcache_perf_model_type,
+         L1_dcache_track_miss_types,
+         getShmemPerfModel());
 }
 
 L1CacheCntlr::~L1CacheCntlr()
@@ -88,6 +99,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
    bool L1_cache_hit = true;
    UInt32 access_num = 0;
 
+   // Core synchronization delay
+   getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(CORE));
+
    while(1)
    {
       access_num ++;
@@ -104,13 +118,13 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       {
          // Increment Shared Mem Perf model current time 
          // L1 Cache
-         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
          return L1_cache_hit;
       }
 
-      getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
 
       // The memory request misses in the L1 cache
       L1_cache_hit = false;
@@ -120,13 +134,18 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       pair<bool,Cache::MissType> L2_cache_miss_info = _L2_cache_cntlr->processShmemRequestFromL1Cache(mem_component, mem_op_type, ca_address);
       bool L2_cache_miss = L2_cache_miss_info.first;
+
       if (!L2_cache_miss)
       {
+
+         // L2 Cache synchronization delay 
+         getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
+
          // Increment Shared Mem Perf model current time
          // L2 Cache
-         getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
          // L1 Cache
-         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
@@ -134,8 +153,8 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       }
 
       // Increment shared mem perf model current time 
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
-      
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
+
       // Send out a request to the network thread for the cache data
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
 
@@ -145,6 +164,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       getMemoryManager()->sendMsg(getTileId(), shmem_msg);
 
       _memory_manager->waitForSimThread();
+
+      // L2 Cache synchronization delay 
+      getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
    }
 
    LOG_PRINT_ERROR("Should not reach here");
@@ -261,6 +283,15 @@ L1CacheCntlr::invalidateCacheLine(MemComponent::Type mem_component, IntPtr addre
    // Invalidate cache line
    L1_cache_line_info.invalidate();
    L1_cache->setCacheLineInfo(address, &L1_cache_line_info);
+}
+
+void
+L1CacheCntlr::addSynchronizationCost(MemComponent::Type mem_component, module_t module)
+{
+
+   if (mem_component != MemComponent::INVALID){
+      getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(module));
+   }
 }
 
 ShmemMsg::Type

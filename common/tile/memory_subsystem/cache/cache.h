@@ -10,18 +10,18 @@ using std::set;
 #include "cache_state.h"
 #include "cache_perf_model.h"
 #include "shmem_perf_model.h"
-#include "cache_power_model.h"
-#include "cache_area_model.h"
 #include "utils.h"
 #include "fixed_types.h"
 #include "caching_protocol_type.h"
 #include "constants.h"
+#include "dvfs_manager.h"
 
 // Forwards Decls
 class CacheSet;
 class CacheLineInfo;
 class CacheReplacementPolicy;
 class CacheHashFn;
+class McPATCacheInterface;
 
 class Cache
 {
@@ -74,11 +74,14 @@ public:
          UInt32 cache_size, 
          UInt32 associativity,
          UInt32 line_size,
+         UInt32 num_banks,
          CacheReplacementPolicy* replacement_policy,
          CacheHashFn* hash_fn,
-         UInt32 access_delay,
-         float frequency,
-         bool track_miss_types = false);
+         UInt32 data_access_latency,
+         UInt32 tags_access_latency,
+         string perf_model_type,
+         bool track_miss_types = false,
+         ShmemPerfModel* shmem_perf_model = NULL);
    ~Cache();
 
    // Cache operations
@@ -96,19 +99,38 @@ public:
    // Get the associativity of the L2 cache
    UInt32 getAssociativity() const
    { return _associativity; }
+
    // Update miss counters - only updated on an access from the core (as opposed from the network)
    MissType updateMissCounters(IntPtr address, Core::mem_op_t mem_op_type, bool cache_miss);
    // Get cache line state counters
    void getCacheLineStateCounters(vector<UInt64>& cache_line_state_counters) const;
+
+   // Get performance model
+   CachePerfModel* getPerfModel() const
+   { return _perf_model; }
 
    // Parse Miss Type
    static MissType parseMissType(string miss_type);
    
    void enable()     { _enabled = true; }
    void disable()    { _enabled = false; }
-   void reset()      {}
    
-   virtual void outputSummary(ostream& out);
+   void outputSummary(ostream& out, const Time& target_completion_time);
+
+   void computeEnergy(const Time& curr_time);
+
+   double getDynamicEnergy();
+   double getLeakageEnergy();
+
+   // Friend class
+   friend class McPATCacheInterface;
+
+   double getFrequency() const {return _frequency;};
+   int getDVFS(double &frequency, double &voltage);
+   int setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr_time);
+
+   // Synchronization delay
+   Time getSynchronizationDelay(module_t module);
 
 private:
    // Is enabled?
@@ -125,12 +147,16 @@ private:
    UInt32 _associativity;
    UInt32 _line_size;
    UInt32 _num_sets;
+   UInt32 _num_banks;
    UInt32 _log_line_size;
+   double _frequency;
+   double _voltage;
+   module_t _module;
 
    // Computing replacement policy and hash function
    CacheReplacementPolicy* _replacement_policy;
    CacheHashFn* _hash_fn;
-   
+
    // Cache hit/miss counters
    UInt64 _total_cache_accesses;
    UInt64 _total_cache_misses;
@@ -158,13 +184,15 @@ private:
    // Cache line state counters - Number of exclusive and shared lines
    vector<UInt64> _cache_line_state_counters;
 
-   // Power and Area Models
-   CachePowerModel* _power_model;
-   CacheAreaModel* _area_model;
-
    // Track miss types ?
    bool _track_miss_types;
-  
+ 
+   // Performance model
+   CachePerfModel* _perf_model;
+
+   // McPAT interface for modeling area and power
+   McPATCacheInterface* _mcpat_cache_interface;
+   
    // Utilities
    CacheSet* getSet(IntPtr address) const;
    UInt32 getLineOffset(IntPtr address) const;
@@ -181,6 +209,9 @@ private:
    // Cache line state counters
    void initializeCacheLineStateCounters();
 
+   // DVFS
+   void initializeDVFS();
+
    // Get cache line info
    CacheLineInfo* getCacheLineInfo(IntPtr address);
 
@@ -191,4 +222,8 @@ private:
    
    // Update counters that record the state of cache lines
    void updateCacheLineStateCounters(CacheState::Type old_cstate, CacheState::Type new_cstate);
+
+   // Asynchronous communication
+   DVFSManager::AsynchronousMap _asynchronous_map;
+   ShmemPerfModel* _shmem_perf_model;
 };

@@ -89,6 +89,17 @@ T getMax(T v1, T v2)
    return (v1 > v2) ? v1 : v2;
 }
 
+template <class T>
+T getMax(T v1, T v2, T v3)
+{
+   if ((v1 > v2) && (v1 > v3))
+      return v1;
+   else if (v2 > v3)
+      return v2;
+   else
+      return v3;
+}
+
 // Use this only for basic data types
 // char, int, float, double
 
@@ -132,16 +143,16 @@ UInt32 convertBitsToBytes(UInt32 num_bits);
 
 // Trim the beginning and ending spaces in a string
 
-string trimSpaces(string& str);
+string trimSpaces(const string& str);
 
 // Parse an arbitrary list separated by arbitrary delimiters
 // into a vector of strings
 
-void parseList(string& list, vector<string>& vec, string delim);
+void parseList(const string& list, vector<string>& vec, string delim);
 
 // Split a line into tokens separated by a list of delimiters
 
-void splitIntoTokens(string line, vector<string>& tokens, const char* delimiters);
+void splitIntoTokens(const string& line, vector<string>& tokens, const char* delimiters);
 
 // Compute different statistics
 double computeMean(const vector<UInt64>& vec);

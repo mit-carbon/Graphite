@@ -23,7 +23,12 @@ public:
    static pair<bool,vector<tile_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count);
    static pair<bool,vector<Config::TileList> > computeProcessToTileMapping();
 
-   void outputSummary(std::ostream &out);
+   void outputSummary(std::ostream &out, const Time& target_completion_time);
+
+   // Energy computation
+   void computeEnergy(const Time& curr_time);
+   double getDynamicEnergy();
+   double getStaticEnergy();
 
    static SInt32 computeDistance(tile_id_t sender, tile_id_t receiver);
 
@@ -60,6 +65,9 @@ private:
 
    // Routing Function
    void routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
+  
+   // DVFS 
+   void setDVFS(double frequency, double voltage, const Time& curr_time);
    
    // Toplogy Params
    static void initializeEMeshTopologyParams();
@@ -72,7 +80,7 @@ private:
    static void computePosition(tile_id_t tile, SInt32 &x, SInt32 &y);
    static tile_id_t computeTileID(SInt32 x, SInt32 y);
 
+   void outputPowerSummary(ostream& out, const Time& target_completion_time);
    void outputEventCountSummary(ostream& out);
-   void outputPowerSummary(ostream& out);
    void outputContentionModelsSummary(ostream& out);
 };

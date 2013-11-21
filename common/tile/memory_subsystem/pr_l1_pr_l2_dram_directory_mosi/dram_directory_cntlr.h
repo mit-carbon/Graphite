@@ -34,14 +34,12 @@ namespace PrL1PrL2DramDirectoryMOSI
                          UInt32 dram_directory_max_hw_sharers,
                          string dram_directory_type_str,
                          UInt32 num_dram_cntlrs,
-                         string dram_directory_access_time_str);
+                         string dram_directory_access_cycles_str);
+
       ~DramDirectoryCntlr();
 
       void handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
 
-      // Function to call when changing frequencies
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-      
       DirectoryCache* getDramDirectoryCache() { return _dram_directory_cache; }
      
       void outputSummary(ostream& out);

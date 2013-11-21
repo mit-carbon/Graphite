@@ -13,7 +13,8 @@ namespace dsent_contrib
     {
         public:
             // Create a DSENT run for a link with these parameters
-            DSENTElectricalLink(float frequency_, double link_len_, unsigned int flit_width_, const DSENTInterface* dsent_interface_);
+            DSENTElectricalLink(double frequency_, double voltage_, double link_len_, unsigned int flit_width_,
+                const DSENTInterface* dsent_interface_);
             ~DSENTElectricalLink();
 
         public:
@@ -26,7 +27,8 @@ namespace dsent_contrib
 
         private:
             // Helper function that actually calls DSENT
-            void init(float frequency_, double link_len_, unsigned int flit_width_, const DSENTInterface* dsent_interface_);
+            void init(double frequency_, double voltage_, double link_len_, unsigned int flit_width_,
+                const DSENTInterface* dsent_interface_);
 
         private:
             // Energy dissipated per flit

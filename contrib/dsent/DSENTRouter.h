@@ -13,7 +13,8 @@ namespace dsent_contrib
         public:
             // Create a DSENT run for a router with these parameters
             DSENTRouter(
-                float frequency_,
+                double frequency_,
+                double voltage_,
                 unsigned int num_in_port_,
                 unsigned int num_out_port_,
                 unsigned int num_vclass_,
@@ -42,7 +43,8 @@ namespace dsent_contrib
 
         private:
             void init(
-                float frequency_,
+                double frequency_,
+                double voltage_,
                 unsigned int num_in_port_,
                 unsigned int num_out_port_,
                 unsigned int num_vclass_,

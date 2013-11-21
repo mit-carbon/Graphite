@@ -14,9 +14,10 @@ namespace dsent_contrib
         public:
             // Create a DSENT run for a router with these parameters
             DSENTOpticalLink(
-				float core_data_rate_,
-                float link_data_rate_,
-                float length_,
+				double core_data_rate_,
+                double link_data_rate_,
+                double voltage_,
+                double length_,
                 unsigned int num_readers_,
                 unsigned int max_readers_,
                 unsigned int core_flit_width_,
@@ -39,9 +40,10 @@ namespace dsent_contrib
 
         private:
             void init(
-				float core_data_rate_,
-                float link_data_rate_,
-                float length_,
+				double core_data_rate_,
+                double link_data_rate_,
+                double voltage_,
+                double length_,
                 unsigned int num_readers_,
                 unsigned int max_readers_,
                 unsigned int core_flit_width_,

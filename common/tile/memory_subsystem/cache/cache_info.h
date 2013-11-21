@@ -7,7 +7,7 @@ class CacheParams
 {
 public:
    CacheParams(std::string type, UInt32 size, UInt32 blocksize,
-         UInt32 associativity, UInt32 delay, float frequency):
+         UInt32 associativity, UInt32 delay, double frequency):
       _type(type),
       _size(size),
       _blocksize(blocksize),
@@ -32,7 +32,7 @@ public:
    UInt32 _blocksize;
    UInt32 _associativity;
    UInt32 _delay;
-   float _frequency;
+   double _frequency;
 };
 
 class CachePower

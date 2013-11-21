@@ -1,9 +1,11 @@
 #include "DSENTRouter.h"
 #include "DSENTInterface.h"
 #include "dsent-core/libutil/String.h"
+#include "../../common/misc/packetize.h"
 
 #include <iostream>
 #include <cassert>
+#include <cstring>
 #include <vector>
 
 using namespace std;
@@ -12,7 +14,8 @@ using namespace LibUtil;
 namespace dsent_contrib
 {
     DSENTRouter::DSENTRouter(
-            float frequency_,
+            double frequency_,
+            double voltage_,
             unsigned int num_in_port_,
             unsigned int num_out_port_,
             unsigned int num_vclass_,
@@ -23,6 +26,7 @@ namespace dsent_contrib
         )
     {
         assert(frequency_ > 0);
+        assert(voltage_ >= 0);
         assert((num_in_port_ == num_in_port_) && (num_in_port_ != 0));
         assert((num_out_port_ == num_out_port_) && (num_out_port_ != 0));
         assert((num_vclass_ == num_vclass_) && (num_vclass_ != 0));
@@ -30,11 +34,54 @@ namespace dsent_contrib
         assert(num_buffers_ == num_buffers_);
         assert((flit_width_ == flit_width_) && (flit_width_ != 0));
 
-        // Create vector
-        m_dynamic_energy_xbar_ = new vector<double>();        
-        // Initialize everything else
-        init(frequency_, num_in_port_, num_out_port_, num_vclass_, num_vchannel_,
-                num_buffers_, flit_width_, dsent_interface_);
+        // Get database
+        DB* database = dsent_interface_->getDatabase();
+
+        // Zero-out key, data
+        DBT key, data;
+        memset(&key, 0, sizeof(DBT));
+        memset(&data, 0, sizeof(DBT));
+
+        // Create key
+        UnstructuredBuffer input;
+        input << frequency_ << voltage_ << num_in_port_ << num_out_port_ << num_vclass_ << num_vchannel_ << num_buffers_ << flit_width_;
+        key.data = (char*) input.getBuffer();
+        key.size = input.size();
+        
+        // Get dynamic_energy / static_power
+        UnstructuredBuffer output;
+        if (DBUtils::getRecord(database, key, data) == DB_NOTFOUND)
+        {
+           // Create vector
+           m_dynamic_energy_xbar_ = new vector<double>();
+
+            // Initialize everything else
+            init(frequency_, voltage_, num_in_port_, num_out_port_, num_vclass_, num_vchannel_,
+                 num_buffers_, flit_width_, dsent_interface_);
+
+            // Create output
+            output << m_dynamic_energy_buf_write_ << m_dynamic_energy_buf_read_ << m_dynamic_energy_sa_ << m_dynamic_energy_clock_;
+            for (unsigned int multicast = 0; multicast <= num_out_port_; ++multicast)
+                output << m_dynamic_energy_xbar_->at(multicast);
+            output << m_static_power_buf_ << m_static_power_xbar_ << m_static_power_sa_ << m_static_power_clock_;
+            data.data = (char*) output.getBuffer();
+            data.size = output.size();
+            
+            // Write in database
+            DBUtils::putRecord(database, key, data);
+        }
+        else // (DBUtils::getRecord(database, key, data) == 0)
+        {
+            // Read from database
+            output << make_pair(data.data, data.size);
+            
+            // Populate object fields
+            output >> m_dynamic_energy_buf_write_ >> m_dynamic_energy_buf_read_ >> m_dynamic_energy_sa_ >> m_dynamic_energy_clock_;
+            m_dynamic_energy_xbar_ = new vector<double>(num_out_port_+1);
+            for (unsigned int multicast = 0; multicast <= num_out_port_; ++multicast)
+                output >> m_dynamic_energy_xbar_->at(multicast);
+            output >> m_static_power_buf_ >> m_static_power_xbar_ >> m_static_power_sa_ >> m_static_power_clock_;
+        }
     }
 
     DSENTRouter::~DSENTRouter()
@@ -44,7 +91,8 @@ namespace dsent_contrib
     }
 
     void DSENTRouter::init(
-            float frequency_,
+            double frequency_,
+            double voltage_,
             unsigned int num_in_port_,
             unsigned int num_out_port_,
             unsigned int num_vclass_,
@@ -58,6 +106,8 @@ namespace dsent_contrib
         vector<String> eval = vector<String>();
         // Create DSENT overwrites vector
         vector<DSENTInterface::Overwrite> overwrites = vector<DSENTInterface::Overwrite>();
+        // Create DSENT tech overwrites vector
+        vector<DSENTInterface::Overwrite> overwrites_tech = vector<DSENTInterface::Overwrite>();
         // DSENT outputs
         vector<String> outputs;
 
@@ -91,9 +141,13 @@ namespace dsent_contrib
         overwrites.push_back(DSENTInterface::Overwrite("NumberBuffersPerVirtualChannel",
                     vectorToString<unsigned int>(vector<unsigned int>(num_vclass_, num_buffers_))));
         overwrites.push_back(DSENTInterface::Overwrite("NumberBitsPerFlit", String(flit_width_)));
+        
+        // Create tech overwrites
+        overwrites_tech.push_back(DSENTInterface::Overwrite("Vdd", String(voltage_)));
 
         // Run DSENT
-        outputs = dsent_interface_->run_dsent(dsent_interface_->get_router_cfg_file_path(), eval, overwrites);
+        outputs = dsent_interface_->run_dsent(dsent_interface_->get_router_cfg_file_path(),
+            eval, overwrites, overwrites_tech);
 
         // Check to make sure we get the expected number of outputs
         assert(outputs.size() == 8 + num_out_port_);

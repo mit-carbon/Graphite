@@ -5,19 +5,19 @@
 #include "log.h"
 
 ElectricalLinkModel::ElectricalLinkModel(NetworkModel* model, string link_type,
-                                         float link_frequency, double link_length, UInt32 link_width)
-   : LinkModel(model, link_frequency, link_length, link_width)
+                                         double frequency, double voltage, double link_length, UInt32 link_width)
+   : LinkModel(model)
    , _power_model(NULL)
    , _total_link_traversals(0)
 {
    // Link Delay
    // Approximately, propagation speed = 10 ps/mm = 0.01 ns/mm
-   float propagation_speed = 0.01;
-   _net_link_delay = ceil(link_frequency * propagation_speed * link_length);
+   double propagation_speed = 0.01;
+   _net_link_delay = ceil(frequency * propagation_speed * link_length);
 
    // Power model
    if (Config::getSingleton()->getEnablePowerModeling())
-      _power_model = new ElectricalLinkPowerModel(link_type, link_frequency, link_length, link_width);
+      _power_model = new ElectricalLinkPowerModel(link_type, frequency, voltage, link_length, link_width);
 }
 
 ElectricalLinkModel::~ElectricalLinkModel()

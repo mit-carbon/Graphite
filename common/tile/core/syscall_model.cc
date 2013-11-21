@@ -1133,8 +1133,6 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
       (1) CoreModel is keeping a frequency re-normalized
           cycle count, so just using current cycle count and 
           frequency works fine to compute elapsed time.
-          To convince yourself, read the code in:
-          CoreModel::updateInternalVariablesOnFrequencyChange
       (2) if the core gets reset then 'time' also gets reset
    */
 
@@ -1143,7 +1141,7 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
 
    struct timespec temp_ts;
    UInt64 cycles = 0;
-   float frequency = 0.0;
+   double frequency = 0.0;
    double elapsed_time = 0.0;
    CoreModel* perf_model = 0L;
 
@@ -1155,7 +1153,7 @@ IntPtr SyscallMdl::handleClockGettimeCall(syscall_args_t &args)
    Core* core = Sim()->getTileManager()->getCurrentCore();
    // compute the elapsed time
    perf_model = core->getModel();
-   frequency = core->getTile()->getFrequency();
+   frequency = core->getFrequency();
    cycles = perf_model->getCurrTime().toCycles(frequency);
    elapsed_time = ((float) perf_model->getCurrTime().toNanosec())/1000000000.0;
 

@@ -19,6 +19,14 @@ Temperature = 340
 # Parameters for transistors
 # =============================================================================
 
+# Parameters used for characterizing these parameters
+# Characterization temperature (K)
+Nmos->CharacterizedTemperature = 300.0
+Pmos->CharacterizedTemperature = 300.0
+# Characterization voltage (K)
+Nmos->CharacterizedVdd = 1.0
+Pmos->CharacterizedVdd = 1.0
+
 # Contacted gate pitch (m)
 Gate->PitchContacted = 0.160e-6
 
@@ -29,10 +37,6 @@ Gate->MinWidth = 0.120e-6
 Gate->CapPerWidth = 0.950e-9
 # Source/Drain cap per unit width (F/m)
 Drain->CapPerWidth = 0.640e-9
-
-# Parameters characterization temperature (K)
-Nmos->CharacterizedTemperature = 300.0
-Pmos->CharacterizedTemperature = 300.0
 
 #------------------------------------------------------------------------------
 # I_Eff definition in Na, IEDM 2002

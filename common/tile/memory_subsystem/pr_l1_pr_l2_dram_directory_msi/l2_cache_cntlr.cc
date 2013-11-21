@@ -13,10 +13,12 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
                            UInt32 cache_line_size,
                            UInt32 l2_cache_size,
                            UInt32 l2_cache_associativity,
+                           UInt32 l2_cache_num_banks,
                            string l2_cache_replacement_policy,
-                           UInt32 l2_cache_access_delay,
-                           bool l2_cache_track_miss_types,
-                           float frequency)
+                           UInt32 l2_cache_data_access_cycles,
+                           UInt32 l2_cache_tags_access_cycles,
+                           string l2_cache_perf_model_type,
+                           bool l2_cache_track_miss_types)
    : _memory_manager(memory_manager)
    , _l1_cache_cntlr(l1_cache_cntlr)
    , _dram_directory_home_lookup(dram_directory_home_lookup)
@@ -30,14 +32,17 @@ L2CacheCntlr::L2CacheCntlr(MemoryManager* memory_manager,
          Cache::UNIFIED_CACHE,
          L2,
          Cache::WRITE_BACK,
-         l2_cache_size, 
-         l2_cache_associativity, 
-         cache_line_size, 
+         l2_cache_size,
+         l2_cache_associativity,
+         cache_line_size,
+         l2_cache_num_banks,
          _l2_cache_replacement_policy_obj,
          _l2_cache_hash_fn_obj,
-         l2_cache_access_delay,
-         frequency,
-         l2_cache_track_miss_types);
+         l2_cache_data_access_cycles,
+         l2_cache_tags_access_cycles,
+         l2_cache_perf_model_type,
+         l2_cache_track_miss_types,
+         getShmemPerfModel());
 }
 
 L2CacheCntlr::~L2CacheCntlr()
@@ -120,8 +125,9 @@ L2CacheCntlr::setCacheLineStateInL1(MemComponent::Type mem_component, IntPtr add
 void
 L2CacheCntlr::invalidateCacheLineInL1(MemComponent::Type mem_component, IntPtr address)
 {
-   if (mem_component != MemComponent::INVALID)
+   if (mem_component != MemComponent::INVALID){
       _l1_cache_cntlr->invalidateCacheLine(mem_component, address);
+   }
 }
 
 void
@@ -174,6 +180,9 @@ L2CacheCntlr::insertCacheLineInHierarchy(IntPtr address, CacheState::Type cstate
 pair<bool,Cache::MissType>
 L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, Core::mem_op_t mem_op_type, IntPtr address)
 {
+   // L1 Cache synchronization delay
+   addSynchronizationCost(mem_component);
+   
    LOG_PRINT("processShmemRequestFromL1Cache[Mem Component(%u), Mem Op Type(%u), Address(%#llx)]",
              mem_component, mem_op_type, address);
 
@@ -189,7 +198,6 @@ L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, C
    if (!shmem_request_status_in_l2_cache.first)
    {
       Byte data_buf[getCacheLineSize()];
-      
       // Read the cache line from L2 cache
       readCacheLine(address, data_buf);
 
@@ -218,6 +226,7 @@ L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, C
 void
 L2CacheCntlr::handleMsgFromL1Cache(ShmemMsg* shmem_msg)
 {
+
    IntPtr address = shmem_msg->getAddress();
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
@@ -285,6 +294,14 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemMsg* shmem_msg)
 void
 L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   // add synchronization cost
+   if (sender == getTileId()){
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(DIRECTORY));
+   }
+   else{
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(NETWORK_MEMORY));
+   }
+
    ShmemMsg::Type shmem_msg_type = shmem_msg->getType();
    switch (shmem_msg_type)
    {
@@ -319,7 +336,7 @@ L2CacheCntlr::handleMsgFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_msg)
          getShmemPerfModel()->setCurrTime(_outstanding_shmem_msg_time);
 
       // Increment the clock by the time taken to update the L2 cache
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
       // There are no more outstanding memory requests
       _outstanding_shmem_msg.setAddress(INVALID_ADDRESS);
@@ -364,14 +381,22 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
       assert(cstate == CacheState::SHARED);
   
       // Update Shared memory performance counters for access to L2 Cache
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
       // Update Shared Mem perf counters for access to L1 Cache
-      getMemoryManager()->incrCurrTime(l2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(l2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_TAGS);
+
+      // add synchronization delay: L2->L1
+      _l1_cache_cntlr->addSynchronizationCost(l2_cache_line_info.getCachedLoc(), L2_CACHE);
 
       // Invalidate the line in L1 Cache
       invalidateCacheLineInL1(l2_cache_line_info.getCachedLoc(), address);
+
+      // add synchronization delay: L1->L2
+      addSynchronizationCost(l2_cache_line_info.getCachedLoc());
+
       // Invalidate the line in the L2 cache also
       invalidateCacheLine(address, l2_cache_line_info);
+
 
       // Send out INV_REP to DRAM_DIRECTORY
       ShmemMsg msg(ShmemMsg::INV_REP, MemComponent::L2_CACHE, MemComponent::DRAM_DIRECTORY, shmem_msg->getRequester(), address, shmem_msg->isModeled());
@@ -380,7 +405,7 @@ L2CacheCntlr::processInvReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_m
    else
    {
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
    }
 }
 
@@ -397,12 +422,18 @@ L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem
       assert(cstate == CacheState::MODIFIED);
       
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
       // Update Shared Mem perf counters for access to L1 Cache
-      getMemoryManager()->incrCurrTime(l2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(l2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_TAGS);
+
+      // add synchronization delay: L2->L1
+      _l1_cache_cntlr->addSynchronizationCost(l2_cache_line_info.getCachedLoc(), L2_CACHE);
 
       // Invalidate the line in L1 Cache
       invalidateCacheLineInL1(l2_cache_line_info.getCachedLoc(), address);
+
+      // add synchronization delay: L1->L2
+      addSynchronizationCost(l2_cache_line_info.getCachedLoc());
 
       // Write-back the line
       Byte data_buf[getCacheLineSize()];
@@ -419,7 +450,7 @@ L2CacheCntlr::processFlushReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem
    else
    {
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
    }
 }
 
@@ -437,12 +468,18 @@ L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
       assert(cstate == CacheState::MODIFIED);
  
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_DATA_AND_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
       // Update Shared Mem perf counters for access to L1 Cache
-      getMemoryManager()->incrCurrTime(l2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(l2_cache_line_info.getCachedLoc(), CachePerfModel::ACCESS_TAGS);
+
+      // add synchronization delay: L2->L1
+      _l1_cache_cntlr->addSynchronizationCost(l2_cache_line_info.getCachedLoc(), L2_CACHE);
 
       // Set the Appropriate Cache State in L1 also
       setCacheLineStateInL1(l2_cache_line_info.getCachedLoc(), address, CacheState::SHARED);
+
+      // add synchronization delay: L1->L2
+      addSynchronizationCost(l2_cache_line_info.getCachedLoc());
 
       // Write-Back the line
       Byte data_buf[getCacheLineSize()];
@@ -460,7 +497,7 @@ L2CacheCntlr::processWbReqFromDramDirectory(tile_id_t sender, ShmemMsg* shmem_ms
    else
    {
       // Update Shared Mem perf counters for access to L2 Cache
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_CACHE_TAGS);
+      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
    }
 }
 
@@ -505,6 +542,15 @@ ShmemPerfModel*
 L2CacheCntlr::getShmemPerfModel()
 { 
    return _memory_manager->getShmemPerfModel();
+}
+
+void
+L2CacheCntlr::addSynchronizationCost(MemComponent::Type mem_component)
+{
+   if (mem_component != MemComponent::INVALID){
+      module_t module = DVFSManager::convertToModule(mem_component);
+      getShmemPerfModel()->incrCurrTime(_l2_cache->getSynchronizationDelay(module));
+   }
 }
 
 }

@@ -32,10 +32,12 @@ namespace PrL1PrL2DramDirectoryMSI
                    UInt32 cache_line_size,
                    UInt32 l2_cache_size,
                    UInt32 l2_cache_associativity,
+                   UInt32 l2_cache_num_banks,
                    string l2_cache_replacement_policy,
-                   UInt32 l2_cache_access_delay,
-                   bool l2_cache_track_miss_types,
-                   float frequency);
+                   UInt32 l2_cache_data_access_cycles,
+                   UInt32 l2_cache_tags_access_cycles,
+                   string l2_cache_perf_model_type,
+                   bool l2_cache_track_miss_types);
       ~L2CacheCntlr();
 
       Cache* getL2Cache() { return _l2_cache; }
@@ -97,6 +99,10 @@ namespace PrL1PrL2DramDirectoryMSI
 
       // Dram Directory Home Lookup
       tile_id_t getHome(IntPtr address) { return _dram_directory_home_lookup->getHome(address); }
+
+      // Synchronization delay
+      void addSynchronizationCost(MemComponent::Type mem_component);
+      ShmemPerfModel* _shmem_perf_model;
    };
 
 }

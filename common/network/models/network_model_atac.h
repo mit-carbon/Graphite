@@ -27,7 +27,7 @@ public:
    static pair<bool, vector<tile_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count);
    static pair<bool, vector<vector<tile_id_t> > > computeProcessToTileMapping();
 
-   void outputSummary(std::ostream &out);
+   void outputSummary(std::ostream &out, const Time& target_completion_time);
 
 private:
    enum NodeType
@@ -151,7 +151,7 @@ private:
    void destroyANetRouterAndLinkModels();
   
    // Output Summary 
-   void outputPowerSummary(ostream& out);
+   void outputPowerSummary(ostream& out, const Time& target_completion_time);
    void outputEventCountSummary(ostream& out);
    void outputContentionModelsSummary(ostream& out);
   

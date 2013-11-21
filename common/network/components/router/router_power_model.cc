@@ -1,20 +1,37 @@
 #include <cmath>
 #include "router_power_model.h"
+#include "dvfs_manager.h"
 #include "log.h"
 
 using namespace dsent_contrib;
 
-RouterPowerModel::RouterPowerModel(float frequency, UInt32 num_input_ports, UInt32 num_output_ports,
+RouterPowerModel::RouterPowerModel(double frequency, double voltage, UInt32 num_input_ports, UInt32 num_output_ports,
                                    UInt32 num_flits_per_port_buffer, UInt32 flit_width)
-   : _frequency(frequency)
-   , _num_input_ports(num_input_ports)
+   : _num_input_ports(num_input_ports)
    , _num_output_ports(num_output_ports)
-   , _num_flits_per_port_buffer(num_flits_per_port_buffer)
-   , _flit_width(flit_width)
 {
-   _dsent_router = new DSENTRouter(frequency, num_input_ports, num_output_ports, 1, 1,
-                                   num_flits_per_port_buffer, flit_width, DSENTInterface::getSingleton());
-   initializeCounters();
+   // Create the DSENT router models
+   const DVFSManager::DVFSLevels& dvfs_levels = DVFSManager::getDVFSLevels();
+   for (DVFSManager::DVFSLevels::const_iterator it = dvfs_levels.begin(); it != dvfs_levels.end(); it++)
+   {
+      double current_voltage = (*it).first;
+      double current_frequency = (*it).second;
+
+      // Create DSENT router (and) save for future use
+      // DSENT expects voltage in volts (V)
+      // DSENT expects frequency in hertz (Hz)
+      _dsent_router_map[current_voltage] =  new DSENTRouter(current_frequency * 1e9, current_voltage,
+                                                            num_input_ports, num_output_ports,
+                                                            1, 1,
+                                                            num_flits_per_port_buffer, flit_width,
+                                                            DSENTInterface::getSingleton());
+   }
+   
+   // Initialize the current DSENT router model
+   _dsent_router = _dsent_router_map[voltage];
+   
+   // Initialize energy counters
+   initializeEnergyCounters();
 }
 
 RouterPowerModel::~RouterPowerModel()
@@ -23,12 +40,14 @@ RouterPowerModel::~RouterPowerModel()
 }
 
 void
-RouterPowerModel::initializeCounters()
+RouterPowerModel::initializeEnergyCounters()
 {
    _total_dynamic_energy_buffer = 0;
    _total_dynamic_energy_crossbar = 0;
    _total_dynamic_energy_switch_allocator = 0;
    _total_dynamic_energy_clock = 0;
+   _total_static_energy = 0;
+   _last_energy_compute_time = Time(0);
 }
 
 void
@@ -55,34 +74,60 @@ RouterPowerModel::updateDynamicEnergy(UInt32 num_flits, UInt32 num_packets, UInt
 void
 RouterPowerModel::updateDynamicEnergyBufferWrite(UInt32 num_flits)
 {
-   double dynamic_energy_buffer = _dsent_router->calc_dynamic_energy_buf_write(num_flits);
-   _total_dynamic_energy_buffer += dynamic_energy_buffer;
+   _total_dynamic_energy_buffer += _dsent_router->calc_dynamic_energy_buf_write(num_flits);
 }
 
 void
 RouterPowerModel::updateDynamicEnergyBufferRead(UInt32 num_flits)
 {
-   double dynamic_energy_buffer = _dsent_router->calc_dynamic_energy_buf_read(num_flits);
-   _total_dynamic_energy_buffer += dynamic_energy_buffer;
+   _total_dynamic_energy_buffer += _dsent_router->calc_dynamic_energy_buf_read(num_flits);
 }
 
 void
 RouterPowerModel::updateDynamicEnergyCrossbar(UInt32 num_flits, UInt32 multicast_idx)
 {
-   double dynamic_energy_crossbar = _dsent_router->calc_dynamic_energy_xbar(num_flits, multicast_idx);
-   _total_dynamic_energy_crossbar += dynamic_energy_crossbar;
+   _total_dynamic_energy_crossbar += _dsent_router->calc_dynamic_energy_xbar(num_flits, multicast_idx);
 }
 
 void
 RouterPowerModel::updateDynamicEnergySwitchAllocator(UInt32 num_requests_per_packet, UInt32 num_packets)
 {
-   double dynamic_energy_switch_allocator = _dsent_router->calc_dynamic_energy_sa(num_requests_per_packet);
-   _total_dynamic_energy_switch_allocator += (num_packets * dynamic_energy_switch_allocator);
+   _total_dynamic_energy_switch_allocator += _dsent_router->calc_dynamic_energy_sa(num_requests_per_packet);
 }
 
 void
 RouterPowerModel::updateDynamicEnergyClock(UInt32 num_events)
 {
-   double dynamic_energy_clock = _dsent_router->calc_dynamic_energy_clock(num_events);
-   _total_dynamic_energy_clock += dynamic_energy_clock;
+   _total_dynamic_energy_clock += _dsent_router->calc_dynamic_energy_clock(num_events);
+}
+
+void
+RouterPowerModel::setDVFS(double frequency, double voltage, const Time& curr_time)
+{
+   LOG_PRINT("Router setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] begin", frequency, voltage, curr_time.toNanosec());
+   // Compute leakage/dynamic energy
+   computeEnergy(curr_time);
+
+   // Set new DSENT router model
+   _dsent_router = _dsent_router_map[voltage];
+   LOG_ASSERT_ERROR(_dsent_router, "Could not find DSENT Router model for voltage(%g)", voltage);
+   LOG_PRINT("Router setDVFS[Frequency(%g), Voltage(%g), Time(%llu ns)] end", frequency, voltage, curr_time.toNanosec());
+}
+
+void
+RouterPowerModel::computeEnergy(const Time& curr_time)
+{
+   // Compute the interval between current time and time when energy was last computed
+   double time_interval = (curr_time - _last_energy_compute_time).toSec();
+   // Increment total static energy
+   _total_static_energy += (getStaticPower() * time_interval);
+   // Set _last_energy_compute_time to curr_time
+   _last_energy_compute_time = curr_time;
+}
+
+double
+RouterPowerModel::getStaticPower() const
+{
+   return _dsent_router->get_static_power_buf() + _dsent_router->get_static_power_xbar() +
+          _dsent_router->get_static_power_sa() + _dsent_router->get_static_power_clock();
 }

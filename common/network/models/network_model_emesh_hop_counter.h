@@ -13,7 +13,12 @@ public:
    ~NetworkModelEMeshHopCounter();
 
    void routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
-   void outputSummary(std::ostream &out);
+   void outputSummary(std::ostream &out, const Time& target_completion_time);
+
+   // Energy computation
+   void computeEnergy(const Time& curr_time);
+   double getDynamicEnergy();
+   double getStaticEnergy();
 
 private:
    // Topolgy parameters
@@ -34,6 +39,9 @@ private:
    UInt64 _crossbar_traversals;
    UInt64 _link_traversals;
 
+   // DVFS
+   void setDVFS(double frequency, double voltage, const Time& curr_time);
+   
    // Create/destroy router/link models
    void createRouterAndLinkModels();
    void initializeEventCounters();
@@ -45,6 +53,6 @@ private:
    void updateEventCounters(UInt32 num_flits, UInt32 num_hops);
    
    // Summary
-   void outputPowerSummary(ostream& out);
+   void outputPowerSummary(ostream& out, const Time& target_completion_time);
    void outputEventCountSummary(ostream& out);
 };

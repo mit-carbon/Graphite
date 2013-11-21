@@ -44,7 +44,7 @@ namespace DSENT
             double calculatePmosLeakageCurrent(unsigned int num_stacks_, const vector<double>& stacked_mos_widths_, unsigned int input_vector_) const;
             // Returns the leakage current, given the transistor stakcing, transistor widths, input combination,
             // and technology information (vdd, subthreshold swing, subthreshold dibl swing)
-            double calculateLeakageCurrentFactor(unsigned int num_stacks_, const vector<double>& stacked_mos_widths_, unsigned int input_vector_, double vdd_, double subthreshold_swing_, double dibl_swing_) const;
+            double calculateLeakageCurrentFactor(unsigned int num_stacks_, const vector<double>& stacked_mos_widths_, unsigned int input_vector_, double char_vdd_, double vdd_, double subthreshold_swing_, double dibl_swing_) const;
 
             // Wire
             // Check if the wire layer exist

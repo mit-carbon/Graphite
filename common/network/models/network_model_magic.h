@@ -10,7 +10,6 @@ public:
    ~NetworkModelMagic();
 
    void routePacket(const NetPacket &pkt, queue<Hop>& next_hops);
-   void outputSummary(std::ostream &out);
 };
 
 #endif /* NETWORK_MODEL_MAGIC_H */

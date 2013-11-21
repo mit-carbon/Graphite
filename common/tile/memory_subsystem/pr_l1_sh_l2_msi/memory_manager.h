@@ -16,6 +16,7 @@ using std::ofstream;
 #include "fixed_types.h"
 #include "shmem_perf_model.h"
 #include "network.h"
+#include "dvfs.h"
 
 namespace PrL1ShL2MSI
 {
@@ -33,11 +34,6 @@ namespace PrL1ShL2MSI
       DramCntlr* getDramCntlr() { return _dram_cntlr; }
       bool isDramCntlrPresent() { return _dram_cntlr_present; }
       
-      // Update internal variables when frequency is changed
-      // Variables that need to be updated include all variables that are expressed in terms of cycles
-      //  e.g., total memory access latency, packet arrival time, etc.
-      void updateInternalVariablesOnFrequencyChange(float old_frequency, float new_frequency);
-      
       void sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg);
       void broadcastMsg(ShmemMsg& shmem_msg);
     
@@ -51,9 +47,18 @@ namespace PrL1ShL2MSI
       tile_id_t getShmemRequester(const void* pkt_data)
       { return ((ShmemMsg*) pkt_data)->getRequester(); }
 
-      void outputSummary(std::ostream &os);
-      
-      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::CacheAccess_t access_type);
+      void outputSummary(std::ostream &os, const Time& target_completion_time);
+
+      // Energy monitoring
+      void computeEnergy(const Time& curr_time);
+
+      double getDynamicEnergy();
+      double getLeakageEnergy();
+
+      void incrCurrTime(MemComponent::Type mem_component, CachePerfModel::AccessType access_type);
+
+      int getDVFS(module_t module, double &frequency, double &voltage);
+      int setDVFS(module_t module, double frequency, voltage_option_t voltage_flag, const Time& curr_time);
 
    private:
       // L1/L2 cache cntlrs and DRAM_CNTLR cntlr
@@ -65,11 +70,6 @@ namespace PrL1ShL2MSI
       // Home Lookups
       AddressHomeLookup* _L2_cache_home_lookup;
       AddressHomeLookup* _dram_home_lookup;
-
-      // Performance Models
-      CachePerfModel* _L1_icache_perf_model;
-      CachePerfModel* _L1_dcache_perf_model;
-      CachePerfModel* _L2_cache_perf_model;
 
       UInt32 _cache_line_size;
 

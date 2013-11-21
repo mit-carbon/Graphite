@@ -10,6 +10,12 @@ SimpleCoreModel::SimpleCoreModel(Core *core)
     : CoreModel(core)
 {
    initializePipelineStallCounters();
+
+   // Power/Area modeling
+   initializeMcPATInterface(1,1);
+   
+   // One Cycle   
+   _ONE_CYCLE = Latency(1, _core->getFrequency());
 }
 
 SimpleCoreModel::~SimpleCoreModel()
@@ -17,93 +23,81 @@ SimpleCoreModel::~SimpleCoreModel()
 
 void SimpleCoreModel::initializePipelineStallCounters()
 {
-   m_total_l1icache_stall_time = Time(0);
-   m_total_l1dcache_read_stall_time = Time(0);
-   m_total_l1dcache_write_stall_time = Time(0);
+   _total_l1icache_stall_time = Time(0);
+   _total_l1dcache_read_stall_time = Time(0);
+   _total_l1dcache_write_stall_time = Time(0);
 }
 
-void SimpleCoreModel::outputSummary(std::ostream &os)
+void SimpleCoreModel::outputSummary(std::ostream &os, const Time& target_completion_time)
 {
-   CoreModel::outputSummary(os);
+   CoreModel::outputSummary(os, target_completion_time);
   
-//   os << "    Total L1-I Cache Stall Time (in nanoseconds): " << m_total_l1icache_stall_time.toNanosec()<< endl;
-//   os << "    Total L1-D Cache Read Stall Time (in nanoseconds): " << m_total_l1dcache_read_stall_time.toNanosec()<< endl;
-//   os << "    Total L1-D Cache Write Stall Time (in nanoseconds): " << m_total_l1dcache_write_stall_time.toNanosec() << endl;
+//   os << "    Total L1-I Cache Stall Time (in nanoseconds): " << _total_l1icache_stall_time.toNanosec()<< endl;
+//   os << "    Total L1-D Cache Read Stall Time (in nanoseconds): " << _total_l1dcache_read_stall_time.toNanosec()<< endl;
+//   os << "    Total L1-D Cache Write Stall Time (in nanoseconds): " << _total_l1dcache_write_stall_time.toNanosec() << endl;
 }
 
 void SimpleCoreModel::handleInstruction(Instruction *instruction)
 {
-   // LOG_PRINT("Started processing instruction: Address(%#lx), Type(%u), Cost(%llu), Curr Time(%llu)",
-   //       instruction->getAddress(), instruction->getType(), instruction->getCost(this).toNanosec(), m_curr_time.toNanosec());
-   
    // Execute this first so that instructions have the opportunity to
    // abort further processing (via AbortInstructionException)
    Time cost = instruction->getCost(this);
+
+   // Update Statistics
+   _instruction_count++;
+
+   if (instruction->isDynamic())
+   {
+      _curr_time += cost;
+      updateDynamicInstructionCounters(instruction, cost);
+      return;
+   }
 
    Time memory_stall_time(0);
    Time execution_unit_stall_time(0);
 
    // Instruction Memory Modeling
-   Time instruction_memory_access_time = modelICache(instruction->getAddress(), instruction->getSize());
-   memory_stall_time += instruction_memory_access_time;
-   m_total_l1icache_stall_time += instruction_memory_access_time;
+   Time instruction_memory_access_latency = modelICache(instruction);
+   if (instruction_memory_access_latency >= _ONE_CYCLE)
+      instruction_memory_access_latency -= _ONE_CYCLE;
 
-   const OperandList &ops = instruction->getOperands();
-   for (unsigned int i = 0; i < ops.size(); i++)
+   memory_stall_time += instruction_memory_access_latency;
+   _total_l1icache_stall_time += instruction_memory_access_latency;
+
+   const UInt32& num_read_memory_operands = instruction->getNumReadMemoryOperands();
+   const UInt32& num_write_memory_operands = instruction->getNumWriteMemoryOperands();
+   
+   for (UInt32 i = 0; i < num_read_memory_operands; i++)
    {
-      const Operand &o = ops[i];
+      const DynamicMemoryInfo& info = getDynamicMemoryInfo();
+      LOG_ASSERT_ERROR(info._read, "Expected memory read info");
 
-      if (o.m_type == Operand::MEMORY)
-      {
-         DynamicInstructionInfo &info = getDynamicInstructionInfo();
+      Time read_latency = info._latency;
+      memory_stall_time += read_latency;
+      _total_l1dcache_read_stall_time += read_latency;
+      
+      popDynamicMemoryInfo();
+   }
+   for (UInt32 i = 0; i < num_write_memory_operands; i++)
+   {
+      const DynamicMemoryInfo& info = getDynamicMemoryInfo();
+      LOG_ASSERT_ERROR(!info._read, "Expected memory write info");
 
-         if (o.m_direction == Operand::READ)
-         {
-            LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_READ,
-                             "Expected memory read info, got: %d.", info.type);
-
-            Time access_time(info.memory_info.latency);
-            memory_stall_time += access_time;
-            m_total_l1dcache_read_stall_time += access_time;
-            // ignore address
-         }
-         else
-         {
-            LOG_ASSERT_ERROR(info.type == DynamicInstructionInfo::MEMORY_WRITE,
-                             "Expected memory write info, got: %d.", info.type);
-
-            Time access_time(info.memory_info.latency);
-            memory_stall_time += access_time;
-            m_total_l1dcache_write_stall_time += access_time;
-            // ignore address
-         }
-
-         popDynamicInstructionInfo();
-      }
+      Time write_latency = info._latency;
+      memory_stall_time += write_latency;
+      _total_l1dcache_write_stall_time += write_latency;
+      
+      popDynamicMemoryInfo();
    }
 
-   if (instruction->isDynamic())
-   {
-      LOG_ASSERT_ERROR(memory_stall_time == 0, "memory_stall_time(%llu)", memory_stall_time.getTime());
-      m_curr_time += cost;
-   }
-   else // Static Instruction
-   {
-      execution_unit_stall_time += cost;
-      m_curr_time += (memory_stall_time + execution_unit_stall_time);
-   }
+   execution_unit_stall_time += cost;
+   
+   _curr_time += (memory_stall_time + execution_unit_stall_time);
 
-   // update counters
-   m_instruction_count++;
+   // Update memory fence / pipeline stall counters
+   updateMemoryFenceCounters(instruction);
+   updatePipelineStallCounters(memory_stall_time, execution_unit_stall_time);
 
-   // Update Common Counters
-   updatePipelineStallCounters(instruction, memory_stall_time, execution_unit_stall_time);
-
-   // LOG_PRINT("Finished processing instruction: Address(%#lx), Type(%u), Cost(%llu), Curr Time(%llu)",
-   //       instruction->getAddress(), instruction->getType(), instruction->getCost(this).toNanosec(), m_curr_time.toNanosec());
-}
-
-Time SimpleCoreModel::modelICache(IntPtr ins_address, UInt32 ins_size)
-{
-   return m_core->readInstructionMemory(ins_address, ins_size);
+   // Power/Area modeling
+   updateMcPATCounters(instruction);
 }

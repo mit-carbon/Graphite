@@ -91,10 +91,14 @@ bool replaceUserAPIFunction(RTN& rtn, string& name)
    // For Getting the Simulated Time
    else if (name == "CarbonGetTime") msg_ptr = AFUNPTR(replacementCarbonGetTime);
 
-   // For Dynamic Frequency Scaling
-   else if (name == "CarbonGetTileFrequency") msg_ptr = AFUNPTR(replacementCarbonGetTileFrequency);
-   else if (name == "CarbonSetTileFrequency") msg_ptr = AFUNPTR(replacementCarbonSetTileFrequency);
-   else if (name == "CarbonSetRemoteTileFrequency") msg_ptr = AFUNPTR(replacementCarbonSetRemoteTileFrequency);
+   // For DVFS
+   else if (name == "CarbonGetDVFSDomain") msg_ptr = AFUNPTR(replacementCarbonGetDVFSDomain);
+   else if (name == "CarbonGetDVFS") msg_ptr = AFUNPTR(replacementCarbonGetDVFS);
+   else if (name == "CarbonGetFrequency") msg_ptr = AFUNPTR(replacementCarbonGetFrequency);
+   else if (name == "CarbonGetVoltage") msg_ptr = AFUNPTR(replacementCarbonGetVoltage);
+   else if (name == "CarbonSetDVFS") msg_ptr = AFUNPTR(replacementCarbonSetDVFS);
+   else if (name == "CarbonSetDVFSAllTiles") msg_ptr = AFUNPTR(replacementCarbonSetDVFSAllTiles);
+   else if (name == "CarbonGetTileEnergy") msg_ptr = AFUNPTR(replacementCarbonGetTileEnergy);
 
    // Turn off performance modeling at _start()
    if (name == "_start")
@@ -862,59 +866,171 @@ void replacementCarbonGetTime(CONTEXT *ctxt)
    retFromReplacedRtn(ctxt, ret_val);
 }
 
-void replacementCarbonGetTileFrequency(CONTEXT *ctxt)
+void replacementCarbonGetDVFSDomain(CONTEXT *ctxt)
 {
-   float* tile_frequency;
+   module_t module_type;
 
-   initialize_replacement_args(ctxt,
-         IARG_PTR, &tile_frequency,
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &module_type,
          CARBON_IARG_END);
 
-   float tile_frequency_buf;
-   CarbonGetTileFrequency(&tile_frequency_buf);
+   ADDRINT ret_val = CarbonGetDVFSDomain(module_type);
 
-   Core* core = Sim()->getTileManager()->getCurrentCore();
-   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) tile_frequency, (char*) &tile_frequency_buf, sizeof(tile_frequency_buf));
-
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
    retFromReplacedRtn(ctxt, ret_val);
 }
 
-void replacementCarbonSetTileFrequency(CONTEXT *ctxt)
+void replacementCarbonGetDVFS(CONTEXT *ctxt)
 {
-   float* tile_frequency;
-
-   initialize_replacement_args(ctxt,
-         IARG_PTR, &tile_frequency,
-         CARBON_IARG_END);
-
-   float tile_frequency_buf;
-   Core* core = Sim()->getTileManager()->getCurrentCore();
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) tile_frequency, (char*) &tile_frequency_buf, sizeof(tile_frequency_buf));
-
-   CarbonSetTileFrequency(&tile_frequency_buf);
-
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
-   retFromReplacedRtn(ctxt, ret_val);
-}
-
-void replacementCarbonSetRemoteTileFrequency(CONTEXT *ctxt)
-{
-   float* tile_frequency;
    tile_id_t tile_id;
+   module_t module_type;
+   double* frequency;
+   double* voltage;
 
    initialize_replacement_args (ctxt,
          IARG_UINT32, &tile_id,
-         IARG_PTR, &tile_frequency,
+         IARG_UINT32, &module_type,
+         IARG_PTR, &frequency,
+         IARG_PTR, &voltage,
          CARBON_IARG_END);
 
-   float tile_frequency_buf;
+   double frequency_buf;
+   double voltage_buf;
+
    Core* core = Sim()->getTileManager()->getCurrentCore();
-   core->accessMemory(Core::NONE, Core::READ, (IntPtr) tile_frequency, (char*) &tile_frequency_buf, sizeof(tile_frequency_buf));
+   
+   // read frequency and voltage
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) voltage, (char*) &voltage_buf, sizeof(voltage_buf));
 
-   CarbonSetRemoteTileFrequency(tile_id, &tile_frequency_buf);
+   ADDRINT ret_val = CarbonGetDVFS(tile_id, module_type, &frequency_buf, &voltage_buf);
 
-   ADDRINT ret_val = PIN_GetContextReg(ctxt, REG_GAX);
+   // write frequency and voltage
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) voltage, (char*) &voltage_buf, sizeof(voltage_buf));
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonGetFrequency(CONTEXT *ctxt)
+{
+   tile_id_t tile_id;
+   module_t module_type;
+   double* frequency;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_UINT32, &module_type,
+         IARG_PTR, &frequency,
+         CARBON_IARG_END);
+
+   double frequency_buf;
+   
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+
+   // read frequency
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
+
+   ADDRINT ret_val = CarbonGetFrequency(tile_id, module_type, &frequency_buf);
+
+   // write frequency
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonGetVoltage(CONTEXT *ctxt)
+{
+   tile_id_t tile_id;
+   module_t module_type;
+   double* voltage;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_UINT32, &module_type,
+         IARG_PTR, &voltage,
+         CARBON_IARG_END);
+
+   double voltage_buf;
+
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+
+   // read voltage
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) voltage, (char*) &voltage_buf, sizeof(voltage_buf));
+
+   ADDRINT ret_val = CarbonGetVoltage(tile_id, module_type, &voltage_buf);
+
+   // write voltage
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) voltage, (char*) &voltage_buf, sizeof(voltage_buf));
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonSetDVFS(CONTEXT *ctxt)
+{
+   tile_id_t tile_id;
+   int module_mask;
+   double* frequency;
+   voltage_option_t voltage_flag;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_UINT32, &module_mask,
+         IARG_PTR, &frequency,
+         IARG_UINT32, &voltage_flag,
+         CARBON_IARG_END);
+
+   double frequency_buf;
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
+
+   ADDRINT ret_val = CarbonSetDVFS(tile_id, module_mask, &frequency_buf, voltage_flag);
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonSetDVFSAllTiles(CONTEXT *ctxt)
+{
+   int module_mask;
+   double* frequency;
+   voltage_option_t voltage_flag;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &module_mask,
+         IARG_PTR, &frequency,
+         IARG_UINT32, &voltage_flag,
+         CARBON_IARG_END);
+
+   double frequency_buf;
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) frequency, (char*) &frequency_buf, sizeof(frequency_buf));
+
+   ADDRINT ret_val = CarbonSetDVFSAllTiles(module_mask, &frequency_buf, voltage_flag);
+
+   retFromReplacedRtn(ctxt, ret_val);
+}
+
+void replacementCarbonGetTileEnergy(CONTEXT *ctxt)
+{
+   tile_id_t tile_id;
+   double* energy;
+
+   initialize_replacement_args (ctxt,
+         IARG_UINT32, &tile_id,
+         IARG_PTR, &energy,
+         CARBON_IARG_END);
+
+   double energy_buf;
+
+   Core* core = Sim()->getTileManager()->getCurrentCore();
+
+   // read energy
+   core->accessMemory(Core::NONE, Core::READ, (IntPtr) energy, (char*) &energy_buf, sizeof(energy_buf));
+
+   ADDRINT ret_val = CarbonGetTileEnergy(tile_id, &energy_buf);
+
+   // write voltage
+   core->accessMemory(Core::NONE, Core::WRITE, (IntPtr) energy, (char*) &energy_buf, sizeof(energy_buf));
+
    retFromReplacedRtn(ctxt, ret_val);
 }
 

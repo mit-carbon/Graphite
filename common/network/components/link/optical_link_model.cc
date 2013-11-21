@@ -10,8 +10,8 @@
 #include "log.h"
 
 OpticalLinkModel::OpticalLinkModel(NetworkModel* model, UInt32 num_readers_per_wavelength,
-                                   float link_frequency, double waveguide_length, UInt32 link_width)
-   : LinkModel(model, link_frequency, waveguide_length, link_width)
+                                   double frequency, double voltage, double waveguide_length, UInt32 link_width)
+   : LinkModel(model)
    , _power_model(NULL)
    , _num_readers_per_wavelength(num_readers_per_wavelength)
    , _total_link_unicasts(0)
@@ -49,14 +49,14 @@ OpticalLinkModel::OpticalLinkModel(NetworkModel* model, UInt32 num_readers_per_w
    }
 
    // _net_optical_link_delay is in clock cycles (in terms of network frequency)
-   _net_link_delay = (UInt64) (ceil( (waveguide_delay_per_mm * _link_length) * _frequency + 
+   _net_link_delay = (UInt64) (ceil( (waveguide_delay_per_mm * waveguide_length) * frequency + 
                                       e_o_conversion_delay +
                                       o_e_conversion_delay) );
 
    // Power Model
    if (Config::getSingleton()->getEnablePowerModeling())
       _power_model = new OpticalLinkPowerModel(_laser_modes, _laser_type, _ring_tuning_strategy,
-                                               _num_readers_per_wavelength, link_frequency,
+                                               _num_readers_per_wavelength, frequency, voltage,
                                                waveguide_length, link_width);
 }
 

@@ -16,6 +16,7 @@ using std::list;
 #include "semaphore.h"
 #include "transport.h"
 #include "time_types.h"
+#include "dvfs.h"
 
 class Tile;
 class Network;
@@ -89,13 +90,14 @@ public:
 
    void unregisterCallback(PacketType type);
 
-   void outputSummary(ostream &out) const;
+   void outputSummary(ostream &out, const Time& target_completion_time) const;
 
    void netPullFromTransport();
 
    // -- Main interface -- //
 
    SInt32 netSend(NetPacket& packet);
+   SInt32 netSend(module_t module, NetPacket& packet);
    NetPacket netRecv(const NetMatch &match);
 
    // -- Wrappers -- //

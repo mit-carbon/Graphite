@@ -233,7 +233,7 @@ void TileEnergyMonitor::getCoreDynamicEnergy()
 
    m_core_current_dynamic_energy = m_core_model->getDynamicEnergy();
 
-   if (isnan(m_core_current_dynamic_energy)) 
+   if (std::isnan(m_core_current_dynamic_energy)) 
       m_core_current_dynamic_energy = m_core_previous_dynamic_energy;
 }
 
@@ -256,7 +256,7 @@ void TileEnergyMonitor::getCoreStaticEnergy()
 
    m_core_current_static_energy = m_core_model->getLeakageEnergy();
 
-   if (isnan(m_core_current_static_energy))
+   if (std::isnan(m_core_current_static_energy))
       m_core_current_static_energy = m_core_previous_static_energy;
 }
 
@@ -337,7 +337,7 @@ void TileEnergyMonitor::getCacheDynamicEnergy()
 
    m_cache_current_dynamic_energy = m_tile->getMemoryManager()->getDynamicEnergy();
 
-   if (isnan(m_cache_current_dynamic_energy))
+   if (std::isnan(m_cache_current_dynamic_energy))
       m_cache_current_dynamic_energy = m_cache_previous_dynamic_energy;
 }
 
@@ -360,7 +360,7 @@ void TileEnergyMonitor::getCacheStaticEnergy()
 
    m_cache_current_static_energy = m_tile->getMemoryManager()->getLeakageEnergy();
 
-   if (isnan(m_cache_current_static_energy))
+   if (std::isnan(m_cache_current_static_energy))
       m_cache_current_static_energy = m_cache_previous_static_energy;
 }
 

@@ -4,8 +4,6 @@
 
 #pragma once
 
-using namespace std;
-
 #include "packet_type.h"
 
 // Forward Declarations

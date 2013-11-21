@@ -119,14 +119,14 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       {
          // Increment Shared Mem Perf model curr time
          // L1 Cache
-         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
+         _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
                  
          return l1_cache_hit;
       }
 
-      getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
+      _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
      
       // Miss in the L1 cache 
       l1_cache_hit = false;
@@ -148,9 +148,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
          getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(L2_CACHE));
          // Increment Shared Mem Perf model curr time
          // L2 Cache
-         getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
+         _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
          // L1 Cache
-         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
+         _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
@@ -159,7 +159,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       }
 
       // Increment shared mem perf model curr time
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
+      _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
 
       // Is the miss type modeled? If yes, all the msgs' created by this miss are modeled 
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
@@ -167,7 +167,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       // Construct the message and send out a request to the SIM thread for the cache data
       ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE, getTileId(), ca_address, msg_modeled);
-      getMemoryManager()->sendMsg(getTileId(), shmem_msg);
+      _memory_manager->sendMsg(getTileId(), shmem_msg);
 
       _memory_manager->waitForSimThread();
 

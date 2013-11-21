@@ -382,7 +382,7 @@ L2CacheCntlr::processNullifyReq(ShmemReq* nullify_req, Byte* data_buf)
          ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::L2_CACHE, MemComponent::L1_DCACHE,
                             requester, false, address,
                             msg_modeled);
-         getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
+         _memory_manager->sendMsg(directory_entry->getOwner(), shmem_msg);
       }
       break;
 
@@ -476,7 +476,7 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::L2_CACHE, MemComponent::L1_DCACHE,
                                requester, false, address,
                                msg_modeled);
-            getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
+            _memory_manager->sendMsg(directory_entry->getOwner(), shmem_msg);
          }
          break;
 
@@ -499,7 +499,7 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                ShmemMsg shmem_msg(ShmemMsg::UPGRADE_REP, MemComponent::L2_CACHE, MemComponent::L1_DCACHE,
                                   requester, false, address,
                                   msg_modeled);
-               getMemoryManager()->sendMsg(requester, shmem_msg);
+               _memory_manager->sendMsg(requester, shmem_msg);
                
                // Set completed to true
                completed = true;
@@ -598,7 +598,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             ShmemMsg shmem_msg(ShmemMsg::WB_REQ, MemComponent::L2_CACHE, MemComponent::L1_DCACHE,
                                requester, false, address,
                                msg_modeled);
-            getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
+            _memory_manager->sendMsg(directory_entry->getOwner(), shmem_msg);
          }
          break;
 
@@ -639,7 +639,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                ShmemMsg shmem_msg(ShmemMsg::INV_REQ, MemComponent::L2_CACHE, requester_mem_component,
                                   requester, false, address,
                                   msg_modeled);
-               getMemoryManager()->sendMsg(sharer_id, shmem_msg);
+               _memory_manager->sendMsg(sharer_id, shmem_msg);
             }
             else // succesfully added the sharer
             {
@@ -860,7 +860,7 @@ L2CacheCntlr::sendInvalidationMsg(ShmemMsg::Type requester_msg_type,
       ShmemMsg shmem_msg(ShmemMsg::INV_REQ, MemComponent::L2_CACHE, receiver_mem_component, 
                          requester, reply_expected, address,
                          msg_modeled);
-      getMemoryManager()->broadcastMsg(shmem_msg);
+      _memory_manager->broadcastMsg(shmem_msg);
    }
    else // not all tiles are sharers
    {
@@ -870,7 +870,7 @@ L2CacheCntlr::sendInvalidationMsg(ShmemMsg::Type requester_msg_type,
          ShmemMsg shmem_msg(ShmemMsg::INV_REQ, MemComponent::L2_CACHE, receiver_mem_component,
                             requester, false, address,
                             msg_modeled);
-         getMemoryManager()->sendMsg(sharers_list[i], shmem_msg);
+         _memory_manager->sendMsg(sharers_list[i], shmem_msg);
       }
    }
 }
@@ -888,7 +888,7 @@ L2CacheCntlr::readCacheLineAndSendToL1Cache(ShmemMsg::Type reply_msg_type,
                          requester, false, address, 
                          data_buf, getCacheLineSize(),
                          msg_modeled);
-      getMemoryManager()->sendMsg(requester, shmem_msg);
+      _memory_manager->sendMsg(requester, shmem_msg);
    }
    else
    {
@@ -900,7 +900,7 @@ L2CacheCntlr::readCacheLineAndSendToL1Cache(ShmemMsg::Type reply_msg_type,
                          requester, false, address,
                          L2_data_buf, getCacheLineSize(),
                          msg_modeled);
-      getMemoryManager()->sendMsg(requester, shmem_msg); 
+      _memory_manager->sendMsg(requester, shmem_msg); 
    }
 }
 
@@ -910,7 +910,7 @@ L2CacheCntlr::fetchDataFromDram(IntPtr address, tile_id_t requester, bool msg_mo
    ShmemMsg fetch_msg(ShmemMsg::DRAM_FETCH_REQ, MemComponent::L2_CACHE, MemComponent::DRAM_CNTLR,
                       requester, false, address,
                       msg_modeled);
-   getMemoryManager()->sendMsg(getDramHome(address), fetch_msg);
+   _memory_manager->sendMsg(getDramHome(address), fetch_msg);
 }
 
 void
@@ -920,7 +920,7 @@ L2CacheCntlr::storeDataInDram(IntPtr address, Byte* data_buf, tile_id_t requeste
                      requester, false, address,
                      data_buf, getCacheLineSize(),
                      msg_modeled);
-   getMemoryManager()->sendMsg(getDramHome(address), send_msg);
+   _memory_manager->sendMsg(getDramHome(address), send_msg);
 }
 
 Core::mem_op_t

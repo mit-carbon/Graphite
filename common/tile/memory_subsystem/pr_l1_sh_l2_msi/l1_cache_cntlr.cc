@@ -111,7 +111,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       {
          // Increment Shared Mem Perf model current time
          // L1 Cache
-         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
+         _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
                  
@@ -122,7 +122,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       // Expect to find address in the L1-I/L1-D cache if there is an UNLOCK signal
       LOG_ASSERT_ERROR(lock_signal != Core::UNLOCK, "Expected to find address(%#lx) in L1 Cache", ca_address);
 
-      getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
+      _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
 
       // The memory request misses in the L1 cache
       L1_cache_hit = false;
@@ -133,7 +133,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       ShmemMsg shmem_msg(shmem_msg_type, MemComponent::CORE, mem_component,
                          getTileId(), false, ca_address,
                          msg_modeled);
-      getMemoryManager()->sendMsg(getTileId(), shmem_msg);
+      _memory_manager->sendMsg(getTileId(), shmem_msg);
 
       // Wait for the sim thread
       _memory_manager->waitForSimThread();
@@ -259,7 +259,7 @@ L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component, IntPtr address, 
                                  getTileId(), false, evicted_address,
                                  writeback_buf, getCacheLineSize(),
                                  msg_modeled);
-         getMemoryManager()->sendMsg(L2_cache_home, send_shmem_msg);
+         _memory_manager->sendMsg(L2_cache_home, send_shmem_msg);
       }
       else
       {
@@ -268,7 +268,7 @@ L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component, IntPtr address, 
          ShmemMsg send_shmem_msg(ShmemMsg::INV_REP, mem_component, MemComponent::L2_CACHE,
                                  getTileId(), false, evicted_address,
                                  msg_modeled);
-         getMemoryManager()->sendMsg(L2_cache_home, send_shmem_msg);
+         _memory_manager->sendMsg(L2_cache_home, send_shmem_msg);
       }
    }
 }
@@ -298,7 +298,7 @@ L1CacheCntlr::handleMsgFromCore(ShmemMsg* shmem_msg)
                            shmem_msg->getRequester(), false, address,
                            shmem_msg->isModeled());
    tile_id_t receiver = _L2_cache_home_lookup->getHome(address);
-   getMemoryManager()->sendMsg(receiver, send_shmem_msg);
+   _memory_manager->sendMsg(receiver, send_shmem_msg);
 }
 
 void
@@ -350,7 +350,7 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
          getShmemPerfModel()->setCurrTime(_outstanding_shmem_msg_time);
 
       // Increment the clock by the time taken to update the L1-I/L1-D cache
-      getMemoryManager()->incrCurrTime(shmem_msg->getReceiverMemComponent(), CachePerfModel::ACCESS_DATA_AND_TAGS);
+      _memory_manager->incrCurrTime(shmem_msg->getReceiverMemComponent(), CachePerfModel::ACCESS_DATA_AND_TAGS);
 
       // There are no more outstanding memory requests
       _outstanding_shmem_msg = ShmemMsg();
@@ -419,7 +419,7 @@ L1CacheCntlr::processInvReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
    CacheState::Type cstate = L1_cache_line_info.getCState();
 
    // Update Shared Mem perf counters for access to L1-D Cache
-   getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
+   _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
 
    if (cstate != CacheState::INVALID)
    {
@@ -433,7 +433,7 @@ L1CacheCntlr::processInvReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       ShmemMsg send_shmem_msg(ShmemMsg::INV_REP, mem_component, MemComponent::L2_CACHE,
                               shmem_msg->getRequester(), shmem_msg->isReplyExpected(), address,
                               shmem_msg->isModeled());
-      getMemoryManager()->sendMsg(sender, send_shmem_msg);
+      _memory_manager->sendMsg(sender, send_shmem_msg);
    }
    else
    {
@@ -442,7 +442,7 @@ L1CacheCntlr::processInvReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
          ShmemMsg send_shmem_msg(ShmemMsg::INV_REP, mem_component, MemComponent::L2_CACHE,
                                  shmem_msg->getRequester(), true, address,
                                  shmem_msg->isModeled());
-         getMemoryManager()->sendMsg(sender, send_shmem_msg);
+         _memory_manager->sendMsg(sender, send_shmem_msg);
       }
    }
 }
@@ -465,7 +465,7 @@ L1CacheCntlr::processFlushReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       LOG_ASSERT_ERROR(cstate == CacheState::MODIFIED, "cstate(%u)", cstate);
       
       // Update Shared Mem perf counters for access to L1 Cache
-      getMemoryManager()->incrCurrTime(MemComponent::L1_DCACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
+      _memory_manager->incrCurrTime(MemComponent::L1_DCACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
       // Flush the line
       Byte data_buf[getCacheLineSize()];
@@ -479,12 +479,12 @@ L1CacheCntlr::processFlushReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
                               shmem_msg->getRequester(), false, address,
                               data_buf, getCacheLineSize(),
                               shmem_msg->isModeled());
-      getMemoryManager()->sendMsg(sender, send_shmem_msg);
+      _memory_manager->sendMsg(sender, send_shmem_msg);
    }
    else
    {
       // Update Shared Mem perf counters for access to L1-D cache tags
-      getMemoryManager()->incrCurrTime(MemComponent::L1_DCACHE, CachePerfModel::ACCESS_TAGS);
+      _memory_manager->incrCurrTime(MemComponent::L1_DCACHE, CachePerfModel::ACCESS_TAGS);
    }
 }
 
@@ -510,7 +510,7 @@ L1CacheCntlr::processWbReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       LOG_ASSERT_ERROR(cstate == CacheState::MODIFIED, "cstate(%u)", cstate);
 
       // Update shared memory performance counters for access to L1 Cache
-      getMemoryManager()->incrCurrTime(MemComponent::L1_DCACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
+      _memory_manager->incrCurrTime(MemComponent::L1_DCACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
       // Write-Back the line
       Byte data_buf[getCacheLineSize()];
@@ -526,12 +526,12 @@ L1CacheCntlr::processWbReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
                               shmem_msg->getRequester(), false, address,
                               data_buf, getCacheLineSize(),
                               shmem_msg->isModeled());
-      getMemoryManager()->sendMsg(sender, send_shmem_msg);
+      _memory_manager->sendMsg(sender, send_shmem_msg);
    }
    else
    {
       // Update Shared Mem perf counters for access to the L1-D Cache
-      getMemoryManager()->incrCurrTime(MemComponent::L1_DCACHE, CachePerfModel::ACCESS_TAGS);
+      _memory_manager->incrCurrTime(MemComponent::L1_DCACHE, CachePerfModel::ACCESS_TAGS);
    }
 }
 

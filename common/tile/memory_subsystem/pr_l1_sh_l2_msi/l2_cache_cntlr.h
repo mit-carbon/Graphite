@@ -108,7 +108,6 @@ namespace PrL1ShL2MSI
       // Utilities
       tile_id_t getTileId();
       UInt32 getCacheLineSize();
-      MemoryManager* getMemoryManager()   { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
       Core::mem_op_t getMemOpTypeFromShmemMsgType(ShmemMsg::Type shmem_msg_type);
 

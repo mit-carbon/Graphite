@@ -108,7 +108,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       Time _total_invalidation_processing_time_broadcast_mode;
 
       UInt32 getCacheLineSize();
-      MemoryManager* getMemoryManager() { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
 
       // Private Functions

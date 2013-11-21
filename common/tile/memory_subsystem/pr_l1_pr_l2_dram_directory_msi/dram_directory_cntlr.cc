@@ -188,7 +188,7 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req)
       {
          ShmemMsg msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, requester, address,
                       msg_modeled);
-         getMemoryManager()->sendMsg(directory_entry->getOwner(), msg);
+         _memory_manager->sendMsg(directory_entry->getOwner(), msg);
       }
       break;
 
@@ -203,7 +203,7 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req)
             // (irrespective of whether they are sharers or not)
             ShmemMsg msg(ShmemMsg::INV_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, requester, address,
                          msg_modeled);
-            getMemoryManager()->broadcastMsg(msg);
+            _memory_manager->broadcastMsg(msg);
          }
          else
          {
@@ -212,7 +212,7 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req)
             {
                ShmemMsg msg(ShmemMsg::INV_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, requester, address,
                             msg_modeled);
-               getMemoryManager()->sendMsg(sharers_list[i], msg);
+               _memory_manager->sendMsg(sharers_list[i], msg);
             }
          }
       }
@@ -258,7 +258,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
          assert(cached_data_buf == NULL);
          ShmemMsg msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, requester, address,
                       msg_modeled);
-         getMemoryManager()->sendMsg(directory_entry->getOwner(), msg);
+         _memory_manager->sendMsg(directory_entry->getOwner(), msg);
       }
       break;
 
@@ -274,7 +274,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
             // (irrespective of whether they are sharers or not)
             ShmemMsg msg(ShmemMsg::INV_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, requester, address,
                          msg_modeled);
-            getMemoryManager()->broadcastMsg(msg);
+            _memory_manager->broadcastMsg(msg);
          }
          else
          {
@@ -283,7 +283,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
             {
                ShmemMsg msg(ShmemMsg::INV_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, requester, address,
                             msg_modeled);
-               getMemoryManager()->sendMsg(sharers_list[i], msg);
+               _memory_manager->sendMsg(sharers_list[i], msg);
             }
          }
       }
@@ -334,7 +334,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
          assert(cached_data_buf == NULL);
          ShmemMsg msg(ShmemMsg::WB_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, requester, address,
                       msg_modeled);
-         getMemoryManager()->sendMsg(directory_entry->getOwner(), msg);
+         _memory_manager->sendMsg(directory_entry->getOwner(), msg);
       }
       break;
 
@@ -347,7 +347,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, Byte* cached_da
             // Send a message to another sharer to invalidate that
             ShmemMsg msg(ShmemMsg::INV_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, requester, address,
                          msg_modeled);
-            getMemoryManager()->sendMsg(sharer_id, msg);
+            _memory_manager->sendMsg(sharer_id, msg);
          }
          else
          {
@@ -388,7 +388,7 @@ DramDirectoryCntlr::retrieveDataAndSendToL2Cache(ShmemMsg::Type reply_msg_type,
       // I already have the data I need cached
       ShmemMsg msg(reply_msg_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, receiver, address,
                    cached_data_buf, getCacheLineSize(), msg_modeled);
-      getMemoryManager()->sendMsg(receiver, msg);
+      _memory_manager->sendMsg(receiver, msg);
    }
    else
    {
@@ -403,7 +403,7 @@ DramDirectoryCntlr::retrieveDataAndSendToL2Cache(ShmemMsg::Type reply_msg_type,
       
       ShmemMsg msg(reply_msg_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, receiver, address,
                    data_buf, getCacheLineSize(), msg_modeled);
-      getMemoryManager()->sendMsg(receiver, msg);
+      _memory_manager->sendMsg(receiver, msg);
    }
 }
 

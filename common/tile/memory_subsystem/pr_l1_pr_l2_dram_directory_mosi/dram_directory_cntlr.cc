@@ -238,7 +238,7 @@ DramDirectoryCntlr::processNullifyReq(ShmemReq* shmem_req, DirectoryEntry* direc
          ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                requester, INVALID_TILE_ID, false, address,
                msg_modeled);
-         getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg); 
+         _memory_manager->sendMsg(directory_entry->getOwner(), shmem_msg); 
       }
       break;
 
@@ -330,7 +330,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
          ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                requester, INVALID_TILE_ID, false, address,
                msg_modeled);
-         getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
+         _memory_manager->sendMsg(directory_entry->getOwner(), shmem_msg);
       }
       break;
 
@@ -342,7 +342,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
 
             ShmemMsg shmem_msg(ShmemMsg::UPGRADE_REP, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                   requester, INVALID_TILE_ID, false, address, msg_modeled);
-            getMemoryManager()->sendMsg(requester, shmem_msg);
+            _memory_manager->sendMsg(requester, shmem_msg);
            
             processNextReqFromL2Cache(address);
          }
@@ -374,7 +374,7 @@ DramDirectoryCntlr::processExReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
 
             ShmemMsg shmem_msg(ShmemMsg::UPGRADE_REP, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                   requester, INVALID_TILE_ID, false, address, msg_modeled);
-            getMemoryManager()->sendMsg(requester, shmem_msg);
+            _memory_manager->sendMsg(requester, shmem_msg);
             
             processNextReqFromL2Cache(address);
          }
@@ -453,7 +453,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
          ShmemMsg shmem_msg(ShmemMsg::WB_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                requester, INVALID_TILE_ID, false, address,
                msg_modeled);
-         getMemoryManager()->sendMsg(directory_entry->getOwner(), shmem_msg);
+         _memory_manager->sendMsg(directory_entry->getOwner(), shmem_msg);
 
          shmem_req->setSharerTileId(directory_entry->getOwner());
       }
@@ -479,7 +479,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
             ShmemMsg shmem_msg(ShmemMsg::FLUSH_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                   requester, INVALID_TILE_ID, false, address,
                   msg_modeled);
-            getMemoryManager()->sendMsg(sharer_id, shmem_msg);
+            _memory_manager->sendMsg(sharer_id, shmem_msg);
 
             shmem_req->setSharerTileId(sharer_id);
          }
@@ -495,7 +495,7 @@ DramDirectoryCntlr::processShReqFromL2Cache(ShmemReq* shmem_req, DirectoryEntry*
                ShmemMsg shmem_msg(ShmemMsg::WB_REQ, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                      requester, INVALID_TILE_ID, false, address,
                      msg_modeled);
-               getMemoryManager()->sendMsg(sharer_id, shmem_msg);
+               _memory_manager->sendMsg(sharer_id, shmem_msg);
 
                shmem_req->setSharerTileId(sharer_id);
             }
@@ -546,7 +546,7 @@ DramDirectoryCntlr::sendShmemMsg(ShmemMsg::Type requester_msg_type, ShmemMsg::Ty
       // (irrespective of whether they are sharers or not)
       ShmemMsg shmem_msg(send_msg_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE, 
             requester, single_receiver, reply_expected, address, msg_modeled);
-      getMemoryManager()->broadcastMsg(shmem_msg);
+      _memory_manager->broadcastMsg(shmem_msg);
    }
    else
    {
@@ -555,7 +555,7 @@ DramDirectoryCntlr::sendShmemMsg(ShmemMsg::Type requester_msg_type, ShmemMsg::Ty
       {
          ShmemMsg shmem_msg(send_msg_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
                requester, single_receiver, false, address, msg_modeled);
-         getMemoryManager()->sendMsg(sharers_list[i], shmem_msg);
+         _memory_manager->sendMsg(sharers_list[i], shmem_msg);
       }
    }
 }
@@ -572,7 +572,7 @@ DramDirectoryCntlr::retrieveDataAndSendToL2Cache(ShmemMsg::Type reply_msg_type,
       ShmemMsg shmem_msg(reply_msg_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
             receiver, INVALID_TILE_ID, false, address, 
             cached_data_buf, getCacheLineSize(), msg_modeled);
-      getMemoryManager()->sendMsg(receiver, shmem_msg);
+      _memory_manager->sendMsg(receiver, shmem_msg);
 
       _cached_data_list.erase(address);
    }
@@ -590,7 +590,7 @@ DramDirectoryCntlr::retrieveDataAndSendToL2Cache(ShmemMsg::Type reply_msg_type,
       ShmemMsg shmem_msg(reply_msg_type, MemComponent::DRAM_DIRECTORY, MemComponent::L2_CACHE,
             receiver, INVALID_TILE_ID, false, address,
             data_buf, getCacheLineSize(), msg_modeled);
-      getMemoryManager()->sendMsg(receiver, shmem_msg); 
+      _memory_manager->sendMsg(receiver, shmem_msg); 
    }
 }
 

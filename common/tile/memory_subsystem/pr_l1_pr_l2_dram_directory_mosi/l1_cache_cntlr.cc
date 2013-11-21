@@ -118,13 +118,13 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       {
          // Increment Shared Mem Perf model current time 
          // L1 Cache
-         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
+         _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
          return L1_cache_hit;
       }
 
-      getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
+      _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_TAGS);
 
       // The memory request misses in the L1 cache
       L1_cache_hit = false;
@@ -143,9 +143,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
          // Increment Shared Mem Perf model current time
          // L2 Cache
-         getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
+         _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_DATA_AND_TAGS);
          // L1 Cache
-         getMemoryManager()->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
+         _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
@@ -153,7 +153,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       }
 
       // Increment shared mem perf model current time 
-      getMemoryManager()->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
+      _memory_manager->incrCurrTime(MemComponent::L2_CACHE, CachePerfModel::ACCESS_TAGS);
 
       // Send out a request to the network thread for the cache data
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
@@ -161,7 +161,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, mem_component, MemComponent::L2_CACHE,
                          getTileId(), INVALID_TILE_ID, false, ca_address, msg_modeled);
-      getMemoryManager()->sendMsg(getTileId(), shmem_msg);
+      _memory_manager->sendMsg(getTileId(), shmem_msg);
 
       _memory_manager->waitForSimThread();
 

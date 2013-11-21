@@ -91,7 +91,6 @@ namespace PrL1PrL2DramDirectoryMOSI
       // Utilities
       tile_id_t getTileId();
       UInt32 getCacheLineSize();
-      MemoryManager* getMemoryManager()   { return _memory_manager; }
       ShmemPerfModel* getShmemPerfModel();
    };
 }

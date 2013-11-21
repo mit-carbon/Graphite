@@ -23,7 +23,7 @@ ifneq ($(USE_GRAPHITE),)
 	OPT += -DUSE_GRAPHITE
 endif
 
-CXXFLAGS = -fPIC -Wall -Wno-unknown-pragmas $(DBG) $(OPT)
+CXXFLAGS = -fPIC -Wno-unknown-pragmas $(DBG) $(OPT)
 CXX = g++
 
 VPATH = cacti

@@ -46,9 +46,20 @@ int main()
    module_t domain2 = CarbonGetDVFSDomain(NETWORK_MEMORY);
 
    frequency = 1.0;
+
    rc = CarbonSetDVFSAllTiles(domain1, &frequency, AUTO);
+   if (rc != 0)
+   {
+      fprintf(stderr, "*ERROR* Setting frequency for L2_CACHE, Domain(%u), Return-Code(%i)\n", domain1, rc);
+      exit(EXIT_FAILURE);
+   }
+
    rc = CarbonSetDVFSAllTiles(domain2, &frequency, AUTO);
-   assert(rc == 0);
+   if (rc != 0)
+   {
+      fprintf(stderr, "*ERROR* Setting frequency for NETWORK_MEMORY, Domain(%u), Return-Code(%i)\n", domain2, rc);
+      exit(EXIT_FAILURE);
+   }
 
    doComputeWork();
    doMemoryWork();

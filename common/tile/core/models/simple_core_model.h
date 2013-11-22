@@ -19,8 +19,6 @@ private:
    Time _total_l1icache_stall_time;
    Time _total_l1dcache_read_stall_time;
    Time _total_l1dcache_write_stall_time;
-
-   Time _ONE_CYCLE;
 };
 
 #endif

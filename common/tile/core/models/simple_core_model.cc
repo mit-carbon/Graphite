@@ -13,9 +13,6 @@ SimpleCoreModel::SimpleCoreModel(Core *core)
 
    // Power/Area modeling
    initializeMcPATInterface(1,1);
-   
-   // One Cycle   
-   _ONE_CYCLE = Latency(1, _core->getFrequency());
 }
 
 SimpleCoreModel::~SimpleCoreModel()
@@ -58,9 +55,6 @@ void SimpleCoreModel::handleInstruction(Instruction *instruction)
 
    // Instruction Memory Modeling
    Time instruction_memory_access_latency = modelICache(instruction);
-   if (instruction_memory_access_latency >= _ONE_CYCLE)
-      instruction_memory_access_latency -= _ONE_CYCLE;
-
    memory_stall_time += instruction_memory_access_latency;
    _total_l1icache_stall_time += instruction_memory_access_latency;
 

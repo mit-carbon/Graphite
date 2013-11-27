@@ -54,7 +54,7 @@ int CarbonSetDVFS(tile_id_t tile_id, int module_mask, double* frequency, voltage
 // Set DVFS
 int CarbonSetDVFSAllTiles(int module_mask, double* frequency, voltage_option_t voltage_flag)
 {
-   int rc=0;
+   int rc = 0;
    Tile* tile = Sim()->getTileManager()->getCurrentTile();
    for (tile_id_t i = 0; i < (tile_id_t) Config::getSingleton()->getApplicationTiles(); i++)
    {

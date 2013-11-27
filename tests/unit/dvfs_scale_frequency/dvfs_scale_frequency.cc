@@ -50,14 +50,14 @@ int main()
    rc = CarbonSetDVFSAllTiles(domain1, &frequency, AUTO);
    if (rc != 0)
    {
-      fprintf(stderr, "*ERROR* Setting frequency for L2_CACHE, Domain(%u), Return-Code(%i)\n", domain1, rc);
+      fprintf(stderr, "*ERROR* Setting frequency for Domain(%u), Return-Code(%i)\n", domain1, rc);
       exit(EXIT_FAILURE);
    }
 
    rc = CarbonSetDVFSAllTiles(domain2, &frequency, AUTO);
    if (rc != 0)
    {
-      fprintf(stderr, "*ERROR* Setting frequency for NETWORK_MEMORY, Domain(%u), Return-Code(%i)\n", domain2, rc);
+      fprintf(stderr, "*ERROR* Setting frequency for Domain(%u), Return-Code(%i)\n", domain2, rc);
       exit(EXIT_FAILURE);
    }
 

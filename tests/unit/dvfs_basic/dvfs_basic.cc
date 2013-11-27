@@ -19,7 +19,7 @@ int main()
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 2.0;
-   rc = CarbonSetDVFS(0, domain, &frequency, AUTO);
+   rc = CarbonSetDVFSAllTiles(domain, &frequency, AUTO);
    assert(rc == 0);
 
    rc = CarbonGetDVFS(0, domain, &frequency, &voltage);
@@ -27,7 +27,7 @@ int main()
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 1.0;
-   rc = CarbonSetDVFS(0, domain, &frequency, HOLD);
+   rc = CarbonSetDVFSAllTiles(domain, &frequency, HOLD);
    assert(rc == 0);
 
    rc = CarbonGetDVFS(0, domain, &frequency, &voltage);
@@ -40,7 +40,7 @@ int main()
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 2.0;
-   rc = CarbonSetDVFS(1, domain, &frequency, AUTO);
+   rc = CarbonSetDVFSAllTiles(domain, &frequency, AUTO);
    assert(rc == 0);
 
    rc = CarbonGetDVFS(1, domain, &frequency, &voltage);
@@ -48,7 +48,7 @@ int main()
    printf("frequency(%g), voltage(%g)\n", frequency, voltage);
 
    frequency = 1.0;
-   rc = CarbonSetDVFS(1, domain, &frequency, HOLD);
+   rc = CarbonSetDVFSAllTiles(domain, &frequency, HOLD);
    assert(rc == 0);
 
    rc = CarbonGetDVFS(1, domain, &frequency, &voltage);

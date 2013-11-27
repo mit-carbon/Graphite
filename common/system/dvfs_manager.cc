@@ -184,7 +184,7 @@ DVFSManager::doSetDVFS(int module_mask, double frequency, voltage_option_t volta
          rc_tmp = _tile->getMemoryManager()->setDVFS(L2_CACHE, frequency, voltage_flag, curr_time);
          if (rc_tmp != 0) rc = rc_tmp;
       }
-      if (module_mask & DIRECTORY){
+      if ((MemoryManager::getCachingProtocolType() != PR_L1_SH_L2_MSI) && (module_mask & DIRECTORY)){
          rc_tmp = _tile->getMemoryManager()->setDVFS(DIRECTORY, frequency, voltage_flag, curr_time);
          if (rc_tmp != 0 && module_mask != TILE) rc = rc_tmp;
       }

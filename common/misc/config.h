@@ -120,6 +120,8 @@ public:
    //  The returned array will have numMods(proc_num) elements
    const TileList & getTileListForProcess(UInt32 proc_num)
    { assert(proc_num < m_num_processes); return m_proc_to_tile_list_map[proc_num]; }
+   const TileList & getApplicationTileListForProcess(UInt32 proc_num)
+   { assert(proc_num < m_num_processes); return m_proc_to_application_tile_list_map[proc_num]; }
 
    const TileList & getTileListForCurrentProcess()
    { return getTileListForProcess(getCurrentProcessNum()); }
@@ -190,6 +192,7 @@ private:
 
    TileToProcMap m_tile_to_proc_map;
    TileList* m_proc_to_tile_list_map;
+   TileList* m_proc_to_application_tile_list_map;
    CommToTileMap m_comm_to_tile_map;
 
    // Simulation Mode

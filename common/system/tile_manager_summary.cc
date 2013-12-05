@@ -26,7 +26,7 @@ static void gatherSummaries(vector<string> &summaries)
    {
       LOG_PRINT("Collect from process %d", p);
 
-      const Config::TileList &tl = cfg->getTileListForProcess(p);
+      const Config::TileList &tl = cfg->getApplicationTileListForProcess(p);
 
       // signal process to send
       if (p != 0)
@@ -152,31 +152,12 @@ void addRowHeadings(Table &table, const vector<string> &summaries)
 
 void addColHeadings(Table &table)
 {
-   UInt32 num_non_system_tiles;
-   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
-      num_non_system_tiles = Config::getSingleton()->getTotalTiles() - Config::getSingleton()->getProcessCount() - 1;
-   else // Config::getSingleton()->getSimulationMode() == Config::LITE
-      num_non_system_tiles = Config::getSingleton()->getTotalTiles() - 1;
-
-   for (Table::size_type i = 0; i < num_non_system_tiles; i++)
+   for (Table::size_type i = 0; i < Config::getSingleton()->getApplicationTiles(); i++)
    {
       stringstream heading;
       heading << "Tile " << i;
       table(0, i+1) = heading.str();
    }
-
-   if (Config::getSingleton()->getSimulationMode() == Config::FULL)
-   {
-      for (unsigned int i = 0; i < Config::getSingleton()->getProcessCount(); i++)
-      {
-         unsigned int tile_num = Config::getSingleton()->getThreadSpawnerTileNum(i);
-         stringstream heading;
-         heading << "TS " << i;
-         table(0, tile_num + 1) = heading.str();
-      }
-   }
-
-   table(0, Config::getSingleton()->getMCPTileNum()+1) = "MCP";
 }
 
 void addTileSummary(Table &table, tile_id_t tile, const string &summary)
@@ -203,7 +184,7 @@ string formatSummaries(const vector<string> &summaries)
    unsigned int rows = count(summaries[0].begin(), summaries[0].end(), '\n');
 
    // fill in row headings
-   Table table(rows+1, Config::getSingleton()->getTotalTiles()+1);
+   Table table(rows+1, Config::getSingleton()->getApplicationTiles()+1);
 
    addRowHeadings(table, summaries);
    addColHeadings(table);
@@ -252,7 +233,7 @@ void TileManager::outputSummary(ostream &os)
    if (cfg->getCurrentProcessNum() != 0)
       return;
 
-   vector<string> summaries(cfg->getTotalTiles());
+   vector<string> summaries(cfg->getApplicationTiles());
    string formatted;
 
    gatherSummaries(summaries);

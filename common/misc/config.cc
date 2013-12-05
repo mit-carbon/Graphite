@@ -102,6 +102,7 @@ Config::~Config()
 {
    // Clean up the dynamic memory we allocated
    delete [] m_proc_to_tile_list_map;
+   delete [] m_proc_to_application_tile_list_map;
 }
 
 UInt32 Config::getTotalTiles()
@@ -152,10 +153,11 @@ UInt32 Config::computeTileIDLength(UInt32 application_tile_count)
 
 void Config::GenerateTileMap()
 {
-
    vector<TileList> process_to_tile_mapping = computeProcessToTileMapping();
    
    m_proc_to_tile_list_map = new TileList[m_num_processes];
+   m_proc_to_application_tile_list_map = new TileList[m_num_processes];
+
    m_tile_to_proc_map.resize(m_total_tiles);
 
    // Populate the data structures for non-thread-spawner and non-MCP tiles
@@ -169,10 +171,11 @@ void Config::GenerateTileMap()
          {
             m_tile_to_proc_map[*tile_it] = i;
             m_proc_to_tile_list_map[i].push_back(*tile_it);
+            m_proc_to_application_tile_list_map[i].push_back(*tile_it);
          }
       }
    }
-    
+   
    // Assign the thread-spawners to tiles
    // Thread-spawners occupy tile-id's (m_total_tiles - m_num_processes - 1) to (m_total_tiles - 2)
    UInt32 current_proc = 0;

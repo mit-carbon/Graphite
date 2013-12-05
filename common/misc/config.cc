@@ -481,7 +481,7 @@ void Config::parseNetworkParameters()
       config::Config *cfg = Sim()->getCfg();
       network_parameters_list[STATIC_NETWORK_USER] = cfg->getString("network/user");
       network_parameters_list[STATIC_NETWORK_MEMORY] = cfg->getString("network/memory");
-      network_parameters_list[STATIC_NETWORK_SYSTEM] = cfg->getString("network/system");
+      network_parameters_list[STATIC_NETWORK_SYSTEM] = DEFAULT_NETWORK_TYPE;
       network_parameters_list[STATIC_NETWORK_DVFS] = DEFAULT_NETWORK_TYPE;
    }
    catch (...)

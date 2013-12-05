@@ -218,7 +218,7 @@ void TileManager::outputSummary(ostream &os)
    }
 
    // send each summary
-   const Config::TileList &tl = cfg->getTileListForProcess(cfg->getCurrentProcessNum());
+   const Config::TileList &tl = cfg->getApplicationTileListForProcess(cfg->getCurrentProcessNum());
 
    for (UInt32 i = 0; i < tl.size(); i++)
    {

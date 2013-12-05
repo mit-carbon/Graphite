@@ -299,11 +299,11 @@ DVFSManager::initializeDVFSDomainMap()
    string dvfs_domains_list_str;
    try
    {
-      dvfs_domains_list_str = Sim()->getCfg()->getString("dvfs/dvfs_domains");
+      dvfs_domains_list_str = Sim()->getCfg()->getString("dvfs/domains");
    }
    catch(...)
    {
-      fprintf(stderr, "ERROR: Could not read [dvfs/dvfs_domains] from the cfg file\n");
+      fprintf(stderr, "ERROR: Could not read [dvfs/domains] from the cfg file\n");
       exit(EXIT_FAILURE);
    }
 

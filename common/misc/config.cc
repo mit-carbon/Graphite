@@ -167,24 +167,25 @@ void Config::GenerateTileMap()
       TileList::iterator tile_it;
       for (tile_it = process_to_tile_mapping[i].begin(); tile_it != process_to_tile_mapping[i].end(); tile_it++)
       {
-         if ((*tile_it) < (SInt32) (m_total_tiles - m_num_processes - 1))
-         {
-            m_tile_to_proc_map[*tile_it] = i;
-            m_proc_to_tile_list_map[i].push_back(*tile_it);
-            m_proc_to_application_tile_list_map[i].push_back(*tile_it);
-         }
+         assert((*tile_it) < (SInt32) m_application_tiles);
+         m_tile_to_proc_map[*tile_it] = i;
+         m_proc_to_tile_list_map[i].push_back(*tile_it);
+         m_proc_to_application_tile_list_map[i].push_back(*tile_it);
       }
    }
-   
-   // Assign the thread-spawners to tiles
-   // Thread-spawners occupy tile-id's (m_total_tiles - m_num_processes - 1) to (m_total_tiles - 2)
-   UInt32 current_proc = 0;
-   for (UInt32 i = (m_total_tiles - m_num_processes - 1); i < (m_total_tiles - 1); i++)
+ 
+   if (m_simulation_mode == FULL)
    {
-      assert((current_proc >= 0) && (current_proc < m_num_processes));
-      m_tile_to_proc_map[i] = current_proc;
-      m_proc_to_tile_list_map[current_proc].push_back(i);
-      current_proc++;
+      // Assign the thread-spawners to tiles
+      // Thread-spawners occupy tile-id's (m_application_tiles) to (m_total_tiles - 2)
+      UInt32 current_proc = 0;
+      for (UInt32 i = m_application_tiles; i < (m_total_tiles - 1); i++)
+      {
+         assert((current_proc >= 0) && (current_proc < m_num_processes));
+         m_tile_to_proc_map[i] = current_proc;
+         m_proc_to_tile_list_map[current_proc].push_back(i);
+         current_proc++;
+      }
    }
    
    // Add one for the MCP
@@ -219,7 +220,7 @@ Config::computeProcessToTileMapping()
    
    vector<TileList> process_to_tile_mapping(m_num_processes);
    UInt32 current_proc = 0;
-   for (UInt32 i = 0; i < m_total_tiles; i++)
+   for (UInt32 i = 0; i < m_application_tiles; i++)
    {
       process_to_tile_mapping[current_proc].push_back(i);
       current_proc = (current_proc + 1) % m_num_processes;

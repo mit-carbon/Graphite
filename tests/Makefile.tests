@@ -66,7 +66,7 @@ endif
 
 PIN_BIN = $(PIN_HOME)/intel64/bin/pinbin
 PIN_TOOL = $(SIM_ROOT)/lib/pin_sim
-PIN_RUN = $(PIN_BIN) $(PIN_DEBUG_FLAGS) -tool_exit_timeout 1 -mt -t $(PIN_TOOL)
+PIN_RUN = $(PIN_BIN) $(PIN_DEBUG_FLAGS) -injection child -tool_exit_timeout 1 -mt -t $(PIN_TOOL)
 
 CONFIG_FILE_ABS_PATH := $(SIM_ROOT)/$(CONFIG_FILE)
 OUTPUT_DIR_ABS_PATH := $(SIM_ROOT)/results/$(OUTPUT_DIR)

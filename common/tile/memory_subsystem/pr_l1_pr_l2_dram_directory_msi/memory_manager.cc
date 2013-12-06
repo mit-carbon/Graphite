@@ -424,13 +424,13 @@ MemoryManager::outputSummary(std::ostream &os, const Time& target_completion_tim
    if (_dram_cntlr_present)
    {      
       _dram_cntlr->getDramPerfModel()->outputSummary(os);
-      os << "Dram Directory Cache Summary:\n";
+      os << "Dram Directory Summary:\n";
       _dram_directory_cntlr->getDramDirectoryCache()->outputSummary(os);
    }
    else
    {
       DramPerfModel::dummyOutputSummary(os);
-      os << "Dram Directory Cache Summary:\n";
+      os << "Dram Directory Summary:\n";
       DirectoryCache::dummyOutputSummary(os, getTile()->getId());
    }
 }

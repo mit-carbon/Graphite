@@ -140,6 +140,51 @@ void TileEnergyMonitor::periodicallyCollectEnergy()
 }
 
 //---------------------------------------------------------------------------
+// Collect Energy
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::collectEnergy()
+{
+   // Check Core Cycle Count
+   m_current_time = m_core_model->getCurrTime().toSec();
+
+   // Calculate Time Elapsed from Previous Time
+   m_time_elapsed = m_current_time - m_previous_time;
+   // Increment Counter
+   m_counter = m_counter + 1;
+
+   // Compute Energy
+   Time curr_time = m_core_model->getCurrTime();
+   computeCoreEnergy(curr_time);
+   computeCacheEnergy(curr_time);
+
+   // Collect Energy
+   collectCoreEnergy();
+   collectCacheEnergy();
+   collectNetworkEnergy();
+
+   // Calculate Power
+   calculateCorePower();
+   calculateCachePower();
+   calculateNetworkPower();
+
+   // Update the Previous Time
+   m_previous_time = m_current_time;
+   // Update the Next Time
+   m_next_time = m_current_time + m_delta_t;
+
+   // Power Trace
+   if (m_power_trace_enabled)
+   {
+      if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
+      {
+         // Not Thread Spawner Tile / MCP
+         // Log Current Total Energy and Power
+         logCurrentTotalEnergyAndPower();
+      }
+   }
+}
+
+//---------------------------------------------------------------------------
 // Log Current Total Energy and Power
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::logCurrentTotalEnergyAndPower()
@@ -494,7 +539,7 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
    if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
       // Not Thread Spawner Tile / MCP
-      periodicallyCollectEnergy();
+      collectEnergy();
 
       out << "Tile Energy Monitor Summary: " << endl;
       /*

@@ -35,6 +35,9 @@ public:
    // Periodically Collect Energy
    void periodicallyCollectEnergy();
 
+   // Collect Energy
+   void collectEnergy();
+
    // Output Summary
    void outputSummary(std::ostream &out);
 

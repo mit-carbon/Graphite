@@ -65,13 +65,14 @@ IOCOOMCoreModel::outputSummary(std::ostream &os, const Time& target_completion_t
 {
    CoreModel::outputSummary(os, target_completion_time);
 
-   os << "    Total Load Queue Stall Time (in nanoseconds): " << _total_load_queue_stall_time.toNanosec() << endl;
-   os << "    Total Store Queue Stall Time (in nanoseconds): " << _total_store_queue_stall_time.toNanosec() << endl;
-   os << "    Total L1-I Cache Stall Time (in nanoseconds): " << _total_l1icache_stall_time.toNanosec() << endl;
-   os << "    Total Intra Ins L1-D Cache Stall Time (in nanoseconds): " << _total_intra_ins_l1dcache_stall_time.toNanosec() << endl;
-   os << "    Total Inter Ins L1-D Cache Stall Time (in nanoseconds): " << _total_inter_ins_l1dcache_stall_time.toNanosec() << endl;
-   os << "    Total Intra Ins Execution Unit Stall Time (in nanoseconds): " << _total_intra_ins_execution_unit_stall_time.toNanosec() << endl;
-   os << "    Total Inter Ins Execution Unit Stall Time (in nanoseconds): " << _total_inter_ins_execution_unit_stall_time.toNanosec() << endl;
+   os << "    Detailed Stall Time Breakdown (in nanoseconds): " << endl;
+   os << "      Load Queue: "  << _total_load_queue_stall_time.toNanosec() << endl;
+   os << "      Store Queue: " << _total_store_queue_stall_time.toNanosec() << endl;
+   os << "      L1-I Cache: "  << _total_l1icache_stall_time.toNanosec() << endl;
+   os << "      L1-D Cache (Intra-Instruction): " << _total_intra_ins_l1dcache_stall_time.toNanosec() << endl;
+   os << "      L1-D Cache (Inter-Instruction): " << _total_inter_ins_l1dcache_stall_time.toNanosec() << endl;
+   os << "      Execution Unit (Intra-Instruction): " << _total_intra_ins_execution_unit_stall_time.toNanosec() << endl;
+   os << "      Execution Unit (Inter-Instruction): " << _total_inter_ins_execution_unit_stall_time.toNanosec() << endl;
 }
 
 void IOCOOMCoreModel::handleInstruction(Instruction *instruction)

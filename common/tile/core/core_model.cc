@@ -94,23 +94,24 @@ void CoreModel::outputSummary(ostream& os, const Time& target_completion_time)
    os << "    Completion Time (in nanoseconds): " << _curr_time.toNanosec() << endl;
    os << "    Average Frequency (in GHz): " << _average_frequency << endl;
    // Pipeline stall / dynamic instruction counters
-   os << "    Total Synchronization Stalls: " << _total_sync_instructions << endl;
-   os << "    Total Network Recv Stalls: " << _total_recv_instructions << endl;
-   os << "    Total Memory Stall Time (in nanoseconds): " << _total_memory_stall_time.toNanosec() << endl;
-   os << "    Total Execution Unit Stall Time (in nanoseconds): " << _total_execution_unit_stall_time.toNanosec() << endl;
-   os << "    Total Synchronization Stall Time (in nanoseconds): " << _total_sync_instruction_stall_time.toNanosec() << endl;
-   os << "    Total Network Recv Stall Time (in nanoseconds): " << _total_recv_instruction_stall_time.toNanosec() << endl;
-   // Memory fence counters
-   os << "    Total LFENCE Instructions: " << _total_lfence_instructions << endl;
-   os << "    Total SFENCE Instructions: " << _total_sfence_instructions << endl;
-   os << "    Total Explicit MFENCE Instructions: " << _total_explicit_mfence_instructions << endl; 
-   os << "    Total Implicit MFENCE Instructions: " << _total_implicit_mfence_instructions << endl; 
+   os << "    Synchronization Stalls: " << _total_sync_instructions << endl;
+   os << "    Network Recv Stalls: " << _total_recv_instructions << endl;
+   os << "    Stall Time Breakdown (in nanoseconds): " << endl;
+   os << "      Memory: " << _total_memory_stall_time.toNanosec() << endl;
+   os << "      Execution Unit: " << _total_execution_unit_stall_time.toNanosec() << endl;
+   os << "      Synchronization: " << _total_sync_instruction_stall_time.toNanosec() << endl;
+   os << "      Network Recv: " << _total_recv_instruction_stall_time.toNanosec() << endl;
 
    // Branch Predictor Summary
    if (_bp)
       _bp->outputSummary(os);
 
    _mcpat_core_interface->outputSummary(os, target_completion_time);
+   
+   // Memory fence counters
+   os << "    Fence Instructions: " << endl;
+   os << "      Explicit LFENCE, SFENCE, MFENCE: " << _total_lfence_instructions + _total_sfence_instructions + _total_explicit_mfence_instructions << endl;
+   os << "      Implicit MFENCE: " << _total_implicit_mfence_instructions << endl; 
 }
 
 void CoreModel::initializeMcPATInterface(UInt32 num_load_buffer_entries, UInt32 num_store_buffer_entries)

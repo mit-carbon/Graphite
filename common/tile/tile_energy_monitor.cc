@@ -497,24 +497,26 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
       periodicallyCollectEnergy();
 
       out << "Tile Energy Monitor Summary: " << endl;
-      //out << "  First Time (in nanoseconds): " << m_first_time << std::endl;
-      //out << "  Last Time (in nanoseconds): " << m_last_time << std::endl;
-      //out << "  Delta t (in nanoseconds): " << m_delta_t << std::endl;
-      //out << "  Counter: " << m_counter << std::endl;
-      //out << "  Current Time (in nanoseconds): " << m_current_time << std::endl;
-      //out << "  Previous Time (in nanoseconds): " << m_previous_time << std::endl;
-      //out << "  Time Elapsed (in nanoseconds): " << m_time_elapsed << std::endl;
+      /*
+      out << "  First Time (in nanoseconds): " << m_first_time << std::endl;
+      out << "  Last Time (in nanoseconds): " << m_last_time << std::endl;
+      out << "  Delta t (in nanoseconds): " << m_delta_t << std::endl;
+      out << "  Counter: " << m_counter << std::endl;
+      out << "  Current Time (in nanoseconds): " << m_current_time << std::endl;
+      out << "  Previous Time (in nanoseconds): " << m_previous_time << std::endl;
+      out << "  Time Elapsed (in nanoseconds): " << m_time_elapsed << std::endl;
+       */
       out << "  Core: " << endl;
       out << "    Static Energy (in J): " << m_core_current_static_energy << std::endl;
       out << "    Dynamic Energy (in J): " << m_core_current_dynamic_energy << std::endl;
       out << "    Total Energy (in J): " << m_core_current_total_energy << std::endl;
-      out << "  Cache: " << endl;
+      out << "  Cache Hierarchy (L1-I, L1-D, L2): " << endl;
       out << "    Static Energy (in J): " << m_cache_current_static_energy << std::endl;
       out << "    Dynamic Energy (in J): " << m_cache_current_dynamic_energy << std::endl;
       out << "    Total Energy (in J): " << m_cache_current_total_energy << std::endl;
       for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
       {
-         if (i > STATIC_NETWORK_SYSTEM) break;
+         if (i >= STATIC_NETWORK_SYSTEM) break;
          out << "  Network (" <<  m_network->getNetworkModel(i)->getNetworkName() << "): " << endl;
          out << "    Static Energy (in J): " << m_network_current_static_energy[i] << std::endl;
          out << "    Dynamic Energy (in J): " << m_network_current_dynamic_energy[i] << std::endl;

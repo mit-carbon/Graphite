@@ -29,9 +29,9 @@ void SimpleCoreModel::outputSummary(std::ostream &os, const Time& target_complet
 {
    CoreModel::outputSummary(os, target_completion_time);
   
-//   os << "    Total L1-I Cache Stall Time (in nanoseconds): " << _total_l1icache_stall_time.toNanosec()<< endl;
-//   os << "    Total L1-D Cache Read Stall Time (in nanoseconds): " << _total_l1dcache_read_stall_time.toNanosec()<< endl;
-//   os << "    Total L1-D Cache Write Stall Time (in nanoseconds): " << _total_l1dcache_write_stall_time.toNanosec() << endl;
+   os << "    Detailed Stall Time Breakdown (in nanoseconds): " << endl;
+   os << "      L1-I Cache: " << _total_l1icache_stall_time.toNanosec() << endl;
+   os << "      L1-D Cache: " << _total_l1dcache_read_stall_time.toNanosec() + _total_l1dcache_write_stall_time.toNanosec() << endl;
 }
 
 void SimpleCoreModel::handleInstruction(Instruction *instruction)

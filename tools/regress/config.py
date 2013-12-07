@@ -20,7 +20,6 @@ splash2_list = [
       "lu_non_contiguous",
       "cholesky",
       "barnes",
-      "fmm",
       "ocean_contiguous",
       "ocean_non_contiguous",
       "water-nsquared",

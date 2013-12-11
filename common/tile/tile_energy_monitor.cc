@@ -54,8 +54,8 @@ TileEnergyMonitor::TileEnergyMonitor(Tile *tile)
          sprintf(m_filename, "%s_%d.csv", "power_trace_tile", m_tile_id);
          m_power_trace_file = fopen(Config::getSingleton()->formatOutputFileName(m_filename).c_str(),"w");
          fprintf(m_power_trace_file,\
-            "Time %d, Core Energy %d, Core Power %d, Cache Energy %d, Cache Power %d, Network Energy %d, Network Power %d\n",\
-            m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id);
+            "Time %d, Core Static Energy %d, Core Static Power %d, Core Dynamic Energy %d, Core Dynamic Power %d, Core Total Energy %d, Core Total Power %d, Cache Static Energy %d, Cache Static Power %d, Cache Dynamic Energy %d, Cache Dynamic Power %d, Cache Total Energy %d, Cache Total Power %d, Network (Memory) Static Energy %d, Network (Memory) Static Power %d, Network (Memory) Dynamic Energy %d, Network (Memory) Dynamic Power %d, Network (Memory) Total Energy %d, Network (Memory) Total Power %d\n",\
+            m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id, m_tile_id);
          // Log Initial Energy and Power
          logCurrentTotalEnergyAndPower();
       }
@@ -96,56 +96,22 @@ double TileEnergyMonitor::getTileEnergy()
 void TileEnergyMonitor::periodicallyCollectEnergy()
 {
    // Check Core Cycle Count
-   m_current_time = m_core_model->getCurrTime().toSec();
+   double current_time = m_core_model->getCurrTime().toSec();
 
    // Check if the Next Time has been reached
-   if (m_current_time >= m_next_time)
+   if (current_time >= m_next_time)
    {
-      // Calculate Time Elapsed from Previous Time
-      m_time_elapsed = m_current_time - m_previous_time;
-      // Increment Counter
-      m_counter = m_counter + 1;
-
-      // Compute Energy
-      Time curr_time = m_core_model->getCurrTime();
-      computeCoreEnergy(curr_time);
-      computeCacheEnergy(curr_time);
-
-      // Collect Energy
-      collectCoreEnergy();
-      collectCacheEnergy();
-      collectNetworkEnergy();
-
-      // Calculate Power
-      calculateCorePower();
-      calculateCachePower();
-      calculateNetworkPower();
-
-      // Update the Previous Time
-      m_previous_time = m_current_time;
-      // Update the Next Time
-      m_next_time = m_current_time + m_delta_t;
-
-      // Power Trace
-      if (m_power_trace_enabled)
-      {
-         if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
-         {
-            // Not Thread Spawner Tile / MCP
-            // Log Current Total Energy and Power
-            logCurrentTotalEnergyAndPower();
-         }
-      }
+      collectEnergy(current_time);
    }
 }
 
 //---------------------------------------------------------------------------
 // Collect Energy
 //---------------------------------------------------------------------------
-void TileEnergyMonitor::collectEnergy()
+void TileEnergyMonitor::collectEnergy(double current_time)
 {
    // Check Core Cycle Count
-   m_current_time = m_core_model->getCurrTime().toSec();
+   m_current_time = current_time;
 
    // Calculate Time Elapsed from Previous Time
    m_time_elapsed = m_current_time - m_previous_time;
@@ -156,6 +122,7 @@ void TileEnergyMonitor::collectEnergy()
    Time curr_time = m_core_model->getCurrTime();
    computeCoreEnergy(curr_time);
    computeCacheEnergy(curr_time);
+   computeNetworkEnergy(curr_time);
 
    // Collect Energy
    collectCoreEnergy();
@@ -190,12 +157,24 @@ void TileEnergyMonitor::collectEnergy()
 void TileEnergyMonitor::logCurrentTotalEnergyAndPower()
 {
    fprintf(m_power_trace_file,\
-      "%g, %g, %g, %g, %g, %g, %g\n", \
+      "%g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g\n", \
       (double) m_current_time,\
+      (double) m_core_current_static_energy,\
+      (double) m_core_current_static_power,\
+      (double) m_core_current_dynamic_energy,\
+      (double) m_core_current_dynamic_power,\
       (double) m_core_current_total_energy,\
       (double) m_core_current_total_power,\
+      (double) m_cache_current_static_energy,\
+      (double) m_cache_current_static_power,\
+      (double) m_cache_current_dynamic_energy,\
+      (double) m_cache_current_dynamic_power,\
       (double) m_cache_current_total_energy,\
       (double) m_cache_current_total_power,\
+      (double) m_network_current_static_energy[1],\
+      (double) m_network_current_static_power[1],\
+      (double) m_network_current_dynamic_energy[1],\
+      (double) m_network_current_dynamic_power[1],\
       (double) m_network_current_total_energy[1],\
       (double) m_network_current_total_power[1]);
 }
@@ -442,6 +421,18 @@ void TileEnergyMonitor::initializeNetworkEnergyCounters()
 }
 
 //---------------------------------------------------------------------------
+// Compute Network Energy
+//---------------------------------------------------------------------------
+void TileEnergyMonitor::computeNetworkEnergy(Time &curr_time)
+{
+   for (UInt32 i = 0; i < NUM_STATIC_NETWORKS; i++)
+   {
+      // Compute Energy
+      m_network->getNetworkModel(i)->computeEnergy(curr_time);
+   }
+}
+
+//---------------------------------------------------------------------------
 // Collect Network Energy
 //---------------------------------------------------------------------------
 void TileEnergyMonitor::collectNetworkEnergy()
@@ -539,7 +530,6 @@ void TileEnergyMonitor::outputSummary(std::ostream &out)
    if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
       // Not Thread Spawner Tile / MCP
-      collectEnergy();
 
       out << "Tile Energy Monitor Summary: " << endl;
       /*

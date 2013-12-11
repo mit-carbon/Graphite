@@ -36,7 +36,7 @@ public:
    void periodicallyCollectEnergy();
 
    // Collect Energy
-   void collectEnergy();
+   void collectEnergy(double current_time);
 
    // Output Summary
    void outputSummary(std::ostream &out);
@@ -129,6 +129,7 @@ private:
    // Nework Energy
    void initializeNetworkEnergyCounters();
    //    Total
+   void computeNetworkEnergy(Time& curr_time);
    void collectNetworkEnergy();
    void calculateNetworkPower();
    //    Dynamic

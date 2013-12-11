@@ -39,7 +39,7 @@ public:
    void collectEnergy(double current_time);
 
    // Output Summary
-   void outputSummary(std::ostream &out);
+   void outputSummary(std::ostream &out, const Time& target_completion_time);
 
 private:
    // Parts of Tile Energy Monitor

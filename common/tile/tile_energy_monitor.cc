@@ -521,15 +521,16 @@ void TileEnergyMonitor::calculateNetworkStaticPower()
 //---------------------------------------------------------------------------
 // Output Summary
 //---------------------------------------------------------------------------
-void TileEnergyMonitor::outputSummary(std::ostream &out)
+void TileEnergyMonitor::outputSummary(std::ostream &out, const Time& target_completion_time)
 {
    // Set Last Time Variable
    // Check Core Cycle Count
-   m_last_time = m_core_model->getCurrTime().toSec();
+   m_last_time = target_completion_time.toSec();
 
    if (m_tile_id < (tile_id_t) Sim()->getConfig()->getApplicationTiles())
    {
       // Not Thread Spawner Tile / MCP
+      collectEnergy(m_last_time);
 
       out << "Tile Energy Monitor Summary: " << endl;
       /*

@@ -60,6 +60,10 @@ void Tile::outputSummary(ostream &os)
 
    LOG_PRINT("Network Summary");
    _network->outputSummary(os, target_completion_time);
+
+   LOG_PRINT("Tile Energy Monitor Summary");
+   if (_tile_energy_monitor)
+      _tile_energy_monitor->outputSummary(os, target_completion_time);
 }
 
 void Tile::enableModels()

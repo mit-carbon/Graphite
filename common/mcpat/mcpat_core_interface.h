@@ -11,6 +11,8 @@ using std::map;
 #include "mcpat_instruction.h"
 #include "contrib/mcpat/mcpat.h"
 
+class CoreModel;
+
 //---------------------------------------------------------------------------
 // McPAT Core Interface Data Structures for Area and Power
 //---------------------------------------------------------------------------
@@ -80,7 +82,7 @@ class McPATCoreInterface
 public:
    
    // McPAT Core Interface Constructor
-   McPATCoreInterface(double frequency, double voltage, UInt32 load_buffer_size, UInt32 store_buffer_size);
+   McPATCoreInterface(CoreModel* core_model, double frequency, double voltage, UInt32 load_buffer_size, UInt32 store_buffer_size);
    // McPAT Core Interface Destructor
    ~McPATCoreInterface();
 
@@ -103,6 +105,7 @@ public:
    double getLeakageEnergy();
 
 private:
+   CoreModel* _core_model;
    // McPAT Objects
    typedef map<double,McPAT::CoreWrapper*> CoreWrapperMap;
    CoreWrapperMap _core_wrapper_map;

@@ -5,12 +5,16 @@
 #include "mcpat_core_interface.h"
 #include "simulator.h"
 #include "dvfs_manager.h"
+#include "core_model.h"
+#include "core.h"
+#include "tile.h"
 
 //---------------------------------------------------------------------------
 // McPAT Core Interface Constructor
 //---------------------------------------------------------------------------
-McPATCoreInterface::McPATCoreInterface(double frequency, double voltage, UInt32 load_queue_size, UInt32 store_queue_size)
-   : _last_energy_compute_time(Time(0))
+McPATCoreInterface::McPATCoreInterface(CoreModel* core_model, double frequency, double voltage, UInt32 load_queue_size, UInt32 store_queue_size)
+   : _core_model(core_model)
+   , _last_energy_compute_time(Time(0))
 {
    LOG_ASSERT_ERROR(frequency != 0 && voltage != 0, "Frequency and voltage must be greater than zero.");
 
@@ -487,6 +491,8 @@ void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count)
 void McPATCoreInterface::computeEnergy(const Time& curr_time)
 {
    // Compute the interval between current time and time when energy was last computed
+   LOG_ASSERT_ERROR(curr_time >= _last_energy_compute_time, "Tile-ID(%i), Curr-Time(%llu ns), Last-Energy-Compute-Time(%llu ns)",
+                    _core_model->getCore()->getTile()->getId(), curr_time.toNanosec(), _last_energy_compute_time.toNanosec());
    double time_interval = (curr_time - _last_energy_compute_time).toSec();
 
    // Fill the ParseXML's Core Stats with the event counters

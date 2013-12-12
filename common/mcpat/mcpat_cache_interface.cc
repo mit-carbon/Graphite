@@ -98,6 +98,7 @@ void McPATCacheInterface::setDVFS(double voltage, double frequency, const Time& 
 void McPATCacheInterface::computeEnergy(const Time& curr_time)
 {
    // Compute the interval between current time and time when energy was last computed
+   assert(curr_time >= _last_energy_compute_time);
    double time_interval = (curr_time - _last_energy_compute_time).toSec();
 
    // Fill the ParseXML's Core Event Stats from McPATCacheInterface

@@ -119,7 +119,7 @@ void CoreModel::initializeMcPATInterface(UInt32 num_load_buffer_entries, UInt32 
    // For Power/Area Modeling
    double frequency = _core->getFrequency();
    double voltage = _core->getVoltage();
-   _mcpat_core_interface = new McPATCoreInterface(frequency, voltage, num_load_buffer_entries, num_store_buffer_entries);
+   _mcpat_core_interface = new McPATCoreInterface(this, frequency, voltage, num_load_buffer_entries, num_store_buffer_entries);
 }
 
 void CoreModel::updateMcPATCounters(Instruction* instruction)
@@ -137,7 +137,7 @@ void CoreModel::computeEnergy(const Time& curr_time)
 {
    UInt64 curr_cycles = _curr_time.toCycles(_core->getFrequency());
    _mcpat_core_interface->updateCycleCounters(curr_cycles);
-   _mcpat_core_interface->computeEnergy(_curr_time);
+   _mcpat_core_interface->computeEnergy(curr_time);
 }
 
 double CoreModel::getDynamicEnergy()

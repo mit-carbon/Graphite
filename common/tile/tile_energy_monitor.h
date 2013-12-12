@@ -22,60 +22,52 @@ public:
    // Tile Energy Monitor Destructor
    ~TileEnergyMonitor();
 
-   // Get Parts of Tile Energy Monitor
-   Tile* getTile()               const { return m_tile; }
-   Core* getCore()                     { return m_core; }
-   CoreModel* getCoreModel()           { return m_core_model; }
-   Network* getNetwork()               { return m_network; }
-   MemoryManager* getMemoryManager()   { return m_memory_manager; }
-
    // Get Energy Information
    double getTileEnergy();
 
    // Periodically Collect Energy
    void periodicallyCollectEnergy();
 
-   // Collect Energy
-   void collectEnergy(double current_time);
-
    // Output Summary
-   void outputSummary(std::ostream &out, const Time& target_completion_time);
+   void outputSummary(ostream &out, const Time& target_completion_time);
 
 private:
    // Parts of Tile Energy Monitor
-   tile_id_t m_tile_id;
-   Tile* m_tile;
-   Core* m_core;
-   CoreModel* m_core_model;
-   Network* m_network;
-   MemoryManager* m_memory_manager;
+   Tile* _tile;
+   CoreModel* _core_model;
+   Network* _network;
+   MemoryManager* _memory_manager;
+   tile_id_t _tile_id;
+
+   // Collect Energy
+   void collectEnergy(const Time& curr_time);
 
    // Power Trace
    void logCurrentTotalEnergyAndPower();
 
    // Power Trace Variables
-   bool m_power_trace_enabled;
-   FILE *m_power_trace_file;
+   bool _power_trace_enabled;
+   FILE *_power_trace_file;
 
    // Sampling Period
-   double m_delta_t; // (in nanoseconds)
+   Time _delta_t; // (in nanoseconds)
 
    // Time
    void initializeTimeCounters();
 
    // Time Counters
-   double m_first_time;
-   double m_previous_time;
-   double m_current_time;
-   double m_next_time;
-   double m_last_time;
-   double m_time_elapsed;
-   double m_counter;
+   Time _first_time;
+   Time _previous_time;
+   Time _current_time;
+   Time _next_time;
+   Time _last_time;
+   Time _time_elapsed;
+   UInt64 _counter;
 
    // Core Energy
    void initializeCoreEnergyCounters();
    //    Total
-   void computeCoreEnergy(Time& curr_time);
+   void computeCoreEnergy();
    void collectCoreEnergy();
    void calculateCorePower();
    //    Dynamic
@@ -87,22 +79,22 @@ private:
 
    // Core Energy Counters
    //    Total
-   double m_core_previous_total_energy;
-   double m_core_current_total_energy;
-   double m_core_current_total_power;
+   double _core_previous_total_energy;
+   double _core_current_total_energy;
+   double _core_current_total_power;
    //    Dynamic
-   double m_core_previous_dynamic_energy;
-   double m_core_current_dynamic_energy;
-   double m_core_current_dynamic_power;
+   double _core_previous_dynamic_energy;
+   double _core_current_dynamic_energy;
+   double _core_current_dynamic_power;
    //    Static
-   double m_core_previous_static_energy;
-   double m_core_current_static_energy;
-   double m_core_current_static_power;
+   double _core_previous_static_energy;
+   double _core_current_static_energy;
+   double _core_current_static_power;
 
    // Cache Energy
    void initializeCacheEnergyCounters();
    //    Total
-   void computeCacheEnergy(Time& curr_time);
+   void computeCacheEnergy();
    void collectCacheEnergy();
    void calculateCachePower();
    //    Dynamic
@@ -114,22 +106,22 @@ private:
 
    // Cache Energy Counters
    //    Total
-   double m_cache_previous_total_energy;
-   double m_cache_current_total_energy;
-   double m_cache_current_total_power;
+   double _cache_previous_total_energy;
+   double _cache_current_total_energy;
+   double _cache_current_total_power;
    //    Dynamic
-   double m_cache_previous_dynamic_energy;
-   double m_cache_current_dynamic_energy;
-   double m_cache_current_dynamic_power;
+   double _cache_previous_dynamic_energy;
+   double _cache_current_dynamic_energy;
+   double _cache_current_dynamic_power;
    //    Static
-   double m_cache_previous_static_energy;
-   double m_cache_current_static_energy;
-   double m_cache_current_static_power;
+   double _cache_previous_static_energy;
+   double _cache_current_static_energy;
+   double _cache_current_static_power;
 
    // Nework Energy
    void initializeNetworkEnergyCounters();
    //    Total
-   void computeNetworkEnergy(Time& curr_time);
+   void computeNetworkEnergy();
    void collectNetworkEnergy();
    void calculateNetworkPower();
    //    Dynamic
@@ -141,15 +133,15 @@ private:
 
    // Network Energy Counters
    //    Total
-   double m_network_previous_total_energy[NUM_STATIC_NETWORKS];
-   double m_network_current_total_energy[NUM_STATIC_NETWORKS];
-   double m_network_current_total_power[NUM_STATIC_NETWORKS];
+   double _network_previous_total_energy[NUM_STATIC_NETWORKS];
+   double _network_current_total_energy[NUM_STATIC_NETWORKS];
+   double _network_current_total_power[NUM_STATIC_NETWORKS];
    //    Dynamic
-   double m_network_previous_dynamic_energy[NUM_STATIC_NETWORKS];
-   double m_network_current_dynamic_energy[NUM_STATIC_NETWORKS];
-   double m_network_current_dynamic_power[NUM_STATIC_NETWORKS];
+   double _network_previous_dynamic_energy[NUM_STATIC_NETWORKS];
+   double _network_current_dynamic_energy[NUM_STATIC_NETWORKS];
+   double _network_current_dynamic_power[NUM_STATIC_NETWORKS];
    //    Static
-   double m_network_previous_static_energy[NUM_STATIC_NETWORKS];
-   double m_network_current_static_energy[NUM_STATIC_NETWORKS];
-   double m_network_current_static_power[NUM_STATIC_NETWORKS];
+   double _network_previous_static_energy[NUM_STATIC_NETWORKS];
+   double _network_current_static_energy[NUM_STATIC_NETWORKS];
+   double _network_current_static_power[NUM_STATIC_NETWORKS];
 };

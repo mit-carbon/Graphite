@@ -31,8 +31,8 @@ class Latency
 class Time
 {
    public:
-      explicit Time(UInt64 picosec=0):_picosec(picosec){}
-      Time(const Time& time):_picosec(time._picosec){}
+      explicit Time(UInt64 picosec=0): _picosec(picosec){}
+      Time(const Time& time): _picosec(time._picosec){}
       Time(const Latency& lat): _picosec(lat.toPicosec()){}
       ~Time(){};
 
@@ -45,29 +45,26 @@ class Time
       Time operator-(const Time& time) const
             { return Time(_picosec - time._picosec); }
 
-      bool operator>(const Time& time)
+      bool operator>(const Time& time) const
             { return _picosec > time._picosec; }
 
       bool operator<(const Time& time) const
             { return _picosec < time._picosec; }
 
-      bool operator<=(const Time& time)
+      bool operator<=(const Time& time) const
             { return _picosec <= time._picosec; }
 
-      bool operator>=(const Time& time)
+      bool operator>=(const Time& time) const
             { return _picosec >= time._picosec; }
 
-      bool operator==(const UInt64& picosec)
-            { return _picosec == picosec; } 
+      bool operator==(const UInt64& picosec) const
+            { return _picosec == picosec; }
 
       void operator+=(const Time& time)
             { _picosec += time._picosec; }
 
       void operator-=(const Time& time)
             { _picosec -= time._picosec; }
-
-      Time operator=(const Time& time)
-            { _picosec = time._picosec; return *this; }
 
       UInt64 toCycles(double frequency) const;
       UInt64 getTime() const { return _picosec; }

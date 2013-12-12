@@ -418,21 +418,19 @@ int main(int argc, char *argv[])
    // Added thread start/fini callback
    PIN_AddThreadStartFunction(threadStartCallback, 0);
    PIN_AddThreadFiniFunction(threadFiniCallback, 0);
-   
-   if ((cfg->getBool("general/enable_syscall_modeling")))
+
+   // Syscall modeling   
+   if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
    {
-      if (Sim()->getConfig()->getSimulationMode() == Config::FULL)
-      {
-         initializeSyscallModeling();
-         PIN_AddSyscallEntryFunction(syscallEnterRunModel, 0);
-         PIN_AddSyscallExitFunction(syscallExitRunModel, 0);
-         PIN_AddContextChangeFunction(contextChange, NULL);
-      }
-      else // Sim()->getConfig()->getSimulationMode() == Config::LITE
-      {
-         PIN_AddSyscallEntryFunction(lite::syscallEnterRunModel, 0);
-         PIN_AddSyscallExitFunction(lite::syscallExitRunModel, 0);
-      }
+      initializeSyscallModeling();
+      PIN_AddSyscallEntryFunction(syscallEnterRunModel, 0);
+      PIN_AddSyscallExitFunction(syscallExitRunModel, 0);
+      PIN_AddContextChangeFunction(contextChange, NULL);
+   }
+   else // Sim()->getConfig()->getSimulationMode() == Config::LITE
+   {
+      PIN_AddSyscallEntryFunction(lite::syscallEnterRunModel, 0);
+      PIN_AddSyscallExitFunction(lite::syscallExitRunModel, 0);
    }
 
    // Add RTN instrumentation

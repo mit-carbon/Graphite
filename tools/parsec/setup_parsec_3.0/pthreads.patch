@@ -1,0 +1,90 @@
+commit f8b7abd7d8327ab2e228b3fd68e92ff5d1e73de9
+Author: George Kurian <gkurian@mit.edu>
+Date:   Tue Oct 1 01:56:03 2013 -0400
+
+    [pthread create/join] Removed using the pthread_attr_t structure in pthread_create and storing the thread exit code in pthread_join from certain PARSEC benchmarks
+
+diff --git a/pkgs/apps/blackscholes/src/c.m4.pthreads b/pkgs/apps/blackscholes/src/c.m4.pthreads
+index 6d4b2a1..aee11a6 100644
+--- a/pkgs/apps/blackscholes/src/c.m4.pthreads
++++ b/pkgs/apps/blackscholes/src/c.m4.pthreads
+@@ -102,10 +102,9 @@ define(ARELEASE,   `pthread_mutex_unlock(&($1[$2]));')
+ define(WAIT_FOR_END, `
+     {
+         int _M4_i;
+-        void *_M4_ret;
+         for ( _M4_i = 0; _M4_i < MAX_THREADS;_M4_i++) {
+             if ( _M4_threadsTableAllocated[_M4_i] == 0)    break;
+-            pthread_join( _M4_threadsTable[_M4_i], &_M4_ret);
++            pthread_join( _M4_threadsTable[_M4_i], NULL);
+         }
+     }
+ ')
+diff --git a/pkgs/apps/fluidanimate/src/pthreads.cpp b/pkgs/apps/fluidanimate/src/pthreads.cpp
+index bd7fadf..efca310 100644
+--- a/pkgs/apps/fluidanimate/src/pthreads.cpp
++++ b/pkgs/apps/fluidanimate/src/pthreads.cpp
+@@ -71,7 +71,6 @@ struct Grid
+   };
+ } *grids;
+ bool  *border;
+-pthread_attr_t attr;
+ pthread_t *thread;
+ pthread_mutex_t **mutex;  // used to lock cells in RebuildGrid and also particles in other functions
+ pthread_barrier_t barrier;  // global barrier used by all threads
+@@ -256,9 +255,6 @@ void InitSim(char const *fileName, unsigned int threadnum)
+            } // for(int dk = -1; dk <= 1; ++dk)
+         }
+ 
+-  pthread_attr_init(&attr);
+-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+-
+   mutex = new pthread_mutex_t *[numCells];
+   for(int i = 0; i < numCells; ++i)
+   {
+@@ -482,7 +478,6 @@ void CleanUpSim()
+   //      itself. This guarantees that all allocated cells will be freed but it might
+   //      render other cell pools unusable so they also have to be destroyed.
+   for(int i=0; i<NUM_GRIDS; i++) cellpool_destroy(&pools[i]);
+-  pthread_attr_destroy(&attr);
+ 
+   for(int i = 0; i < numCells; ++i)
+   {
+@@ -1248,7 +1243,7 @@ int main(int argc, char *argv[])
+   for(int i = 1; i < threadnum; ++i) {
+     targs[i].tid = i;
+     targs[i].frames = framenum;
+-    pthread_create(&thread[i], &attr, AdvanceFramesMT, &targs[i]);
++    pthread_create(&thread[i], NULL, AdvanceFramesMT, &targs[i]);
+   }
+   targs[0].tid = 0;
+   targs[0].frames = framenum;
+diff --git a/pkgs/apps/swaptions/src/HJM_Securities.cpp b/pkgs/apps/swaptions/src/HJM_Securities.cpp
+index 23eefce..c9269ba 100644
+--- a/pkgs/apps/swaptions/src/HJM_Securities.cpp
++++ b/pkgs/apps/swaptions/src/HJM_Securities.cpp
+@@ -183,7 +183,6 @@ int main(int argc, char *argv[])
+ 	tbb::task_scheduler_init init(nThreads);
+ #else
+ 	pthread_t      *threads;
+-	pthread_attr_t  pthread_custom_attr;
+ 
+ 	if ((nThreads < 1) || (nThreads > MAX_THREAD))
+ 	{
+@@ -191,7 +190,6 @@ int main(int argc, char *argv[])
+ 		exit(1);
+ 	}
+ 	threads = (pthread_t *) malloc(nThreads * sizeof(pthread_t));
+-	pthread_attr_init(&pthread_custom_attr);
+ 
+ #endif // TBB_VERSION
+ 
+@@ -293,7 +291,7 @@ int main(int argc, char *argv[])
+ 	int threadIDs[nThreads];
+         for (i = 1; i < nThreads; i++) {
+           threadIDs[i] = i;
+-          pthread_create(&threads[i], &pthread_custom_attr, worker, &threadIDs[i]);
++          pthread_create(&threads[i], NULL, worker, &threadIDs[i]);
+         }
+         threadIDs[0] = 0;
+         worker(&threadIDs[0]);

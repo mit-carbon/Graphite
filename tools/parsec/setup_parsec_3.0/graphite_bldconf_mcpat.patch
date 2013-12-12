@@ -1,0 +1,18 @@
+commit 3ef41e244c8cdb77263a80777378558802e50a09
+Author: George Kurian <gkurian@csail.mit.edu>
+Date:   Fri Nov 22 15:39:09 2013 -0500
+
+    [graphite.bldconf] Changes to graphite.bldconf for running McPAT integrated with Graphite
+
+diff --git a/config/graphite.bldconf b/config/graphite.bldconf
+index 12ad93c..8d8880c 100644
+--- a/config/graphite.bldconf
++++ b/config/graphite.bldconf
+@@ -8,5 +8,5 @@ source ${PARSECDIR}/config/gcc-hooks.bldconf
+ # Enable PARSEC hooks
+ CFLAGS="${CFLAGS} -DENABLE_GRAPHITE -I${GRAPHITE_HOME}/common/user"
+ CXXFLAGS="${CXXFLAGS} -DENABLE_GRAPHITE -I${GRAPHITE_HOME}/common/user"
+-LDFLAGS="${LDFLAGS} -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join -L${GRAPHITE_HOME}/lib -L${GRAPHITE_HOME}/contrib/dsent"
+-LIBS="${LIBS} -lcarbon_sim -ldsent_contrib -lboost_filesystem-mt -lboost_system-mt -lpthread -lstdc++ -lm"
++LDFLAGS="${LDFLAGS} -static -u CarbonStartSim -u CarbonStopSim -u pthread_create -u pthread_join -L${GRAPHITE_HOME}/lib -L${GRAPHITE_HOME}/contrib/dsent -L${GRAPHITE_HOME}/contrib/mcpat -L${GRAPHITE_HOME}/contrib/db_utils"
++LIBS="${LIBS} -lcarbon_sim -ldsent_contrib -lmcpat -ldb_utils -ldb -lboost_filesystem-mt -lboost_system-mt -pthread -lstdc++ -lm"

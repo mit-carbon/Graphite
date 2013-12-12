@@ -63,6 +63,16 @@ patch -p1 < setup_parsec_3.0/dedup_ubuntu.patch
 echo "[BARRIER] Using pthread_barrier instead of parsec barrier for the fluidanimate and streamcluster benchmarks"
 patch -p1 < setup_parsec_3.0/barrier.patch
 
+# Apply a patch for correcting pthread_create and pthread_join args
+# in certain PARSEC benchmarks
+echo "[PTHREADS] Correcting pthread_create and pthread_join args in certain PARSEC benchmarks"
+patch -p1 < setup_parsec_3.0/pthreads.patch
+
+# Apply a patch for graphite.bldconf for compiling PARSEC with McPAT
+# integration support
+echo "[MCPAT] Patching graphite.bldconf for McPAT integration support"
+patch -p1 < setup_parsec_3.0/graphite_bldconf_mcpat.patch
+
 # Untar the simmedium inputs of PARSEC into benchmark-specific
 # run/ directories. While running the benchmarks with the simulator,
 # untaring inputs is unnecessary.

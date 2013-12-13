@@ -66,6 +66,10 @@ def poll_job(graphite_procs):
                 print "%s Killing process: %d" % (pmaster(), i)
                 os.killpg(graphite_procs[i].pid, signal.SIGKILL)
         else:
+            try:
+                os.killpg(graphite_procs[i].pid, signal.SIGKILL)
+            except OSError:
+                pass
             print "%s Process: %d exited with ReturnCode: %d" % (pmaster(), i, returnCode2)
 
     print "%s %s\n" % (pmaster(), pReturnCode(returnCode))

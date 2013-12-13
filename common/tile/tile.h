@@ -47,6 +47,8 @@ private:
    DVFSManager* _dvfs_manager;
    TileEnergyMonitor* _tile_energy_monitor;
    RemoteQueryHelper* _remote_query_helper;
+
+   Time getTargetCompletionTime();
 };
 
 #endif

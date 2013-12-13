@@ -48,9 +48,10 @@ Tile::~Tile()
       delete _tile_energy_monitor;
 }
 
-void Tile::outputSummary(ostream &os)
+void
+Tile::outputSummary(ostream &os)
 {
-   Time target_completion_time = _remote_query_helper->getCoreTime(0);
+   Time target_completion_time = getTargetCompletionTime();
 
    LOG_PRINT("Core Summary");
    _core->outputSummary(os, target_completion_time);
@@ -67,7 +68,8 @@ void Tile::outputSummary(ostream &os)
       _tile_energy_monitor->outputSummary(os, target_completion_time);
 }
 
-void Tile::enableModels()
+void
+Tile::enableModels()
 {
    LOG_PRINT("enableModels(%i) start", _id);
    _network->enableModels();
@@ -77,7 +79,8 @@ void Tile::enableModels()
    LOG_PRINT("enableModels(%i) end", _id);
 }
 
-void Tile::disableModels()
+void
+Tile::disableModels()
 {
    LOG_PRINT("disableModels(%i) start", _id);
    _network->disableModels();
@@ -85,4 +88,17 @@ void Tile::disableModels()
    if (_memory_manager)
       _memory_manager->disableModels();
    LOG_PRINT("disableModels(%i) end", _id);
+}
+
+Time
+Tile::getTargetCompletionTime()
+{
+   Time max_completion_time(0);
+   for (UInt32 i = 0; i < Config::getSingleton()->getApplicationTiles(); i++)
+   {
+      Time completion_time = _remote_query_helper->getCoreTime(i);
+      if (completion_time > max_completion_time)
+         max_completion_time = completion_time;
+   }
+   return max_completion_time;
 }

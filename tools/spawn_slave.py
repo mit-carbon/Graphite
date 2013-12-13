@@ -30,6 +30,10 @@ def wait_job(graphite_proc, renew_permissions_proc, proc_num):
       # Poll the process and see if it exited
       returnCode = graphite_proc.poll()
       if returnCode != None:
+         try:
+            os.killpg(graphite_proc.pid, signal.SIGKILL)
+         except OSError:
+            pass
          print "%s Process: %d exited with ReturnCode: %d" % (pslave(), proc_num, returnCode)
          if (renew_permissions_proc != None):
             os.killpg(renew_permissions_proc.pid, signal.SIGKILL)

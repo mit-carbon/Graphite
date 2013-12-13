@@ -27,12 +27,14 @@ public:
       thread_id_t thread_id;
       pid_t os_tid;
       cpu_set_t * cpu_set;
+      Time completion_time;
 
       ThreadState()
          : status(Core::IDLE)
          , waiter_core(INVALID_CORE_ID)
          , waiter_tid(INVALID_THREAD_ID)
          , thread_id(INVALID_THREAD_ID)
+         , completion_time(0)
       {
       } 
    };

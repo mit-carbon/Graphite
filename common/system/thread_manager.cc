@@ -162,7 +162,7 @@ void ThreadManager::onThreadExit()
    core_model->recomputeAverageFrequency(core->getFrequency());
 
    // send message to master process to update thread state
-   SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, core->getId().tile_id, core->getId().core_type, thread_idx};
+   SInt32 msg[] = { MCP_MESSAGE_THREAD_EXIT, core->getId().tile_id, core->getId().core_type, thread_idx };
 
    // update global thread state
    net->netSend(Config::getSingleton()->getMCPCoreId(),
@@ -195,11 +195,11 @@ void ThreadManager::masterOnThreadExit(tile_id_t tile_id, UInt32 core_type, SInt
    core_id_t core_id = (core_id_t) {tile_id, core_type};
    
    LOG_PRINT("masterOnThreadExit: thread on core ID(%d,%d) IDX(%i)", tile_id, core_type, thread_idx);
-
    LOG_ASSERT_ERROR((UInt32) tile_id < m_thread_state.size(), "Tile ID (%d) out of range", tile_id);
    LOG_ASSERT_ERROR(m_thread_state[tile_id][thread_idx].status == Core::RUNNING,
          "Exiting: thread on core ID(%d,%d), IDX(%d) is NOT running", tile_id, core_type, thread_idx);
    m_thread_state[tile_id][thread_idx].status = Core::IDLE;
+   m_thread_state[tile_id][thread_idx].completion_time = Time(time);
 
    if (Sim()->getMCP()->getClockSkewManagementServer())
       Sim()->getMCP()->getClockSkewManagementServer()->signal();
@@ -475,7 +475,8 @@ void ThreadManager::masterJoinThread(ThreadJoinRequest *req, Time time)
    if (m_thread_state[join_core_id.tile_id][join_thread_idx].status == Core::IDLE)
    {
       LOG_PRINT("Not running, sending reply.");
-      wakeUpWaiter(join_core_id, join_thread_idx, time);
+      Time join_thread_completion_time = m_thread_state[join_core_id.tile_id][join_thread_idx].completion_time;
+      wakeUpWaiter(join_core_id, join_thread_idx, join_thread_completion_time);
    }
 }
 
@@ -488,7 +489,7 @@ bool ThreadManager::wakeUpWaiter(core_id_t core_id, thread_id_t thread_index, Ti
    if (waiter_core_id.tile_id != INVALID_TILE_ID)
    {
       thread_id_t waiter_thread_id = m_thread_state[core_id.tile_id][thread_index].waiter_tid;
-      LOG_PRINT("Waking up thread ID(%i) on core ID (%d,%d) at time: %llu",
+      LOG_PRINT("Waking up thread ID(%i) on core ID (%d,%d) at time: %llu ns",
                 waiter_thread_id, waiter_core_id.tile_id, waiter_core_id.core_type, time.toNanosec());
 
       // Resume the 'pthread_join' caller

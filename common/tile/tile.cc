@@ -1,5 +1,6 @@
 #include <string.h>
 #include "tile.h"
+#include "core_model.h"
 #include "network.h"
 #include "network_model.h"
 #include "network_types.h"

@@ -440,14 +440,14 @@ NetPacket Network::netRecv(const NetMatch &match)
 
    _netQueueLock.release();
 
-   LOG_PRINT("netRecv: Started waiting at %llu, Got packet at %llu", start_time.toNanosec(), packet.time.toNanosec());
+   LOG_PRINT("netRecv: Started waiting at %llu ns, Got packet at %llu ns", start_time.toNanosec(), packet.time.toNanosec());
 
    if (packet.time > start_time)
    {
       CoreModel* core_model = _tile->getCore()->getModel();
       if (core_model)
       {  
-         LOG_PRINT("netRecv: Queueing RecvInstruction(%llu)", packet.time.toNanosec() - start_time.toNanosec());
+         LOG_PRINT("netRecv: Queueing RecvInstruction(%llu ns)", packet.time.toNanosec() - start_time.toNanosec());
          RecvInstruction *i = new RecvInstruction(packet.time - start_time);
          core_model->processDynamicInstruction(i);
       }

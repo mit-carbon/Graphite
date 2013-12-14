@@ -558,7 +558,7 @@ void TileEnergyMonitor::outputSummary(std::ostream &out, const Time& target_comp
    out << "    Static Energy (in J): " << _cache_current_static_energy << endl;
    out << "    Dynamic Energy (in J): " << _cache_current_dynamic_energy << endl;
    out << "    Total Energy (in J): " << _cache_current_total_energy << endl;
-   out << "  Networks (User, Network): " << endl;
+   out << "  Networks (User, Memory): " << endl;
    out << "    Static Energy (in J): " << _network_current_static_energy[STATIC_NETWORK_USER] +
                                           _network_current_static_energy[STATIC_NETWORK_MEMORY] << endl;
    out << "    Dynamic Energy (in J): " << _network_current_dynamic_energy[STATIC_NETWORK_USER] +

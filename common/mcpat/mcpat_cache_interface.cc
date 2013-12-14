@@ -179,10 +179,10 @@ void McPATCacheInterface::displayEnergy(ostream& os, const Time& target_completi
    string indent6(6, ' ');
    os << indent4 << "Area and Power Model Statistics: " << endl;
    os << indent6 << "Area (in mm^2): "                << _mcpat_cache_out.area << endl;
-   os << indent6 << "Average Leakage Power (in W): "  << _mcpat_cache_out.leakage_energy / target_completion_sec << endl;
-   os << indent6 << "Average Dynamic Power (in W): "  << _mcpat_cache_out.dynamic_energy / target_completion_sec << endl;
-   os << indent6 << "Total Leakage Energy (in J): "   << _mcpat_cache_out.leakage_energy << endl;
-   os << indent6 << "Total Dynamic Energy (in J): "   << _mcpat_cache_out.dynamic_energy << endl;
+   os << indent6 << "Average Static Power (in W): "  << _mcpat_cache_out.leakage_energy / target_completion_sec << endl;
+   os << indent6 << "Average Dynamic Power (in W): " << _mcpat_cache_out.dynamic_energy / target_completion_sec << endl;
+   os << indent6 << "Total Static Energy (in J): "   << _mcpat_cache_out.leakage_energy << endl;
+   os << indent6 << "Total Dynamic Energy (in J): "  << _mcpat_cache_out.dynamic_energy << endl;
 }
 
 //---------------------------------------------------------------------------

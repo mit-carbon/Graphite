@@ -82,36 +82,39 @@ McPAT::CacheWrapper* McPATCacheInterface::createCacheWrapper(double voltage, dou
 //---------------------------------------------------------------------------
 // setDVFS (change voltage and frequency)
 //---------------------------------------------------------------------------
-void McPATCacheInterface::setDVFS(double voltage, double frequency, const Time& curr_time)
+void McPATCacheInterface::setDVFS(double old_frequency, double new_voltage, double new_frequency, const Time& curr_time)
 {
    // Compute leakage/dynamic energy for the previous interval of time
-   computeEnergy(curr_time);
+   computeEnergy(curr_time, old_frequency);
    
    // Check if a McPATInterface object has already been created
-   _cache_wrapper = _cache_wrapper_map[voltage];
-   LOG_ASSERT_ERROR(_cache_wrapper, "McPAT cache power model with Voltage(%g) has NOT been created", voltage);
+   _cache_wrapper = _cache_wrapper_map[new_voltage];
+   LOG_ASSERT_ERROR(_cache_wrapper, "McPAT cache power model with Voltage(%g) has NOT been created", new_voltage);
 }
 
 //---------------------------------------------------------------------------
 // Compute Energy from McPAT
 //---------------------------------------------------------------------------
-void McPATCacheInterface::computeEnergy(const Time& curr_time)
+void McPATCacheInterface::computeEnergy(const Time& curr_time, double frequency)
 {
-   // Compute the interval between current time and time when energy was last computed
-   assert(curr_time >= _last_energy_compute_time);
-   double time_interval = (curr_time - _last_energy_compute_time).toSec();
+   Time energy_compute_time = curr_time;
+   if (energy_compute_time < _last_energy_compute_time)
+      energy_compute_time = _last_energy_compute_time;
+
+   Time time_interval = energy_compute_time - _last_energy_compute_time;
+   UInt64 interval_cycles = time_interval.toCycles(frequency);
 
    // Fill the ParseXML's Core Event Stats from McPATCacheInterface
-   fillCacheStatsIntoXML();
+   fillCacheStatsIntoXML(interval_cycles);
 
    // Compute Energy from Processor
    _cache_wrapper->computeEnergy();
 
    // Update the output data structure
-   updateOutputDataStructure(time_interval);
+   updateOutputDataStructure(time_interval.toSec());
 
-   // Set _last_energy_compute_time to curr_time
-   _last_energy_compute_time = curr_time;
+   // Set _last_energy_compute_time to energy_compute_time
+   _last_energy_compute_time = energy_compute_time;
 }
 
 //---------------------------------------------------------------------------
@@ -157,10 +160,10 @@ double McPATCacheInterface::getLeakageEnergy()
 //---------------------------------------------------------------------------
 // Output Summary
 //---------------------------------------------------------------------------
-void McPATCacheInterface::outputSummary(ostream& os, const Time& target_completion_time)
+void McPATCacheInterface::outputSummary(ostream& os, const Time& target_completion_time, double frequency)
 {
    // Compute leakage/dynamic energy for last time interval
-   computeEnergy(target_completion_time);
+   computeEnergy(target_completion_time, frequency);
    displayEnergy(os, target_completion_time);
 }
 
@@ -174,8 +177,8 @@ void McPATCacheInterface::displayEnergy(ostream& os, const Time& target_completi
 
    string indent4(4, ' ');
    string indent6(6, ' ');
-   os << indent4 << "Area (in mm^2): "                << _mcpat_cache_out.area << endl;
-   os << indent4 << "Energy Counters: "  << endl;
+   os << indent4 << "Area and Power Model Statistics: " << endl;
+   os << indent6 << "Area (in mm^2): "                << _mcpat_cache_out.area << endl;
    os << indent6 << "Average Leakage Power (in W): "  << _mcpat_cache_out.leakage_energy / target_completion_sec << endl;
    os << indent6 << "Average Dynamic Power (in W): "  << _mcpat_cache_out.dynamic_energy / target_completion_sec << endl;
    os << indent6 << "Total Leakage Energy (in J): "   << _mcpat_cache_out.leakage_energy << endl;
@@ -211,7 +214,6 @@ void McPATCacheInterface::fillCacheParamsIntoXML(UInt32 technology_node, UInt32 
    _xml->sys.virtual_address_width = 64;
    _xml->sys.physical_address_width = 52;
    _xml->sys.virtual_memory_page_size = 4096;
-   _xml->sys.total_cycles = 100000;
 
    _xml->sys.L2[0].ports[0] = 1;                               // Number of read ports
    _xml->sys.L2[0].ports[1] = 1;                               // Number of write ports
@@ -239,8 +241,9 @@ void McPATCacheInterface::fillCacheParamsIntoXML(UInt32 technology_node, UInt32 
 //---------------------------------------------------------------------------
 // Fill Cache Stats into XML Structure
 //---------------------------------------------------------------------------
-void McPATCacheInterface::fillCacheStatsIntoXML()
+void McPATCacheInterface::fillCacheStatsIntoXML(UInt64 interval_cycles)
 {
+   _xml->sys.total_cycles              = interval_cycles;
    _xml->sys.L2[0].read_accesses       = _cache->_total_read_accesses  - _prev_read_accesses;
    _xml->sys.L2[0].write_accesses      = _cache->_total_write_accesses - _prev_write_accesses;
    _xml->sys.L2[0].read_misses         = _cache->_total_read_misses    - _prev_read_misses;

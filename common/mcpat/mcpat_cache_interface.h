@@ -28,17 +28,17 @@ public:
    ~McPATCacheInterface();
 
    // Set DVFS
-   void setDVFS(double voltage, double frequency, const Time& curr_time);
+   void setDVFS(double old_frequency, double new_voltage, double new_frequency, const Time& curr_time);
 
    // Compute Energy from McPAT
-   void computeEnergy(const Time& curr_time);
+   void computeEnergy(const Time& curr_time, double frequency);
 
    // Collect Energy from McPAT
    double getDynamicEnergy();
    double getLeakageEnergy();
 
    // Output energy/area summary from McPAT
-   void outputSummary(ostream& os, const Time& target_completion_time);
+   void outputSummary(ostream& os, const Time& target_completion_time, double frequency);
 
 private:
    // McPAT Objects
@@ -64,7 +64,7 @@ private:
    McPAT::CacheWrapper* createCacheWrapper(double voltage, double max_frequency_at_voltage);
    // Initialize XML Object
    void fillCacheParamsIntoXML(UInt32 technology_node, UInt32 temperature);
-   void fillCacheStatsIntoXML();
+   void fillCacheStatsIntoXML(UInt64 interval_cycles);
 
    // Initialize event counters
    void initializeEventCounters();

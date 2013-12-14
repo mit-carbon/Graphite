@@ -499,7 +499,7 @@ NetworkModelEMeshHopByHop::outputPowerSummary(ostream& out, const Time& target_c
       return;
 
    // Output to sim.out
-   out << "    Energy Counters:" << endl;
+   out << "    Power Model Statistics: " << endl;
    if (isApplicationTile(_tile_id))
    {
       // Convert time into seconds

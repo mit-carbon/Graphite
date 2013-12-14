@@ -98,17 +98,17 @@ McPAT::CoreWrapper* McPATCoreInterface::createCoreWrapper(double voltage, double
 //---------------------------------------------------------------------------
 // setDVFS (change voltage and frequency)
 //---------------------------------------------------------------------------
-void McPATCoreInterface::setDVFS(double voltage, double frequency, const Time& curr_time)
+void McPATCoreInterface::setDVFS(double old_frequency, double new_voltage, double new_frequency, const Time& curr_time)
 {
    if (!_enable_area_or_power_modeling)
       return;
 
    // Compute leakage/dynamic energy for the previous interval of time
-   computeEnergy(curr_time);
+   computeEnergy(curr_time, old_frequency);
    
    // Check if a McPATInterface object has already been created
-   _core_wrapper = _core_wrapper_map[voltage];
-   LOG_ASSERT_ERROR(_core_wrapper, "McPAT core power model with Voltage(%g) has NOT been created", voltage);
+   _core_wrapper = _core_wrapper_map[new_voltage];
+   LOG_ASSERT_ERROR(_core_wrapper, "McPAT core power model with Voltage(%g) has NOT been created", new_voltage);
 }
 
 //---------------------------------------------------------------------------
@@ -165,10 +165,6 @@ void McPATCoreInterface::initializeEventCounters()
 {
    // Event Counters
    // |-- Used Event Counters
-   // |---- Cycle Counters
-   _total_cycles                             = 0;
-   _idle_cycles                              = 0;
-   _busy_cycles                              = 0;
    // |---- Instruction Counters
    _total_instructions                       = 0;
    _generic_instructions                     = 0;
@@ -210,10 +206,6 @@ void McPATCoreInterface::initializeEventCounters()
    _context_switches                         = 0;
 
    // Previous Event Counters
-   // SYSTEM STATS
-   _prev_cycles                              = 0;
-   _prev_busy_cycles                         = 0;
-   _prev_idle_cycles                         = 0;
    // SYSTEM.CORE STATS
    // |---- Instruction Counters
    _prev_instructions                        = 0;
@@ -376,8 +368,6 @@ void McPATCoreInterface::updateEventCounters(const McPATInstruction* instruction
    // A single instruction can access multiple execution units
    // Count access to multiple execution units as additional micro-ops
    updateExecutionUnitCounters(instruction);
-   // Update Cycle Counters
-   updateCycleCounters(cycle_count);
    // Total branch mispredictions   
    _branch_mispredictions = total_branch_misprediction_count;
 }
@@ -476,36 +466,29 @@ void McPATCoreInterface::updateExecutionUnitCounters(const McPATInstruction* ins
 }
 
 //---------------------------------------------------------------------------
-// Update Cycle Counters
-//---------------------------------------------------------------------------
-void McPATCoreInterface::updateCycleCounters(UInt64 cycle_count)
-{
-   _total_cycles = cycle_count;
-   _busy_cycles = cycle_count;
-   // TODO: Update for idle cycles later
-}
-
-//---------------------------------------------------------------------------
 // Compute Energy from McPAT
 //---------------------------------------------------------------------------
-void McPATCoreInterface::computeEnergy(const Time& curr_time)
+void McPATCoreInterface::computeEnergy(const Time& curr_time, double frequency)
 {
    // Compute the interval between current time and time when energy was last computed
-   LOG_ASSERT_ERROR(curr_time >= _last_energy_compute_time, "Tile-ID(%i), Curr-Time(%llu ns), Last-Energy-Compute-Time(%llu ns)",
-                    _core_model->getCore()->getTile()->getId(), curr_time.toNanosec(), _last_energy_compute_time.toNanosec());
-   double time_interval = (curr_time - _last_energy_compute_time).toSec();
+   Time energy_compute_time = curr_time;
+   if (energy_compute_time < _last_energy_compute_time)
+      energy_compute_time = _last_energy_compute_time;
+  
+   Time time_interval = energy_compute_time - _last_energy_compute_time;
+   UInt64 interval_cycles = time_interval.toCycles(frequency);
 
    // Fill the ParseXML's Core Stats with the event counters
-   fillCoreStatsIntoXML();
+   fillCoreStatsIntoXML(interval_cycles);
 
    // Compute Energy from Processor
    _core_wrapper->computeEnergy();
 
    // Update the output data structure
-   updateOutputDataStructure(time_interval);
+   updateOutputDataStructure(time_interval.toSec());
 
-   // Set _last_energy_compute_time to curr_time
-   _last_energy_compute_time = curr_time;
+   // Set _last_energy_compute_time to energy_compute_time
+   _last_energy_compute_time = energy_compute_time;
 }
 
 //---------------------------------------------------------------------------
@@ -794,16 +777,16 @@ double McPATCoreInterface::getLeakageEnergy()
 //---------------------------------------------------------------------------
 // Output Summary from McPAT
 //---------------------------------------------------------------------------
-void McPATCoreInterface::outputSummary(ostream &os, const Time& target_completion_time)
+void McPATCoreInterface::outputSummary(ostream &os, const Time& target_completion_time, double frequency)
 {
    displayStats(os);
    displayParam(os);
    
    if (_enable_area_or_power_modeling)
    {
-      os << "    Area and Power Model Summary:" << endl;
+      os << "    Area and Power Model Statistics: " << endl;
       // Compute leakage/dynamic energy for last time interval
-      computeEnergy(target_completion_time);
+      computeEnergy(target_completion_time, frequency);
       displayEnergy(os, target_completion_time);
    }
 }
@@ -1126,10 +1109,10 @@ void McPATCoreInterface::fillCoreParamsIntoXML(UInt32 technology_node, UInt32 te
 //---------------------------------------------------------------------------
 // Fill ParseXML Event Counters
 //---------------------------------------------------------------------------
-void McPATCoreInterface::fillCoreStatsIntoXML()
+void McPATCoreInterface::fillCoreStatsIntoXML(UInt64 interval_cycles)
 {
    // SYSTEM STATS
-   _xml->sys.total_cycles                             = _total_cycles - _prev_cycles;
+   _xml->sys.total_cycles                             = interval_cycles;
    // SYSTEM.CORE STATS
    // |-- Used Event Counters
    // |---- Instruction Counters
@@ -1144,21 +1127,18 @@ void McPATCoreInterface::fillCoreStatsIntoXML()
    _xml->sys.core[0].committed_int_instructions       = _committed_int_instructions       - _prev_committed_int_instructions;
    _xml->sys.core[0].committed_fp_instructions        = _committed_fp_instructions        - _prev_committed_fp_instructions;
    // |---- Pipeline duty cycle
-   if ((_total_cycles-_prev_cycles) > 0)
-      _xml->sys.core[0].pipeline_duty_cycle           = (_total_instructions - _prev_instructions) / (_total_cycles - _prev_cycles);
+   _xml->sys.core[0].pipeline_duty_cycle              = (interval_cycles > 0) ?
+                                                        (_total_instructions - _prev_instructions) / interval_cycles : 0;
    // |---- Cycle Counters
-   //cout << "|---- Cycle Counters" << endl;
-   _xml->sys.core[0].total_cycles                     = _total_cycles                     - _prev_cycles;
-   _xml->sys.core[0].busy_cycles                      = _busy_cycles                      - _prev_busy_cycles;
-   _xml->sys.core[0].idle_cycles                      = _idle_cycles                      - _prev_idle_cycles;
+   _xml->sys.core[0].total_cycles                     = interval_cycles;
+   _xml->sys.core[0].busy_cycles                      = interval_cycles;
+   _xml->sys.core[0].idle_cycles                      = 0;
    // |---- Reg File Access Counters
-   //cout << "|---- Reg File Access Counters" << endl;
    _xml->sys.core[0].int_regfile_reads                = _int_regfile_reads                - _prev_int_regfile_reads;
    _xml->sys.core[0].int_regfile_writes               = _int_regfile_writes               - _prev_int_regfile_writes;
    _xml->sys.core[0].float_regfile_reads              = _fp_regfile_reads                 - _prev_fp_regfile_reads;
    _xml->sys.core[0].float_regfile_writes             = _fp_regfile_writes                - _prev_fp_regfile_writes;
    // |---- Execution Unit Access Counters
-   //cout << "|---- Execution Unit Access Counters" << endl;
    _xml->sys.core[0].ialu_accesses                    = _ialu_accesses                    - _prev_ialu_accesses;
    _xml->sys.core[0].mul_accesses                     = _mul_accesses                     - _prev_mul_accesses;
    _xml->sys.core[0].fpu_accesses                     = _fpu_accesses                     - _prev_fpu_accesses;
@@ -1167,7 +1147,6 @@ void McPATCoreInterface::fillCoreStatsIntoXML()
    _xml->sys.core[0].cdb_fpu_accesses                 = _cdb_fpu_accesses                 - _prev_cdb_fpu_accesses;
    // |-- Unused Event Counters
    // |---- OoO Core Event Counters
-   //cout << "|---- OoO Core Event Counters" << endl;
    _xml->sys.core[0].inst_window_reads                = _inst_window_reads                - _prev_inst_window_reads;
    _xml->sys.core[0].inst_window_writes               = _inst_window_writes               - _prev_inst_window_writes;
    _xml->sys.core[0].inst_window_wakeup_accesses      = _inst_window_wakeup_accesses      - _prev_inst_window_wakeup_accesses;
@@ -1179,15 +1158,10 @@ void McPATCoreInterface::fillCoreStatsIntoXML()
    _xml->sys.core[0].rename_accesses                  = _rename_accesses                  - _prev_rename_accesses;
    _xml->sys.core[0].fp_rename_accesses               = _fp_rename_accesses               - _prev_fp_rename_accesses;
    // |---- Function Calls and Context Switches
-   //cout << "|---- Function Calls and Context Switches" << endl;
    _xml->sys.core[0].function_calls                   = _function_calls - _prev_function_calls;
    _xml->sys.core[0].context_switches                 = _context_switches - _prev_context_switches;
 
    // Set previous event counters
-   // SYSTEM STATS
-   _prev_cycles                              = _total_cycles;
-   _prev_busy_cycles                         = _busy_cycles;
-   _prev_idle_cycles                         = _idle_cycles;
    // SYSTEM.CORE STATS
    // |---- Instruction Counters
    _prev_instructions                        = _total_instructions;

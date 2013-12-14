@@ -454,10 +454,7 @@ Cache::outputSummary(ostream& out, const Time& target_completion_time)
    
    // Output Power and Area Summaries
    if (Config::getSingleton()->getEnablePowerModeling() || Config::getSingleton()->getEnableAreaModeling())
-   {
-      _mcpat_cache_interface->computeEnergy(target_completion_time);
-      _mcpat_cache_interface->outputSummary(out, target_completion_time);
-   }
+      _mcpat_cache_interface->outputSummary(out, target_completion_time, _frequency);
 
    // Track miss types
    if (_track_miss_types)
@@ -481,7 +478,7 @@ Cache::outputSummary(ostream& out, const Time& target_completion_time)
 
 void Cache::computeEnergy(const Time& curr_time)
 {
-   _mcpat_cache_interface->computeEnergy(curr_time);
+   _mcpat_cache_interface->computeEnergy(curr_time, _frequency);
 }
 
 double Cache::getDynamicEnergy()
@@ -550,11 +547,10 @@ Cache::setDVFS(double frequency, voltage_option_t voltage_flag, const Time& curr
    int rc = DVFSManager::getVoltage(_voltage, voltage_flag, frequency);
    if (rc==0)
    {
-      _frequency = frequency;
-      _perf_model->setDVFS(_frequency);
-
+      _perf_model->setDVFS(frequency);
       if (Config::getSingleton()->getEnablePowerModeling())
-         _mcpat_cache_interface->setDVFS(_voltage, _frequency, curr_time);
+         _mcpat_cache_interface->setDVFS(_frequency, _voltage, frequency, curr_time);
+      _frequency = frequency;
    }
    return rc;
 }

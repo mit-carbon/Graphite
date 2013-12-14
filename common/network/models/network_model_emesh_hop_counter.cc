@@ -190,7 +190,7 @@ NetworkModelEMeshHopCounter::outputPowerSummary(ostream& out, const Time& target
    if (!Config::getSingleton()->getEnablePowerModeling())
       return;
 
-   out << "    Energy Counters: " << endl;
+   out << "    Power Model Statistics: " << endl;
    if (isApplicationTile(_tile_id))
    {
       // Convert time into seconds

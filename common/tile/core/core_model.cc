@@ -106,7 +106,7 @@ void CoreModel::outputSummary(ostream& os, const Time& target_completion_time)
    if (_bp)
       _bp->outputSummary(os);
 
-   _mcpat_core_interface->outputSummary(os, target_completion_time);
+   _mcpat_core_interface->outputSummary(os, target_completion_time, _core->getFrequency());
    
    // Memory fence counters
    os << "    Fence Instructions: " << endl;
@@ -135,9 +135,7 @@ void CoreModel::updateMcPATCounters(Instruction* instruction)
 
 void CoreModel::computeEnergy(const Time& curr_time)
 {
-   UInt64 curr_cycles = _curr_time.toCycles(_core->getFrequency());
-   _mcpat_core_interface->updateCycleCounters(curr_cycles);
-   _mcpat_core_interface->computeEnergy(curr_time);
+   _mcpat_core_interface->computeEnergy(curr_time, _core->getFrequency());
 }
 
 double CoreModel::getDynamicEnergy()
@@ -170,7 +168,7 @@ void CoreModel::setDVFS(double old_frequency, double new_voltage, double new_fre
 {
    recomputeAverageFrequency(old_frequency);
    updateInstructionCosts(new_frequency);
-   _mcpat_core_interface->setDVFS(new_voltage, new_frequency, curr_time);
+   _mcpat_core_interface->setDVFS(old_frequency, new_voltage, new_frequency, curr_time);
 }
 
 void CoreModel::setCurrTime(Time time)

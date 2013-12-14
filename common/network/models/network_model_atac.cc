@@ -1183,7 +1183,7 @@ NetworkModelAtac::outputPowerSummary(ostream& out, const Time& target_completion
    // Compute the final leakage/dynamic energy
    computeEnergy(target_completion_time);
 
-   out << "    Energy Counters:" << endl;
+   out << "    Power Model Statistics: " << endl;
 
    double enet_router_static_energy = 0.0;
    double enet_router_dynamic_energy = 0.0;

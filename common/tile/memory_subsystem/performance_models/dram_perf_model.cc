@@ -172,12 +172,6 @@ DramPerfModel::dummyOutputSummary(ostream& out)
    out << "    Average Dram Access Latency (in nanoseconds): " << endl;
    out << "    Average Dram Contention Delay (in nanoseconds): " << endl;
    
-   if (Config::getSingleton()->getEnablePowerModeling())
-   {
-      out << "    Static Power (in W): " << endl;
-      out << "    Dynamic Energy (in J): " << endl;
-   }
-   
    bool queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
    std::string queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
    if (queue_model_enabled && ((queue_model_type == "history_list") || (queue_model_type == "history_tree")))

@@ -46,7 +46,7 @@ summary_file.write("_" * 130)
 summary_file.write("\n\n")
 summary_file.write("%s | %s | %s |  %s |  %s | %s | %s | %s |\n" % \
                    ('Benchmark'.center(21), '# Machines'.center(12), 'Status'.center(8),
-                    'Host'.center(13), 'Host'.center(13),
+                    'Host'.center(13), 'Simulation'.center(13),
                     'Target'.center(10), 'Target'.center(10),
                     'Target'.center(18)) )
 summary_file.write("%s | %s | %s |  %s |  %s | %s | %s | %s |\n" % \
@@ -106,6 +106,6 @@ summary_file.write("_" * 130)
 summary_file.write("\n\n")
 
 for num_machines in num_machines_list:
-   summary_file.write("%s Machines  : Simulation Time - %s (total), Performance - %.2f MIPS (geomean)\n" % \
+   summary_file.write("%s Machines  : Host Time - %s (total), Simulation Performance - %.2f MIPS (geomean)\n" % \
          (num_machines, formatTime(sum(host_time_list[num_machines])), geomean(MIPS_list[num_machines])))
 summary_file.close()

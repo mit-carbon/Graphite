@@ -30,6 +30,8 @@ def formatTime(time):
 
 
 def geomean(num_list):
+   if (len(num_list) == 0):
+      return 0.0
    return numpy.product(num_list) ** (1.0 / len(num_list))
 
 # Print a summary of the regression tests
@@ -95,7 +97,7 @@ for benchmark in benchmark_list:
          host_time_list[num_machines].append(host_time)
          MIPS_list[num_machines].append(MIPS)
       else:
-         summary_file.write("%s | %s | %s |  %s |  %s |\n" % \
+         summary_file.write("%s | %s | %s |  %s |  %s | %s | %s | %s |\n" % \
                             (benchmark.ljust(21), str(num_machines).center(12), 'FAIL'.center(8),
                              ''.ljust(13), ''.ljust(13),
                              ''.ljust(10), ''.ljust(10), ''.ljust(18)))

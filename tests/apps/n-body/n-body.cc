@@ -27,7 +27,7 @@ Particle::Particle():
    _x(0), _y(0), _z(0)
 {}
 
-Particle::Particle(SInt32 id, Random& rand_num):
+Particle::Particle(SInt32 id, Random<int>& rand_num):
    _id(id)
 {
    _x = rand_num.next(100);
@@ -37,7 +37,7 @@ Particle::Particle(SInt32 id, Random& rand_num):
 
 void getSimulationParameters(int argc, char* argv[]);
 void* simulateParticleMotion(void* threadid);
-void accumulateForce(Random& local_rand_num, Particle& curr_particle, Particle& force_particle);
+void accumulateForce(Random<int>& local_rand_num, Particle& curr_particle, Particle& force_particle);
 
 SInt32 num_iterations;
 SInt32 num_particles;
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 
    CarbonStartSim(argc, argv);
 
-   Random rand_num;
+   Random<int> rand_num;
    particle_array = new Particle*[num_particles];
    for (SInt32 i = 0; i < num_particles; i++)
       particle_array[i] = new Particle(i, rand_num);
@@ -103,8 +103,8 @@ void getSimulationParameters(int argc, char* argv[])
 void* simulateParticleMotion(void* threadid)
 {
    long tid = (long) threadid;
-   Random local_rand_num;
-   local_rand_num.seed((UInt32) tid);
+   Random<int> local_rand_num;
+   local_rand_num.seed(tid);
 
    assert(num_particles % num_threads == 0);
    SInt32 num_particles_per_thread = num_particles / num_threads;
@@ -143,7 +143,7 @@ void* simulateParticleMotion(void* threadid)
    return (void*) NULL;
 }
 
-void accumulateForce(Random& local_rand_num, Particle& curr_particle, Particle& force_particle)
+void accumulateForce(Random<int>& local_rand_num, Particle& curr_particle, Particle& force_particle)
 {
    UInt32 computation_type = local_rand_num.next(2);
    if (computation_type == 0)

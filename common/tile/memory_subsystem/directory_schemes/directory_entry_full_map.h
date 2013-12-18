@@ -25,5 +25,5 @@ public:
 
 private:
    BitVector* _sharers;
-   Random _rand_num;
+   Random<int> _rand_num;
 };

@@ -32,8 +32,7 @@ LaxP2PSyncClient::LaxP2PSyncClient(Core* core):
    }
 
    gettimeofday(&_start_wall_clock_time, NULL);
-   _rand_num.seed(1);
-
+   
    // Register Call-back
    _core->getTile()->getNetwork()->registerCallback(CLOCK_SKEW_MANAGEMENT, ClockSkewManagementClientNetworkCallback, this);
 }
@@ -245,7 +244,7 @@ LaxP2PSyncClient::sendRandomSyncMsg(UInt64 curr_time)
    LOG_ASSERT_ERROR(curr_time < MAX_TIME, "curr_time(%llu)", curr_time);
 
    UInt32 num_app_cores = Config::getSingleton()->getApplicationTiles();
-   SInt32 offset = 1 + (SInt32) _rand_num.next((Random::value_t) ((num_app_cores - 1) / 2));
+   SInt32 offset = 1 + _rand_num.next((num_app_cores-1)/2);
    tile_id_t receiver = (_core->getTile()->getId() + offset) % num_app_cores;
 
    LOG_ASSERT_ERROR((receiver >= 0) && (receiver < (tile_id_t) num_app_cores), 

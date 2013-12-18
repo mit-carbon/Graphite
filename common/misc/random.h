@@ -1,37 +1,35 @@
-#ifndef __RANDOM_H__
-#define __RANDOM_H__
+#pragma once
 
 /*
- * Random - A simple random number generator class. Created to avoid
- *   race conditions on rand().
+ * Random - A simple random number generator class (based on drand48_r)
  */
 
+#include <time.h>
+#include <cassert>
+#include <cstdlib>
+
+template <class T>
 class Random
 {
-   public:
-      typedef UInt32 value_t;
+public:
+   Random()
+   {
+      seed(time(NULL));
+   }
 
-   private:
-      value_t _seed;
+   inline void seed(long int seedval)
+   {
+      int ret = srand48_r(seedval, &buffer);
+      assert(ret == 0);
+   }
+   inline T next(T value)
+   {
+      double result;
+      int ret = drand48_r(&buffer, &result);
+      assert(ret == 0);
+      return static_cast<T>(result * value);
+   }
 
-   public:
-      Random() : _seed(1) { }
-      ~Random() { }
-
-      inline void seed(value_t s)
-      {
-         _seed = s;
-      }
-
-      inline value_t next(value_t limit = 32768)
-      {
-         // see rand(3) man page
-         const value_t FACTOR = 1103515245;
-         const value_t ADDEND = 12345;
-
-         _seed = _seed * FACTOR + ADDEND;
-         return (_seed/65536) % limit;
-      }
+private:
+   drand48_data buffer;
 };
-
-#endif // __RANDOM_H__

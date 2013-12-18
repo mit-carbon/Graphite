@@ -52,7 +52,7 @@ private:
    std::list<SyncMsg> _msg_queue;
    Lock _lock;
    ConditionVariable _cond;
-   Random _rand_num;
+   Random<int> _rand_num;
 
    bool _enabled;
 

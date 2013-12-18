@@ -48,9 +48,9 @@ SInt32 m_log_cache_block_size;
 
 vector<Time> m_core_clock_list;
 
-vector<Random> m_random_instruction_type_generator;
-vector<Random> m_random_rd_only_shared_address_generator;
-vector<Random> m_random_rd_wr_shared_address_generator;
+vector<Random<float> > m_random_instruction_type_generator;
+vector<Random<int> > m_random_rd_only_shared_address_generator;
+vector<Random<int> > m_random_rd_wr_shared_address_generator;
 
 float m_instruction_type_probabilities[NUM_INSTRUCTION_TYPES];
 vector<UInt64*> m_executed_instruction_types;
@@ -356,7 +356,7 @@ void computeSharedAddressToThreadMapping()
 
 InsType getRandomInstructionType(SInt32 thread_id)
 {
-   float random_num = ((float) m_random_instruction_type_generator[thread_id].next(32768)) / 32768;
+   float random_num = m_random_instruction_type_generator[thread_id].next(1);
 
    for (SInt32 i = 0; i < NUM_INSTRUCTION_TYPES; i++)
    {

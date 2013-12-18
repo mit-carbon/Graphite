@@ -10,29 +10,8 @@
 #include "clock_skew_management_object.h"
 #include "carbon_user.h"
 #include "utils.h"
+#include "random.h"
 #include "log.h"
-
-class RandNum
-{
-public:
-   RandNum(double start, double end)
-      : _start(start), _end(end) 
-   { 
-      srand48_r(time(NULL), &rand_buffer); 
-   }
-   ~RandNum() {}
-   double next()
-   {
-      double result;
-      drand48_r(&rand_buffer, &result);
-      return (result * (_end - _start) + _start);
-   }
-
-private:
-   struct drand48_data rand_buffer;
-   double _start;
-   double _end;
-};
 
 enum NetworkTrafficType
 {
@@ -53,7 +32,7 @@ void transposeTrafficGenerator(tile_id_t tile_id, vector<tile_id_t>& send_vec, v
 void tornadoTrafficGenerator(tile_id_t tile_id, vector<tile_id_t>& send_vec, vector<tile_id_t>& receive_vec);
 void nearestNeighborTrafficGenerator(tile_id_t tile_id, vector<tile_id_t>& send_vec, vector<tile_id_t>& receive_vec);
 
-bool canSendPacket(double offered_load, RandNum& rand_num);
+bool canSendPacket(double offered_load, Random<double>& rand_num);
 void synchronize(Time time, Tile* tile);
 void printHelpMessage();
 NetworkTrafficType parseTrafficPattern(string traffic_pattern);
@@ -192,7 +171,7 @@ void* sendNetworkTraffic(void*)
 
    Byte data[_packet_size];
    UInt64 outstanding_window_size = 1000;
-   RandNum rand_num(0,1);
+   Random<double> rand_num;
 
    Time time(0);
    for (UInt64 total_packets_sent = 0, total_packets_received = 0; 
@@ -233,9 +212,9 @@ void* sendNetworkTraffic(void*)
    return NULL;
 }
 
-bool canSendPacket(double offered_load, RandNum& rand_num)
+bool canSendPacket(double offered_load, Random<double>& rand_num)
 {
-   return (rand_num.next() < offered_load); 
+   return (rand_num.next(1) < offered_load); 
 }
 
 void synchronize(Time packet_injection_time, Tile* tile)

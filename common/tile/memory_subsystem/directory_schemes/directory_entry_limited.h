@@ -23,5 +23,5 @@ protected:
    static const SInt16 INVALID_SHARER = 0xffff;
 
 private:
-   Random _rand_num;
+   Random<int> _rand_num;
 };

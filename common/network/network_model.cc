@@ -480,6 +480,7 @@ void NetworkModel::initializeDVFS()
          break;
       default:
          _module = INVALID_MODULE;
+         return;
          break;
    }
 

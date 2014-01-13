@@ -314,7 +314,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
          getTile()->getId(), receiver,
          shmem_msg.getMsgLen(), (const void*) msg_buf);
 
-   if (getTile()->getId() == receiver){
+   if ((getTile()->getId() == receiver) || (shmem_msg.getSenderMemComponent() == MemComponent::DRAM_CNTLR)){
       getNetwork()->netSend(packet);
    }
    else{

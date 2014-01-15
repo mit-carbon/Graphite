@@ -73,6 +73,10 @@ patch -p1 < setup_parsec_3.0/pthreads.patch
 echo "[MCPAT] Patching graphite.bldconf for McPAT integration support"
 patch -p1 < setup_parsec_3.0/graphite_bldconf_mcpat.patch
 
+# Create the output directory in facesim
+echo "[FACESIM] Creating empty output directory"
+mkdir -p pkgs/apps/facesim/run/Storytelling/output
+
 # Untar the simmedium inputs of PARSEC into benchmark-specific
 # run/ directories. While running the benchmarks with the simulator,
 # untaring inputs is unnecessary.

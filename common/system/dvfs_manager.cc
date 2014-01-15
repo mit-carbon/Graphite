@@ -92,7 +92,6 @@ DVFSManager::setDVFS(tile_id_t tile_id, int module_mask, double frequency, volta
    }
    if (!valid_domain) return -2;
    
-
    // Get current time
    Time curr_time = _tile->getCore()->getModel()->getCurrTime();
 
@@ -309,7 +308,6 @@ DVFSManager::initializeDVFSDomainMap()
 
    vector<string> dvfs_domains_list_vec;
    parseList(dvfs_domains_list_str, dvfs_domains_list_vec, "<>");
-
 
    // parse each domain
    for (vector<string>::iterator list_it = dvfs_domains_list_vec.begin();

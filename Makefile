@@ -21,7 +21,7 @@ include tests/Makefile.parsec
 endif
 
 .PHONY: $(PIN_SIM_LIB)
-$(PIN_SIM_LIB):
+$(PIN_SIM_LIB):	$(CONTRIB_LIBS)
 	$(MAKE) -C $(SIM_ROOT)/pin
 
 clean:

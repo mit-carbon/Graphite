@@ -492,7 +492,7 @@ void NetworkModel::initializeDVFS()
    // Asynchronous communication
    _synchronization_delay = Time(Latency(DVFSManager::getSynchronizationDelay(), _frequency));
    _asynchronous_map[L2_CACHE] = Time(0);
-   if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI)
+   if ( (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI) || (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MESI) )
    {
       _asynchronous_map[L1_ICACHE] = Time(0);
       _asynchronous_map[L1_DCACHE] = Time(0);

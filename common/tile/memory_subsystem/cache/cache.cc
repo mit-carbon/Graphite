@@ -290,7 +290,7 @@ Cache::initializeDVFS()
       _module = L1_ICACHE;
       _asynchronous_map[CORE] = Time(0);
       _asynchronous_map[L2_CACHE] = Time(0);
-      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI || MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MESI){
          _asynchronous_map[NETWORK_MEMORY] = Time(0);
       }
    }
@@ -298,7 +298,7 @@ Cache::initializeDVFS()
       _module = L1_DCACHE;
       _asynchronous_map[CORE] = Time(0);
       _asynchronous_map[L2_CACHE] = Time(0);
-      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI){
+      if (MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MSI || MemoryManager::getCachingProtocolType() == PR_L1_SH_L2_MESI){
          _asynchronous_map[NETWORK_MEMORY] = Time(0);
       }
    }
@@ -307,7 +307,7 @@ Cache::initializeDVFS()
       _asynchronous_map[L1_ICACHE] = Time(0);
       _asynchronous_map[L1_DCACHE] = Time(0);
       _asynchronous_map[NETWORK_MEMORY] = Time(0);
-      if (MemoryManager::getCachingProtocolType() != PR_L1_SH_L2_MSI){
+      if (MemoryManager::getCachingProtocolType() != PR_L1_SH_L2_MSI && MemoryManager::getCachingProtocolType() != PR_L1_SH_L2_MESI){
          _asynchronous_map[DIRECTORY] = Time(0);
       }
    }

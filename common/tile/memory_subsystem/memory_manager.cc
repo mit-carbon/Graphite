@@ -4,6 +4,7 @@
 #include "pr_l1_pr_l2_dram_directory_msi/memory_manager.h"
 #include "pr_l1_pr_l2_dram_directory_mosi/memory_manager.h"
 #include "pr_l1_sh_l2_msi/memory_manager.h"
+#include "pr_l1_sh_l2_mesi/memory_manager.h"
 #include "network_model.h"
 #include "log.h"
 
@@ -42,6 +43,9 @@ MemoryManager::createMMU(std::string protocol_type, Tile* tile)
    case PR_L1_SH_L2_MSI:
       return new PrL1ShL2MSI::MemoryManager(tile);
 
+   case PR_L1_SH_L2_MESI:
+      return new PrL1ShL2MESI::MemoryManager(tile);
+
    default:
       LOG_PRINT_ERROR("Unsupported Caching Protocol (%u)", _caching_protocol_type);
       return NULL;
@@ -57,6 +61,8 @@ MemoryManager::parseProtocolType(std::string& protocol_type)
       return PR_L1_PR_L2_DRAM_DIRECTORY_MOSI;
    else if (protocol_type == "pr_l1_sh_l2_msi")
       return PR_L1_SH_L2_MSI;
+   else if (protocol_type == "pr_l1_sh_l2_mesi")
+      return PR_L1_SH_L2_MESI;
    else
       return NUM_CACHING_PROTOCOL_TYPES;
 }

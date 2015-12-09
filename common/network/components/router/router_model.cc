@@ -144,6 +144,18 @@ RouterModel::updateContentionCounters(UInt64 contention_delay, vector<SInt32>& o
 }
 
 float
+RouterModel::getAverageQueueDelay(const NetPacket& pkt, SInt32 output_port_start, SInt32 output_port_end)
+{
+  UInt64 total_queue_delay = 0;
+
+  for (SInt32 i = output_port_start; i <= output_port_end; i++) {
+    UInt64 queue_delay = _contention_model_list[i]->getVirtualQueueDelay(pkt.time.toCycles(_frequency), 1);
+    total_queue_delay += queue_delay;
+  }
+  return (total_queue_delay / (output_port_end-output_port_start+1) );
+}
+
+float
 RouterModel::getAverageContentionDelay(SInt32 output_port_start, SInt32 output_port_end)
 {
    if (output_port_end == INVALID_PORT)
@@ -195,7 +207,8 @@ RouterModel::getPercentAnalyticalModelsUsed(SInt32 output_port_start, SInt32 out
    UInt64 total_requests = 0;
    for (SInt32 i = output_port_start; i <= output_port_end; i++)
    {
-      assert(_total_packets[i] == _contention_model_list[i]->getTotalRequests());
+      /* we add add extra packets to contention_model in order to calc virtual queue_delay */
+      //assert(_total_packets[i] == _contention_model_list[i]->getTotalRequests());
       total_requests += _total_packets[i];
 
       QueueModel::Type queue_model_type = _contention_model_list[i]->getType();

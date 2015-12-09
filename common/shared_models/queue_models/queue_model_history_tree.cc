@@ -125,6 +125,57 @@ QueueModelHistoryTree::computeQueueDelay(UInt64 pkt_time, UInt64 processing_time
    return queue_delay;
 }
 
+UInt64
+QueueModelHistoryTree::getVirtualQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile_id_t requester)
+{
+   LOG_PRINT("Packet(%llu,%llu)", pkt_time, processing_time);
+  
+   UInt64 queue_delay = UINT64_MAX;
+
+   IntervalTree::Node* min_node = _interval_tree->search(PAIR(0,1));
+   // Prune the Tree when it grows too large
+   if (_interval_tree->size() >= ((UInt32) _max_free_interval_size))
+   {
+      // Remove the node with the minimum key
+      releaseNode(_interval_tree->remove(min_node));
+   }
+  
+   // Check if we need to use Analytical Model - Get the min_node again 
+   min_node = _interval_tree->search(PAIR(0,1)); 
+   if ( _analytical_model_enabled && (min_node->interval.first > (pkt_time + processing_time)) )
+   {
+      _total_requests_using_analytical_model ++;
+      queue_delay = _queue_model_m_g_1->computeQueueDelay(pkt_time, processing_time, requester);
+   }
+   else
+   {
+      IntervalTree::Node* node = _interval_tree->search(PAIR(pkt_time, pkt_time + processing_time));
+      if (!node)
+      {
+         _interval_tree->inOrderTraversal();
+         LOG_PRINT_ERROR("node = (NULL)");
+      }
+
+      assert((pkt_time + processing_time) <= node->interval.second);
+
+      if (pkt_time >= node->interval.first)
+      {
+         queue_delay = 0;
+      }
+      else // (pkt_time < node->interval.first)
+      {
+         queue_delay = node->interval.first - pkt_time;
+      }
+   }
+   
+   assert(queue_delay != UINT64_MAX);
+
+   // Update Utilization Counters
+   LOG_PRINT("Packet(%llu,%llu) -> Queue Delay(%llu)", pkt_time, processing_time, queue_delay);
+
+   return queue_delay;
+}
+
 void
 QueueModelHistoryTree::allocateMemory()
 {

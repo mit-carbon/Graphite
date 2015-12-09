@@ -9,7 +9,7 @@ public:
    NetworkModelMagic(Network *net, SInt32 network_id);
    ~NetworkModelMagic();
 
-   void routePacket(const NetPacket &pkt, queue<Hop>& next_hops);
+   void routePacket(NetPacket &pkt, queue<Hop>& next_hops);
 };
 
 #endif /* NETWORK_MODEL_MAGIC_H */

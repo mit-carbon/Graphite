@@ -13,7 +13,7 @@ NetworkModelMagic::~NetworkModelMagic()
 {}
 
 void
-NetworkModelMagic::routePacket(const NetPacket &pkt, queue<Hop> &next_hops)
+NetworkModelMagic::routePacket(NetPacket &pkt, queue<Hop> &next_hops)
 {
    LOG_PRINT("Entering routePacket");
    // A latency of '1'

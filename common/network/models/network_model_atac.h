@@ -21,7 +21,7 @@ public:
    NetworkModelAtac(Network *net, SInt32 network_id);
    ~NetworkModelAtac();
 
-   void routePacket(const NetPacket &pkt, queue<Hop> &nextHops);
+   void routePacket(NetPacket &pkt, queue<Hop> &nextHops);
 
    static bool isTileCountPermissible(SInt32 tile_count);
    static pair<bool, vector<tile_id_t> > computeMemoryControllerPositions(SInt32 num_memory_controllers, SInt32 tile_count);

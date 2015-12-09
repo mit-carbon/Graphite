@@ -34,6 +34,7 @@ public:
    core_id_t receiver;
 
    SInt32 node_type;
+   BroadcastType broadcast_type;
    
    UInt32 length;
    const void *data;
@@ -50,6 +51,7 @@ public:
 
    UInt32 bufferSize() const;
    Byte *makeBuffer() const;
+   void changeBroadcastType(BroadcastType type);
 
    static const SInt32 BROADCAST = 0xDEADBABE;
 };
@@ -143,7 +145,7 @@ private:
    // Is shortCut available through shared memory
    bool _sharedMemoryShortcutEnabled;
 
-   SInt32 forwardPacket(const NetPacket& packet);
+   SInt32 forwardPacket(NetPacket& packet);
    
    // -- Network Injection/Ejection Rate Trace -- //
    static void computeTraceEnabledNetworks();

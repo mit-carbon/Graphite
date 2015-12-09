@@ -18,7 +18,7 @@ public:
    virtual ~QueueModel();
 
    virtual UInt64 computeQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile_id_t requester = INVALID_TILE_ID) = 0;
-
+   virtual UInt64 getVirtualQueueDelay(UInt64 pkt_time, UInt64 processing_time, tile_id_t requester = INVALID_TILE_ID);
    Type getType() { return _type; }
    float getQueueUtilization();
    UInt64 getTotalRequests() { return _total_requests; }

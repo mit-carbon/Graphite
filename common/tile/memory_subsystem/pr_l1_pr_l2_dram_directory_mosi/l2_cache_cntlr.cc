@@ -247,6 +247,7 @@ L2CacheCntlr::processShmemRequestFromL1Cache(MemComponent::Type mem_component, C
       // Set that the cache line in present in the L1 cache in the L2 tags
       if (L2_cache_line_info.getCachedLoc() != MemComponent::INVALID)
       {
+         /* somehow this assert occasionally fails */
          assert(L2_cache_line_info.getCachedLoc() != mem_component);
          assert(L2_cstate == CacheState::SHARED);
          // LOG_PRINT_WARNING("Address(%#lx) cached first in (%s), then in (%s)",

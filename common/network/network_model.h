@@ -67,7 +67,7 @@ public:
    bool hasBroadcastCapability() { return _has_broadcast_capability; }
 
    bool isPacketReadyToBeReceived(const NetPacket& pkt);
-   void __routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
+   void __routePacket(NetPacket &pkt, queue<Hop> &next_hops);
    void __processReceivedPacket(NetPacket &pkt);
 
    virtual void outputSummary(std::ostream &out, const Time& target_completion_time);
@@ -185,7 +185,7 @@ private:
    UInt64 _total_flits_broadcasted_in_current_interval;
    UInt64 _total_flits_received_in_current_interval;
 
-   virtual void routePacket(const NetPacket &pkt, queue<Hop> &next_hops) = 0;
+   virtual void routePacket(NetPacket &pkt, queue<Hop> &next_hops) = 0;
    virtual void processReceivedPacket(NetPacket &pkt);
  
    // DVFS 

@@ -12,7 +12,7 @@ public:
    NetworkModelEMeshHopCounter(Network *net, SInt32 network_id);
    ~NetworkModelEMeshHopCounter();
 
-   void routePacket(const NetPacket &pkt, queue<Hop> &next_hops);
+   void routePacket(NetPacket &pkt, queue<Hop> &next_hops);
    void outputSummary(std::ostream &out, const Time& target_completion_time);
 
    // Energy computation

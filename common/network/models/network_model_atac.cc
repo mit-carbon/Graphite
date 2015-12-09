@@ -334,7 +334,7 @@ NetworkModelAtac::destroyANetRouterAndLinkModels()
 }
 
 void
-NetworkModelAtac::routePacket(const NetPacket& pkt, queue<Hop>& next_hops)
+NetworkModelAtac::routePacket(NetPacket& pkt, queue<Hop>& next_hops)
 {
    tile_id_t pkt_sender = TILE_ID(pkt.sender);
    tile_id_t pkt_receiver = TILE_ID(pkt.receiver);

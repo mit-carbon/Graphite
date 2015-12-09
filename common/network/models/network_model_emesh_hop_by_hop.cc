@@ -143,7 +143,7 @@ NetworkModelEMeshHopByHop::destroyRouterAndLinkModels()
 }
 
 void
-NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, queue<Hop> &next_hops)
+NetworkModelEMeshHopByHop::routePacket(NetPacket &pkt, queue<Hop> &next_hops)
 {
    tile_id_t pkt_sender = TILE_ID(pkt.sender);
    tile_id_t pkt_receiver = TILE_ID(pkt.receiver);
@@ -152,6 +152,7 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, queue<Hop> &next_ho
    {
       UInt64 zero_load_delay = 0;
       UInt64 contention_delay = 0;
+
       _injection_router->processPacket(pkt, 0, zero_load_delay, contention_delay);
       
       Hop hop(pkt, _tile_id, EMESH, Latency(0,_frequency), Latency(contention_delay,_frequency));
@@ -167,17 +168,55 @@ NetworkModelEMeshHopByHop::routePacket(const NetPacket &pkt, queue<Hop> &next_ho
          computePosition(_tile_id, cx, cy);
 
          list<NextDest> next_dest_list;
+         
+         /* detect load, and judge the broadcast method here */
+         /* only calculate the contention at the sending node */
 
-         if (cy >= sy)
-            next_dest_list.push_back(NextDest(computeTileID(cx,cy+1), UP, EMESH));
-         if (cy <= sy)
-            next_dest_list.push_back(NextDest(computeTileID(cx,cy-1), DOWN, EMESH));
-         if (cy == sy)
-         {
-            if (cx >= sx)
+         if (TILE_ID(pkt.sender) == _tile_id) {
+           float queue_delay = _mesh_router->getAverageQueueDelay(pkt, 0, _num_mesh_router_ports-1);
+           float contention_delay = _mesh_router->getAverageContentionDelay(0, _num_mesh_router_ports-1);
+           fprintf(stdout, "calc contenion: packet cycles: %ld, queue_delay: %f, contention_delay: %f\n", 
+                   pkt.time.toCycles(_frequency), queue_delay, contention_delay);
+           /* virtual pkt length = 1, if queue > 0.5, we consider it having a heavy traffic now*/
+           if (queue_delay > 0.5) {
+             pkt.changeBroadcastType(PATH_LIKE);
+           }
+         }
+
+	 /* xy,tree like broadcast */
+         if (pkt.broadcast_type == TREE_LIKE) {
+           //fprintf(stdout, "LOG: sx: %d, sy: %d;    cx: %d, cy: %d\n", sx, sy, cx, cy);
+           if (cy >= sy)
+             next_dest_list.push_back(NextDest(computeTileID(cx,cy+1), UP, EMESH));
+           if (cy <= sy)
+             next_dest_list.push_back(NextDest(computeTileID(cx,cy-1), DOWN, EMESH));
+           if (cy == sy) {
+             if (cx >= sx)
                next_dest_list.push_back(NextDest(computeTileID(cx+1,cy), RIGHT, EMESH));
-            if (cx <= sx)
+             if (cx <= sx)
                next_dest_list.push_back(NextDest(computeTileID(cx-1,cy), LEFT, EMESH));
+           }
+         }
+
+	 /* path-based broadcast*/
+         if (pkt.broadcast_type == PATH_LIKE) { 
+           tile_id_t s_label = computeTileLabel(sx,sy);
+           tile_id_t c_label = computeTileLabel(cx,cy);
+           //fprintf(stdout, "LOG: s_label: %d, c_label: %d;    cx: %d, cy: %d\n", s_label, c_label, cx, cy);
+           if (c_label >= s_label) {
+             SInt32 nx, ny;
+             computePositionFromLabel(c_label+1, nx, ny);
+             //fprintf(stdout, "     nx: %d, ny: %d\n", nx, ny);
+             //fprintf(stdout, "     Next tile_id: %d, tile_label: %d\n", computeTileID(nx,ny), computeTileLabel(nx,ny));
+             next_dest_list.push_back(NextDest(computeTileID(nx,ny), dirTwoPos(nx,ny,cx,cy), EMESH));
+           } 
+           if (c_label <= s_label) {
+             SInt32 nx, ny;
+             computePositionFromLabel(c_label-1, nx, ny);
+             //fprintf(stdout, "     nx: %d, ny: %d\n", nx, ny);
+             //fprintf(stdout, "     Next tile_id: %d, tile_label: %d\n", computeTileID(nx,ny), computeTileLabel(nx,ny));
+             next_dest_list.push_back(NextDest(computeTileID(nx,ny), dirTwoPos(nx,ny,cx,cy), EMESH));
+           }
          }
          next_dest_list.push_back(NextDest(_tile_id, SELF, RECEIVE_TILE));
 
@@ -269,6 +308,29 @@ NetworkModelEMeshHopByHop::computePosition(tile_id_t tile_id, SInt32 &x, SInt32 
    x = tile_id % _mesh_width;
    y = tile_id / _mesh_width;
 }
+/*
+  func: compute the (x,y) from tile label
+  params:
+    {tile_id_t}:  tile label
+    x{SInt32}: x
+    y{SInt32}: y
+  return:
+    change x,y in place
+*/
+void
+  NetworkModelEMeshHopByHop::computePositionFromLabel(tile_id_t tile_label, SInt32 &x, SInt32 &y)
+{
+  if( (tile_label / _mesh_width) % 2 == 0) {
+    /* y is even */
+    y = tile_label / _mesh_width;
+    x = tile_label - y * _mesh_width;
+  }
+  else {
+    /* y is odd */
+    y = tile_label / _mesh_width;
+    x = (y + 1) * _mesh_width - tile_label - 1;
+  }
+}
 
 tile_id_t
 NetworkModelEMeshHopByHop::computeTileID(SInt32 x, SInt32 y)
@@ -277,6 +339,39 @@ NetworkModelEMeshHopByHop::computeTileID(SInt32 x, SInt32 y)
       return INVALID_TILE_ID;
    else
       return (y * _mesh_width + x);
+}
+
+/*
+  func: compute tile label, in the snake shape order
+  params:
+    x{SInt32}: x
+    y{SInt32}: y
+  return:
+    {tile_id_t}:  tile label
+*/
+SInt32
+NetworkModelEMeshHopByHop::computeTileLabel(SInt32 x, SInt32 y)
+{
+  if ( (x < 0) || (y < 0) || (x >= _mesh_width) || (y >= _mesh_height) )
+    return INVALID_TILE_ID;
+
+  if(y%2 == 0)
+    return (y * _mesh_width + x);
+  else
+    return ( (y+1) * _mesh_width - x -1 );
+}
+
+/* two positions next and current, get their relative direction */
+SInt32
+  NetworkModelEMeshHopByHop::dirTwoPos(SInt32 nx, SInt32 ny, SInt32 cx, SInt32 cy)
+{
+  if(ny > cy)
+    return UP;
+  if(ny < cy)
+    return DOWN;
+  if(nx > cy)
+    return RIGHT;
+  return LEFT;
 }
 
 SInt32

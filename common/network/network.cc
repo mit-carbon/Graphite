@@ -212,7 +212,7 @@ SInt32 Network::netSend(module_t module, NetPacket& packet)
 }
 
 
-SInt32 Network::forwardPacket(const NetPacket& packet)
+SInt32 Network::forwardPacket(NetPacket& packet)
 {
    // Create a buffer suitable for forwarding
    Byte* buffer = packet.makeBuffer();
@@ -648,6 +648,7 @@ NetPacket::NetPacket()
    , sender(INVALID_CORE_ID)
    , receiver(INVALID_CORE_ID)
    , node_type(NetworkModel::SEND_TILE)
+   , broadcast_type(TREE_LIKE)
    , length(0)
    , data(0)
    , zero_load_delay(0)
@@ -660,6 +661,7 @@ NetPacket::NetPacket(Time t, PacketType ty, SInt32 s,
    : time(t)
    , type(ty)
    , node_type(NetworkModel::SEND_TILE)
+   , broadcast_type(TREE_LIKE)
    , length(l)
    , data(d)
    , zero_load_delay(0)
@@ -677,6 +679,7 @@ NetPacket::NetPacket(Time t, PacketType ty, core_id_t s,
    , sender(s)
    , receiver(r)
    , node_type(NetworkModel::SEND_TILE)
+   , broadcast_type(TREE_LIKE)
    , length(l)
    , data(d)
    , zero_load_delay(0)
@@ -718,4 +721,9 @@ Byte* NetPacket::makeBuffer() const
    memcpy(buffer + sizeof(*this), data, length);
 
    return buffer;
+}
+
+void NetPacket::changeBroadcastType(BroadcastType t) 
+{
+  broadcast_type = t;
 }

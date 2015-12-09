@@ -1,6 +1,6 @@
 TARGET = volrend
 OBJECTS = adaptive.o file.o main.o map.o normal.o octree.o opacity.o option.o raytrace.o render.o view.o
-APP_FLAGS ?= 64 $(CURDIR)/inputs/head
+APP_FLAGS ?= 4 $(CURDIR)/inputs/head
 
 #MACROS := ../splash_support/c.m4.null.CARBON
 MACROS := ../splash_support/c.m4.null.POSIX

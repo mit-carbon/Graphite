@@ -140,7 +140,7 @@ NetworkModelEMeshHopCounter::computeDistance(SInt32 x1, SInt32 y1, SInt32 x2, SI
 }
 
 void
-NetworkModelEMeshHopCounter::routePacket(const NetPacket &pkt, queue<Hop> &next_hops)
+NetworkModelEMeshHopCounter::routePacket(NetPacket &pkt, queue<Hop> &next_hops)
 {
    SInt32 sx, sy, dx, dy;
 

@@ -36,6 +36,13 @@ enum PacketType
    NUM_PACKET_TYPES
 };
 
+// this defines the different broadcast routing strategy
+enum BroadcastType {
+  PATH_LIKE,
+  TREE_LIKE
+};
+
+
 // This defines the different static network types
 enum EStaticNetwork
 {

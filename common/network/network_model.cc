@@ -85,7 +85,7 @@ NetworkModel::isPacketReadyToBeReceived(const NetPacket& pkt)
 }
 
 void
-NetworkModel::__routePacket(const NetPacket& pkt, queue<Hop>& next_hops)
+NetworkModel::__routePacket(NetPacket& pkt, queue<Hop>& next_hops)
 {
    ScopedLock sl(_lock);
 

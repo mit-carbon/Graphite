@@ -35,6 +35,9 @@ public:
    // Energy Models
    RouterPowerModel* getPowerModel()  { return _power_model; }
 
+   // Get Queue Delay at a Given Packet
+   float getAverageQueueDelay(const NetPacket& pkt, SInt32 output_port_start, SInt32 output_port_end);
+
    // Contention Counters
    float getAverageContentionDelay(SInt32 output_port_start, SInt32 output_port_end = INVALID_PORT);
 
